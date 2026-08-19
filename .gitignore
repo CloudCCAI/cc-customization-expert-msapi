@@ -1,0 +1,4 @@
+.DS_Store
+cloudcc-cli.config.json
+.cloudcc-cache.json
+/.idea/

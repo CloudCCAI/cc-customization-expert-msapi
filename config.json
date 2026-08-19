@@ -1,0 +1,16 @@
+﻿{
+    "packageName":  "cc-customization-expert-msapi",
+    "version":  "2.2.9-msapi",
+    "releaseDate":  "2026-08-14",
+    "compatCloudccCliVersion":  "2.5.3",
+    "runtime":  "go",
+    "execution":  {
+                      "defaultMode":  "msapi",
+                      "strictMode":  "msapi",
+                      "env":  "CLOUDCC_EXECUTION_MODE",
+                      "projectConfigKeys":  [
+                                                "executionMode",
+                                                "execution_mode"
+                                            ]
+                  }
+}

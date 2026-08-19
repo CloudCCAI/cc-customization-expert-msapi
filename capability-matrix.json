@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "cloudcc-dual-provider-capability-matrix/v1",
+  "releaseBaseline": "2.2.5",
+  "msapiBaseline": {
+    "domains": 21,
+    "operations": 91,
+    "source": "cli/internal/msapi/setup_svc_live_replay.go:setupSvcLiveReplayDomains"
+  },
+  "semantics": {
+    "shared": "Business intent, stable CLI vocabulary, input normalization, and documented result shape.",
+    "msapi": "Native server plan/apply/changes/rollback and change-ledger semantics.",
+    "uiapi": "Direct CloudCC UI/API calls. Provider-specific preview or compensation is never represented as server rollback.",
+    "uiapiOperationState": "contract_tested means a local HTTP route/body contract test passed; mapped means a source-proven adapter exists but still needs operation-level contract coverage; unsupported must fail closed."
+  },
+  "domains": [
+    {"id":"objects","uiapiResource":"object","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","physical-purge":"contract_tested","query":"contract_tested"}},
+    {"id":"fields","uiapiResource":"fields","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
+    {"id":"global-select-lists","uiapiResource":"globalSelectList","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
+    {"id":"record-types","uiapiResource":"recordType","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
+    {"id":"layouts","uiapiResource":"pagelayout","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
+    {"id":"profiles","uiapiResource":"profile","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
+    {"id":"permissions","uiapiResource":"permission","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","assign":"contract_tested","remove":"contract_tested","query":"contract_tested"}},
+    {"id":"roles","uiapiResource":"role","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","assign":"contract_tested","query":"contract_tested"}},
+    {"id":"sharing-rules","uiapiResource":"sharingRule","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
+    {"id":"validation-rules","uiapiResource":"validationRule","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
+    {"id":"applications","uiapiResource":"application","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
+    {"id":"menus","uiapiResource":"menu","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
+    {"id":"buttons","uiapiResource":"button","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
+    {"id":"custom-settings","uiapiResource":"customSetting","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
+    {"id":"dupe-catchers","uiapiResource":"dupeCatcher","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
+    {"id":"single-sign-ons","uiapiResource":"singleSignOn","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
+    {"id":"identity-providers","uiapiResource":"identityProvider","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
+    {"id":"approval-processes","uiapiResource":"approval","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
+    {"id":"reports","uiapiResource":"report","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","folder-create":"contract_tested","folder-update":"contract_tested","folder-delete":"contract_tested","query":"contract_tested"}},
+    {"id":"dashboards","uiapiResource":"dashboard","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
+    {"id":"object-views","uiapiResource":"view","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}}
+  ]
+}

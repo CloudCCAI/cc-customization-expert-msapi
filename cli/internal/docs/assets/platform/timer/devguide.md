@@ -1,0 +1,321 @@
+# CloudCC 定时器开发规范
+
+## 1. 核心原则
+
+定时器只做任务入口，复杂业务逻辑统一写入自定义类。
+
+推荐职责划分：
+
+- 定时器：初始化上下文、调用自定义类、记录必要日志
+- 自定义类：承载业务规则、聚合其他类、负责编排逻辑
+
+## 2. 开发规范
+
+- 一个定时任务对应一个定时器类
+- 创建定时器时，推荐使用自动创建自定义类模式：`cloudcc create timer <name> true`
+- 发业务逻辑需要在创建的自定义类中实现
+- 定时器类中实现编排自定义类的调用
+
+## 3. 文件约束
+
+- 定时器目录位于 `schedule/<类名>/`
+- 业务代码只写在 `SOURCE_CONTENT` 区域内
+- 不要手工创建目录或修改 `config.json` 关键内容
+
+## 4. 可直接使用的上下文
+
+- `userInfo`
+
+## 5. 推荐写法
+
+定时器中只保留入口逻辑：
+
+```java
+UserInfo userInfo = new UserInfo();
+// @SOURCE_CONTENT_START
+MyTimerService service = new MyTimerService(userInfo);
+service.execute();
+// @SOURCE_CONTENT_END
+```
+
+自定义类中承载业务实现：
+
+```java
+// @SOURCE_CONTENT_START
+public class MyTimerService{
+    private UserInfo userInfo;
+    private CCService cs;
+
+    public MyTimerService(UserInfo userInfo){
+        this(userInfo,new CCService(userInfo));
+    }
+    public MyTimerService(UserInfo userInfo,CCService cs){
+        this.userInfo = userInfo;
+        this.cs=cs;
+    }
+    
+    public void execute(String str){
+       // 在这里编写业务逻辑
+    }
+}
+// @SOURCE_CONTENT_END
+```
+
+## 6. 结论
+
+定时器的定位是定时执行入口，不是业务实现容器。
+
+最佳实践是：
+
+- 定时器保持精简
+- 业务逻辑写入自定义类
+- 复杂流程通过自定义类继续拆分和编排
+
+## 7. 文件与交付规范
+
+这是 AI 必须遵守的第一层约束。
+
+### 7.1 目录与文件来源
+
+- 定时器目录必须位于 `schedule/<类名>/`
+- 每个定时器目录包含主类 `*.java` 和 `config.json`
+- 定时器目录必须通过 `cloudcc create timer <name>` 创建
+
+### 7.2 AI 不得做的事情
+
+- 不要手工新建 `schedule/` 子目录
+- 不要整包复制其他项目的定时器目录
+- 不要手工修改 `config.json` 中的 `id` 或版本字段
+- 不要在 `// @SOURCE_CONTENT_START` 与 `// @SOURCE_CONTENT_END` 之外写业务逻辑
+
+### 7.3 AI 允许做的事情
+
+- 只在 CLI 生成的主类 SOURCE 区域内实现业务逻辑
+- 保持 `package schedule.<类名>;` 与目录名一致
+- 构造方法名与类名一致
+
+### 7.4 timer 模块支持的 CLI 命令总览（重点：入参）
+
+说明：
+
+- 下文命令中的资源名使用 `timer`，也可使用别名
+  `schedule`（两者路由到同一模块）。
+- `projectPath` 未传时，默认使用当前工作目录。
+
+#### 1) 创建定时类
+
+命令：
+
+```bash
+cloudcc create timer <name> [autoCreateClass]
+```
+
+参数：
+
+| 参数   | 必填 | 类型     | 说明                                    |
+| ------ | ---- | -------- | --------------------------------------- |
+| `name` | 是   | `string` | 定时类名称,必须使用英文（同时作为目录名、Java 类名） |
+| `autoCreateClass` | 否 | `boolean` | 是否自动创建配套自定义类；默认 `false`，传 `true` 开启推荐自动创建模式 |
+
+示例：
+
+```bash
+cloudcc create timer DailySyncJob
+
+# 推荐：自动创建配套自定义类
+cloudcc create timer DailySyncJob true
+```
+
+---
+
+#### 2) 发布定时类
+
+命令：
+
+```bash
+cloudcc publish timer <name> [projectPath]
+```
+
+参数：
+
+| 参数   | 必填 | 类型     | 说明                           |
+| ------ | ---- | -------- | ------------------------------ |
+| `name` | 是   | `string` | 本地 `schedule/<name>/` 目录名 |
+| `projectPath` | 否 | `string` | 项目根目录；未传时使用当前工作目录 |
+
+示例：
+
+```bash
+cloudcc publish timer DailySyncJob <projectPath>
+```
+
+发布顺序固定为：
+
+1. 远程 validate，调用 `POST /api/ccPeak/validate`。
+2. 保存，调用 `POST /api/ccPeak/save`。
+
+从 CLI/技能 `2.2.7` 开始，`publish timer` 要求目标 setup-svc 至少为 `19.3.R20`，因为旧版本 setup-svc 不提供 `/api/ccPeak/validate`。
+
+`/api/ccPeak/validate` 的实际入参类型也是 `CCfagVo`，服务端实际读取并编译的是 `source`，编译入口固定为 `PeakFunctionImpl`。CLI 发送的 `id`、`name`、`version`、`folderId` 是为了复用后续 save payload 和保留上下文；这些字段不参与 validate 编译判断。`source` 在远程 validate 和 save 中都会使用 URLDecoder-compatible 编码；源码中的字面量 `+` 会编码为 `%2B`。远程 validate 失败时，CLI 必须返回 setup-svc 的 `returnInfo`、`data.errors`、`data.warnings` 和原始 `responseBody`，并且不能继续 save。
+
+---
+
+#### 3) 拉取定时类（按本地名称）
+
+命令：
+
+```bash
+cloudcc pull timer <name>
+```
+
+参数：
+
+| 参数   | 必填 | 类型     | 说明                                                                            |
+| ------ | ---- | -------- | ------------------------------------------------------------------------------- |
+| `name` | 是   | `string` | 本地 `schedule/<name>/` 目录名；会读取该目录 `config.json` 中的 `id` 到线上拉取 |
+
+示例：
+
+```bash
+cloudcc pull timer DailySyncJob
+```
+
+---
+
+#### 4) 查询定时类列表（支持条件查询）
+
+命令：
+
+```bash
+cloudcc get timer [listQueryJson] [projectPath]
+```
+
+`listQueryJson` 推荐结构：
+
+```json
+{
+    "shownum": 2000,
+    "showpage": 1,
+    "sname": ""
+}
+```
+
+字段说明：
+
+| 字段       | 类型     | 必填    | 说明                     |
+| ---------- | -------- | ------- | ------------------------ |
+| `shownum`  | `number  | string` | 否                       |
+| `showpage` | `number  | string` | 否                       |
+| `sname`    | `string` | 否      | 名称筛选关键字，模糊查询 |
+
+示例：
+
+```bash
+cloudcc get timer '{"shownum":2000,"showpage":1,"fid":"","sname":"Daily","rptcond":"","rptorder":""}'
+```
+
+---
+
+#### 5) 查看定时类详情
+
+命令：
+
+```bash
+cloudcc detail timer <name> <id>
+```
+
+参数规则（实现口径）：
+
+| 参数   | 必填     | 类型     | 说明                                         |
+| ------ | -------- | -------- | -------------------------------------------- |
+| `name` | 条件必填 | `string` | 传 `name` 时优先查本地；本地不完整时再走线上 |
+| `id`   | 条件必填 | `string` | 当 `name` 为空时，必须传 `id` 走线上查询     |
+
+等价理解：`name` 与 `id` 至少传一个，优先使用 `name` 路径。
+
+示例（按本地名）：
+
+```bash
+cloudcc detail timer DailySyncJob
+```
+
+示例（按线上 id）：
+
+```bash
+cloudcc detail timer "" a0Bxxxxxxxxxxxx
+```
+
+---
+
+#### 6) 按 ID 拉取并落地到本地目录
+
+命令：
+
+```bash
+cloudcc pullList timer <id> <projectPath>
+```
+
+参数：
+
+| 参数          | 必填 | 类型     | 说明                                                  |
+| ------------- | ---- | -------- | ----------------------------------------------------- |
+| `id`          | 是   | `string` | 线上定时类 ID                                         |
+| `projectPath` | 是   | `string` | 项目根目录；会写入到 `<projectPath>/schedule/<name>/` |
+
+示例：
+
+```bash
+cloudcc pullList timer a0Bxxxxxxxxxxxx /path/to/project
+```
+
+---
+
+#### 7) 删除定时类
+
+命令：
+
+```bash
+cloudcc delete timer <nameOrId> [projectPath]
+```
+
+参数规则：
+
+| 参数          | 必填 | 类型     | 说明                                                                                                    |
+| ------------- | ---- | -------- | ------------------------------------------------------------------------------------------------------- |
+| `nameOrId`    | 是   | `string` | 可传本地目录名或线上 ID；若本地 `schedule/<nameOrId>/config.json` 存在且带 `id`，优先使用其中 `id` 删除 |
+| `projectPath` | 否   | `string` | 项目根目录，默认当前目录                                                                                |
+
+示例（按名称）：
+
+```bash
+cloudcc delete timer DailySyncJob
+```
+
+示例（按 id）：
+
+```bash
+cloudcc delete timer a0Bxxxxxxxxxxxx
+```
+
+---
+
+#### 8) 文档命令
+
+命令：
+
+```bash
+cloudcc doc platform/timer <introduction|devguide>
+```
+
+参数：
+
+| 参数          | 必填      | 类型 | 说明     |
+| ------------- | --------- | ---- | -------- |
+| `introduction | devguide` | 是   | `string` |
+
+示例：
+
+```bash
+cloudcc doc platform/timer introduction
+cloudcc doc platform/timer devguide
+```
