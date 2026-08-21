@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.11"
+const Version = "2.2.12"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -34,6 +34,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	case "changelog":
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
+		fmt.Fprintln(stderr, "- MetadataService compatibility matrix is now recorded in skill config.json; msapi.objects.batchCreate introduced in 2.2.10-msapi requires MetadataService 1.1.23 or later.")
 		fmt.Fprintln(stderr, "- Page layout methodology docs now define reusable layout naming, section grouping, semantic field placement, related-list ordering, and review gates without tenant-specific scan evidence.")
 		fmt.Fprintln(stderr, "- Object create now supports batch MetadataService specs with top-level objects[]; apply allocates unique setup-svc-compatible prefixes and datatable names per object under the target tenant lock, and docs show the plan/apply/readback flow.")
 		fmt.Fprintln(stderr, "- Object create shortcuts now accept CloudCC default access with --accessable 0|1|2, passing accessable to MetadataService plans and the legacy setup-svc create body while preserving the existing default when omitted.")
