@@ -93,7 +93,54 @@ cloudcc create object ./project 知识库 knowledge "知识库对象" --accessab
 cloudcc create object ./project 公告 notice "公告对象" --accessable 2
 ```
 
-### 4.3 创建过程
+### 4.3 批量创建对象
+
+一次要创建多个对象时，使用 `plan msapi ... objects @文件 create`，文件顶层写 `objects` 数组。每个数组项就是一个普通对象创建 spec。
+
+示例 `objects-batch.json`：
+
+```json
+{
+  "objects": [
+    {
+      "id": "obj_contract",
+      "label": "合同",
+      "apiName": "contract",
+      "nameLabel": "合同编号",
+      "description": "用于管理合同主数据",
+      "accessable": 0
+    },
+    {
+      "id": "obj_invoice",
+      "label": "发票",
+      "apiName": "invoice",
+      "nameLabel": "发票编号",
+      "description": "用于管理发票主数据",
+      "accessable": 1
+    }
+  ]
+}
+```
+
+执行命令：
+
+```bash
+cloudcc plan msapi <projectPath> objects @objects-batch.json create
+cloudcc apply msapi <projectPath> <planId>
+cloudcc get object <projectPath> custom
+```
+
+批量创建时建议不要在 spec 中手工填写 `prefix`、`objPrefix` 或 `datatableName`。MetadataService 会在 `apply` 阶段按租户级锁为每个对象分配 CloudCC 兼容的唯一 `PREFIX` 和 `DATATABLE_NAME`，同一批内不会复用同一个前缀或物理表。
+
+批量计划会先拦截明显冲突：
+
+- 同一批内对象 API 名重复会失败。
+- 同一批内显式 `datatableName` 重复会失败。
+- 同一批内显式 `prefix`/`objPrefix` 重复会失败。
+
+`apply` 完成后，以 `get object` 或对象详情回读的真实 `id`、`prefix`、`datatableName` 为准。调用方如果把对象拆成多批执行，也应在每批 apply 后回读结果，不要用 plan 前的临时推断值作为最终前缀。
+
+### 4.4 创建过程
 
 创建对象时，快捷命令会：
 

@@ -51,6 +51,8 @@ cloudcc delete fields <projectPath> <fieldId> <objid>
 
 `cloudcc plan msapi <projectPath> fields @field.json create` 会按 setup-svc 的真实保存语义展开字段元数据；对象计划中的 `fields[]` 也使用同一条展开链路。普通 CLI `create fields` 的位置参数只覆盖基础字段模板，自动编号、查找筛选和相关列表等高级配置应使用 MetadataService spec。
 
+字段创建如果会进入页面布局，必须先按 `platform/pagelayout devguide` 的页面布局配置方法论判断落位。能读取对象布局详情时，优先在字段 spec 中显式提供 `layoutPlacements`，或在字段创建后通过 `pagelayout detail` / `pagelayout update` 调整 PC 和 mobile 布局。只有缺少布局上下文时才允许依赖 MetadataService 自动摆放，并在输出中标注为兜底。
+
 自动编号字段必须同时生成字段行和 `tp_sys_autonum` 配置，不能只把字段类型设为 `V`：
 
 ```json

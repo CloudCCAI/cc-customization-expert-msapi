@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.9"
+const Version = "2.2.11"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -34,6 +34,8 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	case "changelog":
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
+		fmt.Fprintln(stderr, "- Page layout methodology docs now define reusable layout naming, section grouping, semantic field placement, related-list ordering, and review gates without tenant-specific scan evidence.")
+		fmt.Fprintln(stderr, "- Object create now supports batch MetadataService specs with top-level objects[]; apply allocates unique setup-svc-compatible prefixes and datatable names per object under the target tenant lock, and docs show the plan/apply/readback flow.")
 		fmt.Fprintln(stderr, "- Object create shortcuts now accept CloudCC default access with --accessable 0|1|2, passing accessable to MetadataService plans and the legacy setup-svc create body while preserving the existing default when omitted.")
 		fmt.Fprintln(stderr, "- Global modeling field dictionary governance now treats the dictionary as a metadata disposition decision table: API selection uses explicit final-design APIs, structured API columns, English snake_case normalization, then Chinese pinyin fallback; non-field migration keys, source-code mappings, crosswalk-only rows, system fields, and global select lists must be classified before MSAPI plan generation.")
 		fmt.Fprintln(stderr, "- High-code publish validation gate docs: cloudcc doc platform/classes|triggers|timer|almRelease devguide now documents class local compiler validation, target setup-svc validate (/api/ccfag/validate, /api/trigger/validate, /api/ccPeak/validate), setup-svc minimum version 19.3.R20, encoding rules, and structured validation failure responses.")
