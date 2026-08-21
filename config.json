@@ -1,6 +1,6 @@
 ﻿{
     "packageName":  "cc-customization-expert-msapi",
-    "version":  "2.2.12-msapi",
+    "version":  "2.2.13-msapi",
     "releaseDate":  "2026-08-21",
     "compatCloudccCliVersion":  "2.5.3",
     "runtime":  "go",
@@ -21,6 +21,21 @@
                                                                                             "create"
                                                                                         ],
                                                                          "reason":  "Requires server-side objects[] batch planning and apply-time per-object PREFIX/DATATABLE_NAME allocation."
+                                                                     },
+                                                                     {
+                                                                         "capability":  "msapi.globalSelectLists.batchAdd",
+                                                                         "label":  "Batch add global select lists and append or merge options",
+                                                                         "introducedInSkillVersion":  "2.2.13-msapi",
+                                                                         "minimumMetadataServiceVersion":  "1.1.24",
+                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.24",
+                                                                         "domains":  [
+                                                                                         "global-select-lists"
+                                                                                     ],
+                                                                         "operations":  [
+                                                                                            "create",
+                                                                                            "upsert"
+                                                                                        ],
+                                                                         "reason":  "Requires server-side globalSelectLists[] precheck, onExisting policies, and optionsMode append/merge/replace handling."
                                                                      }
                                                                  ]
                                      },

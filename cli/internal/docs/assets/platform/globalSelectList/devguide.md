@@ -55,7 +55,140 @@ cloudcc create globalSelectList . '%7B%22label%22:%22%E5%AE%A2%E6%88%B7%E7%AD%89
 
 ---
 
-## 3. 查询全局选项列表
+## 3. 批量添加全局选项列表
+
+一次要创建多个全局选项列表时，使用 MetadataService plan/apply，文件顶层写 `globalSelectLists` 数组。每个数组项就是一个普通全局选项列表 spec。
+
+示例 `global-select-lists-batch.json`：
+
+```json
+{
+  "globalSelectLists": [
+    {
+      "id": "gsl_customer_level",
+      "name": "customer_level",
+      "label": "客户等级",
+      "description": "客户等级共享值集",
+      "options": ["普通", "银牌", "金牌"]
+    },
+    {
+      "id": "gsl_business_line",
+      "name": "business_line",
+      "label": "业务线",
+      "options": [
+        {"value": "industry", "localizedValue": "工业"},
+        {"value": "service", "localizedValue": "服务"}
+      ]
+    }
+  ]
+}
+```
+
+执行命令：
+
+```bash
+cloudcc plan msapi <projectPath> global-select-lists @global-select-lists-batch.json create
+cloudcc apply msapi <projectPath> <planId>
+cloudcc get globalSelectList <projectPath>
+```
+
+批量计划会先拦截明显冲突：
+
+- 同一批内 `id` / `globalSelectId` 重复会失败。
+- 同一批内 `name` / `apiName` 重复会失败。
+- 同一列表内选项值重复会失败。
+- 目标环境已有同 `id` 或同 `name` 的列表时，按 `onExisting` 策略处理。
+
+### 3.1 已存在列表处理策略
+
+根字段 `onExisting` 控制目标环境已有同名或同 ID 列表时的行为：
+
+| 策略 | 行为 |
+|------|------|
+| `createOnly` | 默认策略；目标已存在时 plan 阶段报错，不进入 apply。 |
+| `skipExisting` | 目标已存在时跳过该列表，plan metadata 会记录 skipped。 |
+| `updateExisting` | 目标已存在时更新 `tp_sys_global_select` 主表；默认不改选项。 |
+| `upsertByApiName` | 按 `name` / `apiName` 解析目标；`upsert` 操作默认使用该策略。 |
+
+示例：
+
+```json
+{
+  "onExisting": "skipExisting",
+  "globalSelectLists": [
+    {"name": "customer_level", "label": "客户等级"},
+    {"name": "customer_status", "label": "客户状态", "options": ["正常", "冻结"]}
+  ]
+}
+```
+
+### 3.2 给已有列表批量添加选项
+
+对已有列表处理选项时，必须显式声明 `optionsMode`。如果不声明，`updateExisting` 只更新列表主表，不会重建、追加或覆盖已有 `tp_sys_code` 选项链。
+
+| 模式 | 行为 |
+|------|------|
+| `none` | 不处理选项，只处理列表主表。 |
+| `append` | 只追加不存在的选项值；已存在值跳过。 |
+| `merge` | 已存在值复用原选项 ID 更新标签、排序、启用状态等；不存在值新增。 |
+| `replace` | 先删除该列表下所有 `tp_sys_code` 选项，再写入请求选项；必须 `allowDestructive=true`。 |
+
+追加选项示例：
+
+```json
+{
+  "onExisting": "updateExisting",
+  "optionsMode": "append",
+  "globalSelectLists": [
+    {
+      "name": "customer_level",
+      "label": "客户等级",
+      "options": ["钻石", "战略客户"]
+    }
+  ]
+}
+```
+
+合并选项示例：
+
+```json
+{
+  "onExisting": "updateExisting",
+  "optionsMode": "merge",
+  "globalSelectLists": [
+    {
+      "name": "customer_level",
+      "label": "客户等级",
+      "options": [
+        {"value": "gold", "localizedValue": "金牌客户", "active": true},
+        {"value": "platinum", "localizedValue": "铂金客户", "active": true}
+      ]
+    }
+  ]
+}
+```
+
+替换选项属于破坏性操作，创建 plan 时必须允许 destructive。只在确认目标列表的旧选项可以全部重建时使用：
+
+```json
+{
+  "onExisting": "updateExisting",
+  "optionsMode": "replace",
+  "globalSelectLists": [
+    {
+      "name": "customer_level",
+      "label": "客户等级",
+      "options": ["普通", "银牌", "金牌"]
+    }
+  ]
+}
+```
+
+批量全局选项列表能力要求 MetadataService `1.1.24` 或更高版本。旧版本只支持把 `globalSelectLists[]` 顺序展开为普通 upsert，不支持目标环境预检、`onExisting` 策略或 `optionsMode`。
+
+---
+
+## 4. 查询全局选项列表
 
 ```bash
 # 获取全部列表（默认分页 pageSize=10000）
@@ -82,7 +215,7 @@ cloudcc get globalSelectList /path/to/project
 
 ---
 
-## 4. 查看详情
+## 5. 查看详情
 
 ```bash
 cloudcc detail globalSelectList . <id>
@@ -126,7 +259,7 @@ cloudcc detail globalSelectList . <id>
 
 ---
 
-## 5. 删除全局选项列表
+## 6. 删除全局选项列表
 
 ```bash
 cloudcc delete globalSelectList . <id>
@@ -140,7 +273,7 @@ cloudcc delete globalSelectList . <id>
 
 ---
 
-## 6. 查看文档
+## 7. 查看文档
 
 ```bash
 # 查看能力介绍
