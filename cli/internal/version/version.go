@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.18"
+const Version = "2.2.19"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -34,6 +34,8 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	case "changelog":
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
+		fmt.Fprintln(stderr, "- High-code business-source guidance now treats cquery* expressions as database-side business boundaries, documents the platform result limit risk, and forbids generated existence checks, duplicate checks, idempotency guards, and numbering prechecks from using 1=1 full-table reads followed by Java-side loops; generated classes, triggers, and timer classes must push business-key predicates into cqueryByFields/pagedQuery and select only needed fields.")
+		fmt.Fprintln(stderr, "- High-code source-size guidance now requires generated classes, triggers, and timer-related custom classes to keep each Java file under 2000 lines and split complex requirements into multiple cooperating classes before one file becomes too large.")
 		fmt.Fprintln(stderr, "- Field rollup summary creation now documents MetadataService specs for single and batch fields, setup-web-shaped payload aliases, server-derived executeExpression/decimalPlaces/summaryfieldtype, and fail-closed filtered-summary SQL requirements.")
 		fmt.Fprintln(stderr, "- Batch MetadataService create plans for objects, fields, and global select lists now report item-level precheck results in plan metadata: PLANNED, SKIPPED, or FAILED_PRECHECK with per-item error details, while keeping apply-time SQL execution batched and transactional.")
 		fmt.Fprintln(stderr, "- Batch MetadataService create apply for objects, fields, and global select lists now documents async apply with {\"async\":true}, an applyId equal to operationId, and operation polling to avoid gateway timeout ambiguity.")

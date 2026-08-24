@@ -16,6 +16,7 @@
 - 直接保存线上元数据使用：`cloudcc create trigger <projectPath> <triggerJson|@file>`。
 - 尽量不要在触发器中直接开发业务逻辑
 - 需要复用、编排、扩展的逻辑，统一下沉到自定义类
+- 触发器或其调用的自定义类做查重、存在性判断、幂等判断时，必须把业务键写入查询条件；禁止先用 `1=1` 查询全表再循环比对。`cquery*` 相关方法有平台返回条数上限，默认通常为 5000 且可配置，所以这种写法除了性能差，还会在重复记录不在返回窗口内时漏判
 
 ## 3. 触发时间
 
@@ -223,6 +224,7 @@ cloudcc doc platform/triggers devguide
 - 触发器天然是“薄入口”
 - 不适合承载超长业务逻辑
 - 更不适合在触发器里构建一整套复杂服务
+- 触发器源码和它调用的自定义类都必须遵守单个 Java 文件低于 2000 行的限制；复杂逻辑应拆成多个自定义类
 
 ## 11. AI 必须遵守的硬规则
 
@@ -248,6 +250,8 @@ AI 修改已有触发器时，只能修改：
 - 目录结构
 - `config.json`
 - SOURCE 标记外的框架代码
+
+触发器 SOURCE 区域必须保持薄入口；如果业务实现预计让触发器或单个服务类超过 1500 行，AI 必须先拆分为多个自定义类，再由触发器调用入口服务。禁止生成超过 2000 行的触发器或单个自定义类源码。
 
 ### 11.3 不得私改 `config.json` 的身份字段
 
@@ -288,6 +292,34 @@ AI 不能默认“更新一下没事”。
 - 自动创建共享
 
 必须先判断是否已执行过，否则很容易重复生成、重复发送、重复推送。
+
+判断方式必须收敛到业务键查询。`cquery*` 的 `expression` 是数据库侧过滤条件，不是“先查一批候选数据再由 Java 判断”的占位。禁止写成 `cquery("Object", "1=1")` 或 `cqueryByFields("Object", "1=1", ...)` 后循环比对；这类方法存在平台返回条数上限，默认通常为 5000 且可配置，大表上会漏掉 5000 条以后的重复数据。应使用 `cqueryByFields` 或 `pagedQuery`，把当前记录 ID、业务唯一键、状态、时间范围等条件放进 expression，并只返回 `id` 等必要字段。
+
+禁止写法：
+
+```java
+List accounts = cs.cqueryByFields("Account", "1=1", "id,tyshxydm,code");
+for (int i = 0; i < accounts.size(); i++) {
+    CCObject account = (CCObject) accounts.get(i);
+    if (newTax.equals(account.get("tyshxydm"))) {
+        trigger.addErrorMessage("Duplicate unified social credit code.");
+    }
+}
+```
+
+正确写法：
+
+```java
+String expression = "tyshxydm = '" + newTax.replace("'", "\\'") + "'";
+Object currentIdObj = record_new.get("id");
+if (currentIdObj != null && currentIdObj.toString().trim().length() > 0) {
+    expression += " and id != '" + currentIdObj.toString().replace("'", "\\'") + "'";
+}
+List exists = cs.pagedQuery("Account", expression, "1", "1", "false", "id");
+if (exists != null && exists.size() > 0) {
+    trigger.addErrorMessage("Duplicate unified social credit code.");
+}
+```
 
 ### 11.7 涉及时间必须优先使用 `TimeUtil`
 

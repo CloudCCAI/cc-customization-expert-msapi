@@ -468,7 +468,7 @@ List<CCObject> cquery(String objectApiName, String expression, String ordings)
 | 参数名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
 | `objectApiName` | String | 是 | 对象 API 名称，如 `"Account"`、`"Contact"`，标准对象 `User` 自动映射为 `ccuser`，`Case` 自动映射为 `cloudcccase` |
-| `expression` | String | 是 | 查询条件，SQL WHERE 子句格式。查全部记录时可传 `"1=1"`。支持 `=`、`!=`、`>`、`<`、`LIKE`、`IN`、`AND`、`OR` 等标准 SQL 运算符 |
+| `expression` | String | 是 | 查询条件，SQL WHERE 子句格式，是数据库侧过滤边界，不是 Java 侧事后过滤的候选集描述。业务代码必须传入可收敛的过滤条件；`"1=1"` 只允许用于明确的后台诊断/导出场景，禁止用于查重、存在性判断、幂等判断或编号生成前置判断。`cquery*` 系列方法有平台返回条数上限，默认通常为 5000 且可配置，因此 `1=1` 后循环比对既慢又可能漏判。支持 `=`、`!=`、`>`、`<`、`LIKE`、`IN`、`AND`、`OR` 等标准 SQL 运算符 |
 | `ordings` | String | 否 | 排序子句，格式为 `ORDER BY 字段名 ASC\|DESC`，支持多字段排序 |
 
 **返回值**
@@ -480,9 +480,6 @@ List<CCObject> cquery(String objectApiName, String expression, String ordings)
 ```java
 // 查询状态为"启用"的客户
 List<CCObject> activeAccounts = ccService.cquery("Account", "status__c = '启用'");
-
-// 查询全部（使用恒真条件）
-List<CCObject> allAccounts = ccService.cquery("Account", "1=1");
 
 // 查询并按创建时间倒序
 List<CCObject> sortedAccounts = ccService.cquery(
@@ -521,7 +518,7 @@ List<CCObject> cqueryByFields(String objectApiName, String expression, String fi
 | 参数名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
 | `objectApiName` | String | 是 | 对象 API 名称 |
-| `expression` | String | 是 | 查询条件，无条件时传 `"1=1"` |
+| `expression` | String | 是 | 查询条件，是数据库侧过滤边界。业务代码必须传入对象、业务键、状态、时间范围等边界条件；不要用 `"1=1"` 做查重或存在性判断。`cquery*` 结果有平台上限，默认通常为 5000 且可配置，不能依赖全量返回后再循环判断 |
 | `fields` | String | 是 | 逗号分隔的字段 API 名列表，`id` 字段始终会返回 |
 
 **返回值**
@@ -566,7 +563,7 @@ List<CCObject> cqueryNoLang(String objectApiName, String expression, String fiel
 | 参数名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
 | `objectApiName` | String | 是 | 对象 API 名称 |
-| `expression` | String | 否 | 查询条件，传 `null` 则查全部 |
+| `expression` | String | 否 | 查询条件，传 `null` 则查全部。业务代码不得为了查重、存在性、幂等或编号前置判断传 `null`/`1=1` 后循环比对；`cquery*` 结果有平台上限，默认通常为 5000 且可配置，可能导致漏判 |
 | `fields` | String | 否 | 指定返回字段，传 `null` 返回全部字段 |
 | `ordings` | String | 否 | 排序子句，传 `null` 不排序 |
 
@@ -622,7 +619,7 @@ List<CCObject> cqueryWithRoleRight(String objectApiName, String expression, Stri
 | 参数名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
 | `objectApiName` | String | 是 | 对象 API 名称 |
-| `expression` | String | 是 | 查询条件，不传条件时传 `"1=1"` |
+| `expression` | String | 是 | 查询条件，是权限过滤前的数据库侧业务边界。对外或权限相关业务也必须传入可收敛条件；不要用 `"1=1"` 做查重、存在性判断或幂等判断。`cquery*` 结果有平台上限，默认通常为 5000 且可配置，不能替代唯一性判断 |
 | `isAddDeleteHttp` | String | 否 | `"true"` 返回结果中包含删除权限标记；`"false"` 不包含，默认 `"false"` |
 | `fields` | String | 否 | 指定字段，`null` 返回全部有权限的字段 |
 | `iscurrency` | String | 否 | `"true"` 启用多货币 |
@@ -677,7 +674,7 @@ List<CCObject> cqueryWithRoleRightNoLang(String objectApiName, String expression
 | 参数名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
 | `objectApiName` | String | 是 | 对象 API 名称 |
-| `expression` | String | 是 | 查询条件 |
+| `expression` | String | 是 | 查询条件，必须下推业务键、状态或时间范围等边界；不要用 `"1=1"`/`null` 后在 Java 中循环做查重、存在性或幂等判断 |
 | `fields` | String | 否 | 指定返回字段，`null` 返回全部 |
 
 **示例**
@@ -791,7 +788,7 @@ List<CCObject> pagedQuery(String objectApiName, String expression, String pageNU
 | 参数名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
 | `objectApiName` | String | 是 | 对象 API 名称 |
-| `expression` | String | 是 | 查询条件，无条件时传 `"1=1"` |
+| `expression` | String | 是 | 查询条件。分页查询也必须有业务边界；后台诊断以外不要用 `"1=1"` 扫描大对象。查重/存在性判断推荐 `pageNUM="1"`、`pageSize="1"`、`fields="id"`，把业务键条件直接写入 expression |
 | `pageNUM` | String | 是 | 当前页码，**从 `"1"` 开始**，传 String 类型 |
 | `pageSize` | String | 是 | 每页记录数，如 `"20"`、`"50"`，传 String 类型 |
 | `isAddDelete` | String | 否 | `"true"` 附带删除权限标记 |
@@ -842,7 +839,7 @@ List<CCObject> pagedQueryWithRoleRight(String objectApiName, String expression, 
 | 参数名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
 | `objectApiName` | String | 是 | 对象 API 名称 |
-| `expression` | String | 是 | 查询条件 |
+| `expression` | String | 是 | 查询条件，必须有业务边界；权限分页也不能用 `"1=1"` 后在 Java 中循环做查重、存在性或幂等判断 |
 | `pageNUM` | String | 是 | 页码（从 `"1"` 开始） |
 | `pageSize` | String | 是 | 每页记录数 |
 
@@ -2706,6 +2703,28 @@ AI 不应默认把所有逻辑塞进一个超长方法。
 - 一个方法只负责一类动作
 - 复杂编排方法负责串联，不负责所有细节
 
+### 7.1.1 单文件规模限制
+
+AI 生成或改写自定义类时，单个 Java 源文件必须控制在 2000 行以下；预计超过 1500 行时，应先拆分设计，再继续写代码。
+
+需要拆分的典型信号：
+
+- 一个类同时处理多个业务对象或多个业务阶段
+- 同一个 SOURCE 区域里同时包含查询、校验、编号、审批、通知、外部接口、批处理等多类职责
+- 方法数量持续膨胀，入口方法只是在串联多个大块逻辑
+- 同一类里出现多个可以独立测试或独立复用的业务能力
+
+推荐拆分方式：
+
+- 入口类只负责参数校验和编排
+- 查询读取拆成 `XxxQueryService`
+- 查重/校验拆成 `XxxValidator`
+- 编号/计算拆成 `XxxCalculator`
+- 写入动作拆成 `XxxWriter`
+- 外部集成拆成 `XxxClient` 或 `XxxIntegrationService`
+
+如果用户需求复杂，AI 应先给出类拆分清单，再分别生成多个 `backend/classes/<ClassName>/` 自定义类；不要把完整业务系统压进一个超长类。
+
 ### 7.2 返回值规范
 
 AI 需要根据调用场景选择返回值类型：
@@ -2738,13 +2757,50 @@ AI 默认应避免：
 - 无条件全表查询
 - 无限制 `select *`
 - 在循环里反复查同一批数据
+- 为了判断“是否存在”“是否重复”“是否已处理”而先查出整张表再在 Java 中循环比对
+- 把 `cquery*` 的 `expression` 当成“候选集描述”，再用 Java 判断真正条件
+
+根因说明：
+
+- `expression` 是数据库侧过滤条件，查重、存在性、幂等和编号前置判断必须把真正的业务键下推到这里
+- `cquery*` 相关方法有平台返回条数上限，默认通常为 5000 且可配置；`1=1` 后循环最多只能判断返回窗口内的数据，大表上会出现假阴性
+- 即使当前数据量小，生成代码也不能假设对象永远小；这类代码一旦进入触发器、定时类或复用自定义类，会随业务增长放大为性能和正确性问题
 
 应优先：
 
 - 一次查够
 - 只查必要字段
+- 把业务键、当前记录排除条件、状态、时间范围等边界写进查询条件
+- 存在性判断只取 `id`，并用 `pagedQuery(..., "1", "1", ..., "id")` 或有明确条件的 `cqueryByFields`
 - 提前构造索引或映射
 - 把批量处理合并到同一逻辑块
+
+查重/存在性判断禁止写法：
+
+```java
+List accounts = cs.cqueryByFields("Account", "1=1", "id,tyshxydm,code");
+for (int i = 0; i < accounts.size(); i++) {
+    CCObject account = (CCObject) accounts.get(i);
+    if (newTax.equals(account.get("tyshxydm"))) {
+        duplicateTax = true;
+    }
+}
+```
+
+正确写法应把查重字段直接下推到查询条件，只返回必要字段：
+
+```java
+String escapedTax = newTax.replace("'", "\\'");
+String expression = "tyshxydm = '" + escapedTax + "'";
+if (currentId != null && currentId.trim().length() > 0) {
+    expression += " and id != '" + currentId.replace("'", "\\'") + "'";
+}
+
+List exists = cs.pagedQuery("Account", expression, "1", "1", "false", "id");
+boolean duplicateTax = exists != null && exists.size() > 0;
+```
+
+如果后续只需要编号基数，也不能为了 `size()` 查全量；必须改用带业务范围的计数/分页策略，或把编号生成交给平台自动编号/独立编号对象，避免并发下重复编号。
 
 ### 8.3 写操作要可回溯
 
@@ -2859,6 +2915,8 @@ AI 不得：
 - 默认使用 `new Date()` 作为业务时间
 - 使用字段显示名代替 API 名称
 - 无条件全量查询大对象
+- 生成超过 2000 行的单个 Java 源文件
+- 将复杂业务需求全部塞进一个自定义类而不拆分职责
 - 将关键逻辑全部堆在入口方法里
 - 在多个地方复制同样的外部接口调用代码
 - 把地址、角色、阈值、模板 ID 等全部硬编码
@@ -2888,12 +2946,14 @@ AI 完成代码后，必须自检：
 3. 是否按场景选择了查询 API（内部无权限用 `cquery` / `cqueryByFields`
    等，对外或需数据权限用 `cqueryWithRoleRight`；复杂联查用 `cqlQuery`，分页用
    `pagedQuery` / `pageQuery` 等）
+4. 是否所有查重、存在性判断、幂等判断都带业务键过滤，并且没有用 `1=1` 全量查询后循环比对
 5. 是否对写操作做了失败处理
 6. 是否对关键步骤加了日志
 7. 是否避免了直接 `new Date()`
 8. 是否把复杂逻辑拆成了可读的方法
-9. 是否避免了不必要硬编码
-10. 是否让返回结果对调用方足够清晰
+9. 是否单个 Java 文件低于 2000 行；复杂需求是否拆分成多个自定义类
+10. 是否避免了不必要硬编码
+11. 是否让返回结果对调用方足够清晰
 
 ## 17. 推荐骨架
 
