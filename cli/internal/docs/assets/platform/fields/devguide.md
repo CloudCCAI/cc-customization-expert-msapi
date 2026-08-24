@@ -186,7 +186,20 @@ MetadataService 支持 setup-svc 对外开放的全部字段编码。编码区�
 }
 ```
 
-累计汇总同样要求明确子对象、汇总方法和已审核执行表达式；除 `COUNT` 外还必须提供 `aggregateField`。筛选条件会先按 `relatedId=<summaryFieldId>` 清理旧行，再写入 `tp_sys_condition`：
+累计汇总字段必须使用 MetadataService spec 创建，不要使用位置参数版 `cloudcc create fields ...`。CLI/MetadataService 会按 setup-svc 的保存语义补齐入库数据：`datafieldRef=none`、`decimalPlaces`、`summaryfieldtype` 和 `executeExpression` 会根据汇总方法、子对象和汇总字段自动派生；调用方通常不需要也不应该自己拼 `executeExpression`。
+
+必填字段：
+
+- `objectId`：主对象 ID。
+- `apiName` / `label`：累计汇总字段 API 名和显示名；显式 `id` 可选，但长度不能超过 20。
+- `type`: 固定为 `C`。
+- `childtype` / `expressionType`：汇总方法，常用 `COUNT`、`SUM`、`MIN`、`MAX`。
+- `summarizedObj` / `childid`：`<子对象ID>:<子对象物理表或对象API名>:<指向主对象的关系列>`。
+- `aggregateField` / `fieldid`：非 `COUNT` 必填，格式为 `<被汇总字段ID>:<字段类型>:<物理列或API名>`；公式字段可使用 `<字段ID>:Z:<字段API名>:<公式返回类型>`。
+
+支持的 SUM 汇总字段类型与 setup-web 保持一致：数字 `N`、百分比 `P`、币种 `c`、评分 `SCORE`，以及返回这些类型的公式字段。`COUNT` 不需要 `aggregateField`。
+
+单个累计汇总字段创建示例：
 
 ```json
 {
@@ -196,15 +209,86 @@ MetadataService 支持 setup-svc 对外开放的全部字段编码。编码区�
   "type": "C",
   "childtype": "SUM",
   "summarizedObj": "<detailObjectId>:<detailTable>:<masterLookupColumn>",
-  "aggregateField": "<amountFieldId>:N:<amountDataField>",
-  "executeExpression": "<reviewed summary SQL>",
-  "isAggfilter": true,
-  "summaryConditions": {
-    "filter": "1",
-    "data": [{"fieldId":"<statusFieldId>","operator":"e","value":"Active","seq":1}]
+  "aggregateField": "<amountFieldId>:N:<amountDataField>"
+}
+```
+
+执行方式：
+
+```bash
+cloudcc plan msapi <projectPath> fields @rollup-field.json create
+cloudcc apply msapi <projectPath> <planId>
+```
+
+也可以传 setup-web 风格字段名；MetadataService 会兼容 `objid`、`fdtype`、`childid`、`childtype`、`fieldid`、`isaggfilter` 和嵌套 `obj`：
+
+```json
+{
+  "objid": "<masterObjectId>",
+  "fdtype": "C",
+  "childid": "<detailObjectId>:<detailTable>:<masterLookupColumn>",
+  "childtype": "SUM",
+  "fieldid": "<amountFieldId>:N:<amountDataField>",
+  "obj": {
+    "apiname": "line_total",
+    "nameLabel": "明细合计"
   }
 }
 ```
+
+批量创建累计汇总字段时，顶层写 `fields[]`；每一项和单字段 spec 相同。推荐异步 apply，并读取 `batchItemResults` 判断每个字段是否进入执行：
+
+```json
+{
+  "objectId": "<masterObjectId>",
+  "onExisting": "createOnly",
+  "fields": [
+    {
+      "apiName": "line_count",
+      "label": "明细数量",
+      "type": "C",
+      "childtype": "COUNT",
+      "summarizedObj": "<detailObjectId>:<detailTable>:<masterLookupColumn>"
+    },
+    {
+      "apiName": "line_total",
+      "label": "明细合计",
+      "type": "C",
+      "childtype": "SUM",
+      "summarizedObj": "<detailObjectId>:<detailTable>:<masterLookupColumn>",
+      "aggregateField": "<amountFieldId>:N:<amountDataField>"
+    }
+  ]
+}
+```
+
+```bash
+cloudcc plan msapi <projectPath> fields @rollup-fields-batch.json create
+cloudcc apply msapi <projectPath> <planId> '{"async":true}'
+cloudcc operation msapi <projectPath> <applyId>
+```
+
+筛选条件会先按 `relatedId=<summaryFieldId>` 清理旧行，再写入 `tp_sys_condition`。如果只传 `conditionVals`，当前 MetadataService 无法像 setup-svc 的 `conditionService.getWhereSQLFromConditions(...)` 一样把任意条件树完整编译成 SQL；为了避免生成漏筛选的 `executeExpression`，启用筛选时必须同时提供 `aggCondition`，或直接提供已审核的完整 `executeExpression`：
+
+```json
+{
+  "objectId": "<masterObjectId>",
+  "apiName": "active_line_total",
+  "label": "生效明细合计",
+  "type": "C",
+  "childtype": "SUM",
+  "summarizedObj": "<detailObjectId>:<detailTable>:<masterLookupColumn>",
+  "aggregateField": "<amountFieldId>:N:<amountDataField>",
+  "isAggfilter": true,
+  "aggCondition": "status__c='Active'",
+  "conditionVals": {
+    "filter": "1",
+    "data": [{"fieldId":"<statusFieldId>","op":"e","val":"Active","seq":1}]
+  }
+}
+```
+
+如果过滤场景没有 `aggCondition` 且没有 `executeExpression`，plan 会返回 `summary_filter_sql_required`，不会生成一个可能漏数据的累计汇总字段。
 
 主详字段会更新明细对象的 `accessable`、`is_master`、`parentobjid`，将主对象标记为 `master`，并向已有后代对象传播新的父路径：
 

@@ -1,7 +1,7 @@
 ﻿{
     "packageName":  "cc-customization-expert-msapi",
-    "version":  "2.2.17-msapi",
-    "releaseDate":  "2026-08-23",
+    "version":  "2.2.18-msapi",
+    "releaseDate":  "2026-08-24",
     "compatCloudccCliVersion":  "2.5.3",
     "runtime":  "go",
     "metadataService":  {
@@ -96,6 +96,21 @@
                                                                                             "upsert"
                                                                                         ],
                                                                          "reason":  "Requires MetadataService plan metadata batchItemResults/batchExecutableCount/batchPrecheckFailedCount so independent preflight validation failures do not block unrelated batch items, while apply-time SQL remains batched and transactional."
+                                                                     },
+                                                                     {
+                                                                         "capability":  "msapi.fields.rollupSummaryDerivedCreate",
+                                                                         "label":  "Rollup summary field creation with setup-web-shaped payloads and derived runtime SQL",
+                                                                         "introducedInSkillVersion":  "2.2.18-msapi",
+                                                                         "minimumMetadataServiceVersion":  "1.1.33",
+                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.33",
+                                                                         "domains":  [
+                                                                                         "fields"
+                                                                                     ],
+                                                                         "operations":  [
+                                                                                            "create",
+                                                                                            "upsert"
+                                                                                        ],
+                                                                         "reason":  "Requires MetadataService to normalize setup-web field payloads, derive rollup summary executeExpression/decimalPlaces/summaryfieldtype, support batch fields[] rollup summary creation, and fail closed when filtered summaries lack compilable SQL conditions."
                                                                      }
                                                                  ]
                                      },

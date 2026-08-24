@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.17"
+const Version = "2.2.18"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -34,6 +34,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	case "changelog":
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
+		fmt.Fprintln(stderr, "- Field rollup summary creation now documents MetadataService specs for single and batch fields, setup-web-shaped payload aliases, server-derived executeExpression/decimalPlaces/summaryfieldtype, and fail-closed filtered-summary SQL requirements.")
 		fmt.Fprintln(stderr, "- Batch MetadataService create plans for objects, fields, and global select lists now report item-level precheck results in plan metadata: PLANNED, SKIPPED, or FAILED_PRECHECK with per-item error details, while keeping apply-time SQL execution batched and transactional.")
 		fmt.Fprintln(stderr, "- Batch MetadataService create apply for objects, fields, and global select lists now documents async apply with {\"async\":true}, an applyId equal to operationId, and operation polling to avoid gateway timeout ambiguity.")
 		fmt.Fprintln(stderr, "- Skill initialization now ships cloudcc-cli.config.json at the skill root with the public-cloud MetadataService default https://dc52.apis.cloudcc.cn/metadata; private-cloud initialization updates metadataService.url with the user's private endpoint.")
