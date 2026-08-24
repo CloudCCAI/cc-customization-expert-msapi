@@ -1,9 +1,21 @@
 ﻿{
     "packageName":  "cc-customization-expert-msapi",
-    "version":  "2.2.13-msapi",
-    "releaseDate":  "2026-08-21",
+    "version":  "2.2.17-msapi",
+    "releaseDate":  "2026-08-23",
     "compatCloudccCliVersion":  "2.5.3",
     "runtime":  "go",
+    "metadataService":  {
+                            "promptWhenMissing":  true,
+                            "publicCloudDefaultUrl":  "https://dc52.apis.cloudcc.cn/metadata",
+                            "skillConfigFile":  "cloudcc-cli.config.json",
+                            "skillInitPrompt":  "public-or-private-cloud",
+                            "env":  "CLOUDCC_METADATA_SERVICE_URL",
+                            "projectConfigKeys":  [
+                                                      "metadataService.url",
+                                                      "metadataServiceUrl",
+                                                      "metadata_service_url"
+                                                  ]
+                        },
     "metadataServiceCompatibility":  {
                                          "sourceOfTruth":  "cc-customization-expert-go/config.json",
                                          "policy":  "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
@@ -36,6 +48,54 @@
                                                                                             "upsert"
                                                                                         ],
                                                                          "reason":  "Requires server-side globalSelectLists[] precheck, onExisting policies, and optionsMode append/merge/replace handling."
+                                                                     },
+                                                                     {
+                                                                         "capability":  "msapi.fields.batchAdd",
+                                                                         "label":  "Batch add fields with server-side slot allocation and existing-target policies",
+                                                                         "introducedInSkillVersion":  "2.2.14-msapi",
+                                                                         "minimumMetadataServiceVersion":  "1.1.25",
+                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.25",
+                                                                         "domains":  [
+                                                                                         "fields"
+                                                                                     ],
+                                                                         "operations":  [
+                                                                                            "create",
+                                                                                            "upsert"
+                                                                                        ],
+                                                                         "reason":  "Requires server-side fields[] precheck, onExisting policies, safe object-local DATAFIELD_REF allocation, and batched field-row apply."
+                                                                     },
+                                                                     {
+                                                                         "capability":  "msapi.batchCreate.asyncApply",
+                                                                         "label":  "Async apply for batch create plans",
+                                                                         "introducedInSkillVersion":  "2.2.16-msapi",
+                                                                         "minimumMetadataServiceVersion":  "1.1.27",
+                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.27",
+                                                                         "domains":  [
+                                                                                         "objects",
+                                                                                         "fields",
+                                                                                         "global-select-lists"
+                                                                                     ],
+                                                                         "operations":  [
+                                                                                            "create"
+                                                                                        ],
+                                                                         "reason":  "Requires MetadataService async apply support for objects[], fields[], and globalSelectLists[] batch create plans, returning applyId/operationId for polling."
+                                                                     },
+                                                                     {
+                                                                         "capability":  "msapi.batchCreate.itemPrecheckResults",
+                                                                         "label":  "Item-level precheck results for batch create plans",
+                                                                         "introducedInSkillVersion":  "2.2.17-msapi",
+                                                                         "minimumMetadataServiceVersion":  "1.1.29",
+                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.29",
+                                                                         "domains":  [
+                                                                                         "objects",
+                                                                                         "fields",
+                                                                                         "global-select-lists"
+                                                                                     ],
+                                                                         "operations":  [
+                                                                                            "create",
+                                                                                            "upsert"
+                                                                                        ],
+                                                                         "reason":  "Requires MetadataService plan metadata batchItemResults/batchExecutableCount/batchPrecheckFailedCount so independent preflight validation failures do not block unrelated batch items, while apply-time SQL remains batched and transactional."
                                                                      }
                                                                  ]
                                      },

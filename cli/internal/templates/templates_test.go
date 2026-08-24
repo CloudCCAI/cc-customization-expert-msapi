@@ -1,6 +1,7 @@
 package templates
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -59,6 +60,19 @@ func TestWriteProjectUsesCanonicalLayout(t *testing.T) {
 	}
 	if !strings.Contains(string(frontendReadme), "pagecomponent") || !strings.Contains(string(frontendReadme), "prebuilt UMD") {
 		t.Fatalf("frontend README should describe pagecomponent prebuilt bundle flow: %s", frontendReadme)
+	}
+	configBytes, err := os.ReadFile(filepath.Join(target, "cloudcc-cli.config.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var root map[string]any
+	if err := json.Unmarshal(configBytes, &root); err != nil {
+		t.Fatal(err)
+	}
+	dev := root["dev"].(map[string]any)
+	metadataService := dev["metadataService"].(map[string]any)
+	if got := metadataService["url"]; got != DefaultMetadataServiceURL {
+		t.Fatalf("expected default public MetadataService URL %q, got %#v", DefaultMetadataServiceURL, got)
 	}
 }
 

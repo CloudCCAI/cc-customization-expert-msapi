@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.13"
+const Version = "2.2.17"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -34,6 +34,10 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	case "changelog":
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
+		fmt.Fprintln(stderr, "- Batch MetadataService create plans for objects, fields, and global select lists now report item-level precheck results in plan metadata: PLANNED, SKIPPED, or FAILED_PRECHECK with per-item error details, while keeping apply-time SQL execution batched and transactional.")
+		fmt.Fprintln(stderr, "- Batch MetadataService create apply for objects, fields, and global select lists now documents async apply with {\"async\":true}, an applyId equal to operationId, and operation polling to avoid gateway timeout ambiguity.")
+		fmt.Fprintln(stderr, "- Skill initialization now ships cloudcc-cli.config.json at the skill root with the public-cloud MetadataService default https://dc52.apis.cloudcc.cn/metadata; private-cloud initialization updates metadataService.url with the user's private endpoint.")
+		fmt.Fprintln(stderr, "- Field docs now cover MetadataService batch add with fields[], onExisting createOnly/skipExisting/updateExisting/upsertByApiName, server-side duplicate API/dataFieldRef precheck, and object-local physical slot allocation.")
 		fmt.Fprintln(stderr, "- Global select list docs now cover MetadataService batch add with globalSelectLists[], onExisting createOnly/skipExisting/updateExisting/upsertByApiName, and optionsMode none/append/merge/replace.")
 		fmt.Fprintln(stderr, "- MetadataService compatibility matrix is now recorded in skill config.json; msapi.objects.batchCreate introduced in 2.2.10-msapi requires MetadataService 1.1.23 or later.")
 		fmt.Fprintln(stderr, "- Page layout methodology docs now define reusable layout naming, section grouping, semantic field placement, related-list ordering, and review gates without tenant-specific scan evidence.")

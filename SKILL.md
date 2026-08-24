@@ -1,17 +1,18 @@
 ﻿---
 name: cc-customization-expert-msapi
-version: 2.2.13-msapi
+version: 2.2.17-msapi
 description: CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService.
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.2.13-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.2.17-msapi
 
-当前技能版本：`2.2.13-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.2.17-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
 
 - 低代码元数据统一使用稳定的 CloudCC CLI 词汇和共享能力矩阵；高代码资源继续使用 CloudCC 原有 resource/API 通道。
 - 执行模式从 `CLOUDCC_EXECUTION_MODE`、当前环境 `executionMode` / `execution_mode`、包默认值依次解析；仅支持 `auto`、`msapi`、`uiapi`。
+- 技能包根目录默认带 `cloudcc-cli.config.json`。首次初始化技能配置时先问用户公有云还是私有云；公有云使用默认 `metadataService.url=https://dc52.apis.cloudcc.cn/metadata`，私有云再提示用户提供 MetadataService URL 并更新该文件。
 - 每次环境切换或首次写入前运行：`tools/bin/cloudcc doctor provider <projectPath>`。输出会明确所选 provider、原因和安全级别。
 - `auto` 仅对已配置的 MetadataService 做 `GET /metadata/v1/capabilities` 只读探测；未配置时选择 UIAPI。已配置但不可用、认证失败或不兼容时失败关闭，绝不静默降级。
 - MSAPI 原生提供服务端 plan/apply/changes/rollback；UIAPI 是直接 CloudCC UI/API 调用，不承诺服务端 ledger 或 rollback。不要把 UIAPI 补偿操作当作 MSAPI 回滚。

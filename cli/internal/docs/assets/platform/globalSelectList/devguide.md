@@ -88,16 +88,23 @@ cloudcc create globalSelectList . '%7B%22label%22:%22%E5%AE%A2%E6%88%B7%E7%AD%89
 
 ```bash
 cloudcc plan msapi <projectPath> global-select-lists @global-select-lists-batch.json create
-cloudcc apply msapi <projectPath> <planId>
+cloudcc apply msapi <projectPath> <planId> '{"async":true}'
+cloudcc operation msapi <projectPath> <applyId>
 cloudcc get globalSelectList <projectPath>
 ```
 
-批量计划会先拦截明显冲突：
+批量全局选项列表创建可能会展开主表、选项和本地化选项行，推荐使用异步 apply。异步 apply 会立即返回 `applyId`，当前实现中 `applyId` 与 `operationId` 相同；后续用 `cloudcc operation msapi <projectPath> <applyId>` 轮询，直到状态为 `VERIFIED` / `APPLIED` / `FAILED`。如果状态仍是 `APPLYING`，不要重新提交同一个全局选项列表批量创建 plan。
 
-- 同一批内 `id` / `globalSelectId` 重复会失败。
-- 同一批内 `name` / `apiName` 重复会失败。
-- 同一列表内选项值重复会失败。
+批量计划会先拦截明显冲突，并按单个列表返回预检结果：
+
+- 同一批内 `id` / `globalSelectId` 重复时，冲突列表标记为 `FAILED_PRECHECK`。
+- 同一批内 `name` / `apiName` 重复时，冲突列表标记为 `FAILED_PRECHECK`。
+- 同一列表内选项值重复时，该列表标记为 `FAILED_PRECHECK`。
 - 目标环境已有同 `id` 或同 `name` 的列表时，按 `onExisting` 策略处理。
+
+调用方应读取 plan metadata 中的 `batchItemResults`、`batchExecutableCount`、`batchPrecheckFailedCount`。`batchItemResults[].status` 可能是 `PLANNED`、`SKIPPED` 或 `FAILED_PRECHECK`；`FAILED_PRECHECK` 会带 `error` / `message`，且不会生成 SQL 步骤。如果整批列表都只剩 `FAILED_PRECHECK`，`apply` 会直接把 operation 标记为 `FAILED`。
+
+预检失败是计划阶段的逐项结果；真正进入 `apply` 的列表仍按现有阶段批量写库，并在事务内执行。如果数据库约束、运行时副作用或并发检查失败，当前 operation 仍可能整体 `FAILED`。
 
 ### 3.1 已存在列表处理策略
 
@@ -105,7 +112,7 @@ cloudcc get globalSelectList <projectPath>
 
 | 策略 | 行为 |
 |------|------|
-| `createOnly` | 默认策略；目标已存在时 plan 阶段报错，不进入 apply。 |
+| `createOnly` | 默认策略；目标已存在时该列表标记为 `FAILED_PRECHECK`，其它无关列表可继续生成步骤。 |
 | `skipExisting` | 目标已存在时跳过该列表，plan metadata 会记录 skipped。 |
 | `updateExisting` | 目标已存在时更新 `tp_sys_global_select` 主表；默认不改选项。 |
 | `upsertByApiName` | 按 `name` / `apiName` 解析目标；`upsert` 操作默认使用该策略。 |

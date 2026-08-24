@@ -28,11 +28,20 @@ Go 版不执行历史 `cloudcc-cli.config.js`，请迁移为 JSON。
 {
   "use": "dev",
   "dev": {
+    "executionMode": "msapi",
     "safetyMark": "请设置一个安全标识",
-    "CloudCCDev": "请设置开发者密钥"
+    "CloudCCDev": "请设置开发者密钥",
+    "metadataService": {
+      "url": "https://dc52.apis.cloudcc.cn/metadata"
+    }
   }
 }
 ```
+
+技能初始化时先询问环境类型：
+
+- 选择公有云或直接回车时，自动写入默认 MetadataService 地址 `https://dc52.apis.cloudcc.cn/metadata`，无需再输入 URL。
+- 选择私有云时，继续提示输入私有云 MetadataService 地址，并写入技能根配置当前环境的 `metadataService.url`。
 
 `username/baseUrl/orgId/clientId/openSecretKey` 是兼容旧明文配置或 `CloudCCDev` 解析后的字段，不应作为新项目最小必需配置展示。
 
@@ -73,7 +82,7 @@ cloudcc get config .
 2. 当前环境配置里的 `metadataService.url`、`metadataServiceUrl` 或 `metadata_service_url`。
 3. 交互式运行时询问用户地址，并写回当前环境的 `metadataService.url`。
 
-非交互运行不会静默使用 localhost；如果没有配置地址，会直接报错并提示设置 `CLOUDCC_METADATA_SERVICE_URL` 或更新 `cloudcc-cli.config.json`。
+技能包根目录默认已经包含公有云 MetadataService 地址。非交互运行不会静默使用 localhost；如果没有配置地址，会直接报错并提示设置 `CLOUDCC_METADATA_SERVICE_URL` 或更新 `cloudcc-cli.config.json`。
 
 推荐把地址与开发者配置放在同一个环境下：
 
@@ -84,7 +93,7 @@ cloudcc get config .
     "safetyMark": "请设置一个安全标识",
     "CloudCCDev": "请设置开发者密钥",
     "metadataService": {
-      "url": "http://127.0.0.1:8087"
+      "url": "https://dc52.apis.cloudcc.cn/metadata"
     }
   }
 }

@@ -18,8 +18,8 @@ cloudcc doc platform/object devguide
 ```bash
 cloudcc get object <projectPath> [type]
 cloudcc create object <projectPath> <label> <业务功能描述>
-cloudcc create object <projectPath> <label> <nameLabel> <业务功能描述>
-cloudcc create object <projectPath> <label> <nameLabel> <businessDescription> --accessable <0|1|2>
+cloudcc create object <projectPath> <label> <apiName> <业务功能描述>
+cloudcc create object <projectPath> <label> <apiName> <businessDescription> --accessable <0|1|2>
 cloudcc delete object <projectPath> <objid>
 cloudcc purge object <projectPath> <objid>
 ```
@@ -28,7 +28,7 @@ cloudcc purge object <projectPath> <objid>
 
 - `projectPath`：本地项目路径，用于读取 `cloudcc-cli.config.js`
 - `label`：对象中文名称或展示名称
-- `nameLabel`：对象 API 名称；仅在上一种四参数形式中传入；不传（三参数形式）时基于 `label` 自动生成
+- `apiName`：对象 API 名称；仅在上一种四参数形式中传入；不传（三参数形式）时基于 `label` 自动生成
 - `业务功能描述`（**必填**，放在最后）：拼接到默认 remark「用于管理与「label」相关的业务数据」之后，整体写入 `obj.remark`
 - `objid`：对象 ID
 - `create/delete/purge object`：快捷命令只创建 MetadataService plan；如需执行，继续使用 `cloudcc apply msapi <projectPath> <planId>`
@@ -67,8 +67,8 @@ cloudcc get object <projectPath> deleted
 
 ```bash
 cloudcc create object <projectPath> <label> "记录客户拜访与跟进计划"
-cloudcc create object <projectPath> <label> <nameLabel> "主数据：客户主档"
-cloudcc create object <projectPath> <label> <nameLabel> "合同管理" --accessable 0
+cloudcc create object <projectPath> <label> <apiName> "主数据：客户主档"
+cloudcc create object <projectPath> <label> <apiName> "合同管理" --accessable 0
 ```
 
 ### 4.2 `--accessable` 默认访问权限
@@ -126,17 +126,36 @@ cloudcc create object ./project 公告 notice "公告对象" --accessable 2
 
 ```bash
 cloudcc plan msapi <projectPath> objects @objects-batch.json create
-cloudcc apply msapi <projectPath> <planId>
+cloudcc apply msapi <projectPath> <planId> '{"async":true}'
+cloudcc operation msapi <projectPath> <applyId>
 cloudcc get object <projectPath> custom
 ```
 
+批量对象创建步骤多，推荐使用异步 apply。异步 apply 会立即返回 `applyId`，当前实现中 `applyId` 与 `operationId` 相同；后续用 `cloudcc operation msapi <projectPath> <applyId>` 轮询，直到状态为 `VERIFIED` / `APPLIED` / `FAILED`。如果状态仍是 `APPLYING`，不要重新提交同一个对象创建 plan。
+
+批量创建参数约定：
+
+| 字段 | 含义 |
+| --- | --- |
+| `label` | 对象展示名称，建议必填。 |
+| `apiName` | 对象 API 名称，推荐新调用必填；会写入对象 `SCHEMETABLE_NAME`。 |
+| `nameLabel` | 默认名称字段标签，例如“合同编号”；不是对象 API 名称。 |
+| `id` | 可选对象 ID；不要把它当作对象 API 名称。 |
+| `apiname` / `api_name` / `objectApiName` / `name` / `schemetableName` | 对象 API 名称兼容别名；新调用优先使用 `apiName`。 |
+| `nameLable` / `nameLabel` | 旧兼容兜底；仅在没有 `apiName` 等显式 API 字段、且值本身像 API 名时才会被当作对象 API。 |
+
 批量创建时建议不要在 spec 中手工填写 `prefix`、`objPrefix` 或 `datatableName`。MetadataService 会在 `apply` 阶段按租户级锁为每个对象分配 CloudCC 兼容的唯一 `PREFIX` 和 `DATATABLE_NAME`，同一批内不会复用同一个前缀或物理表。
 
-批量计划会先拦截明显冲突：
+批量计划会先拦截明显冲突，并按单个对象返回预检结果：
 
-- 同一批内对象 API 名重复会失败。
-- 同一批内显式 `datatableName` 重复会失败。
-- 同一批内显式 `prefix`/`objPrefix` 重复会失败。
+- 同一批内对象 API 名重复时，冲突对象标记为 `FAILED_PRECHECK`。
+- 同一批内显式 `datatableName` 重复时，冲突对象标记为 `FAILED_PRECHECK`。
+- 同一批内显式 `prefix`/`objPrefix` 重复时，冲突对象标记为 `FAILED_PRECHECK`。
+- 目标环境已有同 `id` 或同对象 API 名时，按 `onExisting` 策略处理；`createOnly` 下该对象标记为 `FAILED_PRECHECK`，不影响其它无关对象继续生成步骤。
+
+调用方应读取 plan metadata 中的 `batchItemResults`、`batchExecutableCount`、`batchPrecheckFailedCount`。`batchItemResults[].status` 可能是 `PLANNED`、`SKIPPED` 或 `FAILED_PRECHECK`；`FAILED_PRECHECK` 会带 `error` / `message`，且不会生成 SQL 步骤。如果整批对象都只剩 `FAILED_PRECHECK`，`apply` 会直接把 operation 标记为 `FAILED`，避免提交一个没有可执行步骤的批量任务。
+
+预检失败是计划阶段的逐项结果；真正进入 `apply` 的对象仍按现有阶段批量写库，并在事务内执行。如果数据库约束、运行时副作用或并发锁检查失败，当前 operation 仍可能整体 `FAILED`，这属于执行期失败，不会被拆成逐条提交。
 
 `apply` 完成后，以 `get object` 或对象详情回读的真实 `id`、`prefix`、`datatableName` 为准。调用方如果把对象拆成多批执行，也应在每批 apply 后回读结果，不要用 plan 前的临时推断值作为最终前缀。
 

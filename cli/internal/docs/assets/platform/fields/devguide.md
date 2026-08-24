@@ -53,6 +53,48 @@ cloudcc delete fields <projectPath> <fieldId> <objid>
 
 字段创建如果会进入页面布局，必须先按 `platform/pagelayout devguide` 的页面布局配置方法论判断落位。能读取对象布局详情时，优先在字段 spec 中显式提供 `layoutPlacements`，或在字段创建后通过 `pagelayout detail` / `pagelayout update` 调整 PC 和 mobile 布局。只有缺少布局上下文时才允许依赖 MetadataService 自动摆放，并在输出中标注为兜底。
 
+#### 2.2.1 批量添加字段
+
+MetadataService `fields` 计划支持在同一个 spec 中通过 `fields[]` 批量添加字段：
+
+```json
+{
+  "objectId": "<objectId>",
+  "objectApiName": "<objectApiName>",
+  "onExisting": "createOnly",
+  "fields": [
+    {"apiName": "approval_status", "label": "审批状态", "type": "L", "options": [{"value": "待审批"}]},
+    {"apiName": "approved_at", "label": "审批时间", "type": "F"},
+    {"apiName": "archive_owner", "label": "档案负责人", "type": "Y", "lookupObjectId": "<userObjectId>"}
+  ]
+}
+```
+
+执行方式：
+
+```bash
+cloudcc plan msapi <projectPath> fields @fields-batch.json create
+cloudcc apply msapi <projectPath> <planId> '{"async":true}'
+cloudcc operation msapi <projectPath> <applyId>
+```
+
+批量字段创建可能会展开字段主表、语言、选项、权限、布局、筛选、相关列表和数据库视图刷新等步骤，推荐使用异步 apply。异步 apply 会立即返回 `applyId`，当前实现中 `applyId` 与 `operationId` 相同；后续用 `cloudcc operation msapi <projectPath> <applyId>` 轮询，直到状态为 `VERIFIED` / `APPLIED` / `FAILED`。如果状态仍是 `APPLYING`，不要重新提交同一个字段批量创建 plan。
+
+批量策略：
+
+- `createOnly`：默认策略。目标对象上已存在同 API 名字段，或显式 `id` 已存在时，该字段在 plan metadata 的 `batchItemResults` 中标记为 `FAILED_PRECHECK`，不影响其它无关字段继续生成步骤。
+- `skipExisting`：已存在字段跳过，只为不存在的字段生成创建步骤；plan metadata 会返回 `batchCreateCount`、`batchSkipCount` 和 `batchFields` 摘要。
+- `updateExisting`：已存在字段转为 `field.update`，不存在字段继续创建；适合补标签、权限、选项、布局等元数据。
+- `upsertByApiName`：按 `objectId + apiName` 解析，存在则更新，不存在则创建；`upsert` 操作默认使用该策略。
+
+批量添加不是简单把多个命令拼在一起。plan 阶段会先解析所有字段目标，检查同一对象内重复 API 名、重复显式字段 ID、重复显式 `dataFieldRef`，并查询目标环境已有字段。可在执行前判断的问题会按字段写入 `batchItemResults`：`PLANNED` 表示已生成步骤，`SKIPPED` 表示被策略跳过，`FAILED_PRECHECK` 表示该字段没有生成 SQL 步骤且会带 `error` / `message`。同时读取 `batchExecutableCount` 和 `batchPrecheckFailedCount` 可以判断本次批量还有多少字段会进入 apply。如果整批字段都只剩 `FAILED_PRECHECK`，`apply` 会直接把 operation 标记为 `FAILED`。
+
+apply 阶段会优先批量执行字段主表行，再按既有顺序执行语言、选项、权限、布局、筛选和相关列表等展开步骤。字段主表写入仍使用批处理和事务保护；如果执行期 SQL、并发槽位校验或运行时副作用失败，operation 可能整体 `FAILED`。逐项结果只用于执行前预检，不表示执行期会把同一个事务拆成逐字段提交。
+
+物理槽位仍然由服务端按对象维度统一分配：同一个 `fields[]` 中多个文本字段会依次占用 `str_field1`、`str_field2` 等首个可用槽位；已有字段的槽位会先被保留，不会被新字段抢占；预检失败的字段不计入可执行字段数量，也不会占用同对象字段数量上限。除迁移回放外不要手写 `dataFieldRef`；如果必须手写，必须保证同一对象内不重复，否则该字段会在 plan 阶段成为 `FAILED_PRECHECK`，或在并发 apply 校验中触发 `field_slot_conflict`。
+
+如果一个批量 spec 中的字段分属不同对象，可以在每个字段上覆盖 `objectId`；未覆盖时继承根级 `objectId`。查找字段、主详字段、自动编号、公式、累计汇总、地址和地理定位等高级字段仍使用下文相同字段定义，批量只是提交载体，不会降低单字段校验要求。
+
 自动编号字段必须同时生成字段行和 `tp_sys_autonum` 配置，不能只把字段类型设为 `V`：
 
 ```json

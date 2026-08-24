@@ -1,3 +1,5 @@
 .DS_Store
 cloudcc-cli.config.json
+!cloudcc-cli.config.json
+!cli/internal/templates/assets/cloudcc-cli.config.json
 .cloudcc-cache.json

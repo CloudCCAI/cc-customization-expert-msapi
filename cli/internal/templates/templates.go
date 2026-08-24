@@ -18,6 +18,8 @@ type projectFile struct {
 	text  bool
 }
 
+const DefaultMetadataServiceURL = "https://dc52.apis.cloudcc.cn/metadata"
+
 var projectFiles = []projectFile{
 	{asset: "assets/cloudcc-cli.config.json", path: "cloudcc-cli.config.json", text: true},
 	{asset: "assets/gitignore", path: ".gitignore", text: true},
@@ -54,7 +56,8 @@ func WriteProject(target string, projectName string) error {
 		}
 	}
 	replacements := map[string]string{
-		"{{PROJECT_NAME}}": sanitizePackageName(projectName),
+		"{{PROJECT_NAME}}":         sanitizePackageName(projectName),
+		"{{METADATA_SERVICE_URL}}": DefaultMetadataServiceURL,
 	}
 	for _, file := range projectFiles {
 		data, err := assets.ReadFile(file.asset)

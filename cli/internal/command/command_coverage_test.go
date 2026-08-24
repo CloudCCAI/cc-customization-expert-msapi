@@ -31,7 +31,7 @@ func TestVersionDocumentationConfigAndProjectCommands(t *testing.T) {
 		wantErr string
 	}{
 		{name: "help-empty", args: nil, wantOut: "CloudCC CLI Go"},
-		{name: "version", args: []string{"--version"}, wantOut: "2.2.13-msapi"},
+		{name: "version", args: []string{"--version"}, wantOut: "2.2.17-msapi"},
 		{name: "help", args: []string{"help"}, wantOut: "Usage:"},
 		{name: "doctor", args: []string{"doctor"}, wantOut: "node/npm: not required"},
 		{name: "docs", args: []string{"docs"}, wantOut: "cloudcc doc"},
@@ -62,6 +62,12 @@ func TestVersionDocumentationConfigAndProjectCommands(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(tmp, "demo", "cloudcc-cli.config.json")); err != nil {
 		t.Fatalf("expected project config: %v", err)
+	}
+	projectConfig := readCommandTestJSON(t, filepath.Join(tmp, "demo", "cloudcc-cli.config.json"))
+	projectDev := projectConfig["dev"].(map[string]any)
+	projectMetadataService := projectDev["metadataService"].(map[string]any)
+	if got := projectMetadataService["url"]; got != "https://dc52.apis.cloudcc.cn/metadata" {
+		t.Fatalf("expected public MetadataService URL, got %#v", got)
 	}
 
 	configProject := t.TempDir()
@@ -130,6 +136,23 @@ func TestGenericSkillSourceDoesNotContainProjectSpecificAssets(t *testing.T) {
 	}
 	if len(matches) > 0 {
 		t.Fatalf("generic skill source must not contain project-specific assets: %v", matches)
+	}
+}
+
+func TestSkillRootConfigDefaultsPublicMetadataService(t *testing.T) {
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("cannot resolve test file path")
+	}
+	root := filepath.Clean(filepath.Join(filepath.Dir(file), "../../.."))
+	config := readCommandTestJSON(t, filepath.Join(root, "cloudcc-cli.config.json"))
+	dev := config["dev"].(map[string]any)
+	metadataService := dev["metadataService"].(map[string]any)
+	if got := metadataService["url"]; got != "https://dc52.apis.cloudcc.cn/metadata" {
+		t.Fatalf("expected skill root public MetadataService URL, got %#v", got)
+	}
+	if got := dev["executionMode"]; got != "msapi" {
+		t.Fatalf("expected skill root executionMode msapi, got %#v", got)
 	}
 }
 

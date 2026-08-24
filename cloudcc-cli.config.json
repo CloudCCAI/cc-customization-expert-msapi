@@ -1,0 +1,11 @@
+{
+  "use": "dev",
+  "dev": {
+    "executionMode": "msapi",
+    "safetyMark": "请设置一个安全标识",
+    "CloudCCDev": "请设置开发者密钥",
+    "metadataService": {
+      "url": "https://dc52.apis.cloudcc.cn/metadata"
+    }
+  }
+}
