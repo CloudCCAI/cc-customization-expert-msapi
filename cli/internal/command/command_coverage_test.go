@@ -31,7 +31,7 @@ func TestVersionDocumentationConfigAndProjectCommands(t *testing.T) {
 		wantErr string
 	}{
 		{name: "help-empty", args: nil, wantOut: "CloudCC CLI Go"},
-		{name: "version", args: []string{"--version"}, wantOut: "2.2.24-msapi"},
+		{name: "version", args: []string{"--version"}, wantOut: "2.2.25-msapi"},
 		{name: "help", args: []string{"help"}, wantOut: "Usage:"},
 		{name: "doctor", args: []string{"doctor"}, wantOut: "node/npm: not required"},
 		{name: "docs", args: []string{"docs"}, wantOut: "cloudcc doc"},
