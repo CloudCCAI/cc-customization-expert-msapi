@@ -112,6 +112,14 @@ cloudcc doc platform/integrationPatterns devguide
 - 没有异常分支。
 - 没有定义谁能发起、谁能审批、谁能关闭。
 
+#### 流程图治理
+
+- 创建、修改或评审流程图前，先读取 `methodology/projectGovernance devguide`、项目 `AGENTS.md` 和适用的项目标准。
+- L0/L1 实际流程图进入 `docs/delivery/<project-code>/01-blueprint/processes/`；L2/L3 进入对应 FEAT、模块详细设计或集成设计。
+- 图形、颜色、泳道、节点命名和评审方法属于项目标准；当前业务主链路、角色、系统职责和优先级分别引用蓝图、FEAT、ADR、接口契约和任务板。
+- 不存在项目标准时，只使用通用表达建议，不擅自把示例颜色、节点数量或泳道顺序升级为全项目硬规则。
+- 每张正式流程图必须登记事实源、状态和评审证据；静态检查或自动化测试不能替代业务责任人确认。
+
 ### 功能架构
 
 应包含：

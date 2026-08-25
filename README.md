@@ -13,6 +13,10 @@ Strict MetadataService package: low-code operations require MetadataService.
 
 该包由 `cc-customization-expert-go` 的共享核心生成。低代码能力及 provider 状态见 `capability-matrix.json`；高代码资源继续复用 CloudCC 原 resource/API 通道。
 
+项目交付目录和跨模块长期标准按 `cloudcc doc methodology/projectGovernance devguide` 治理；可用 `tools/bin/cloudcc doctor project-governance <projectPath>` 只读检查标准索引、元数据、AGENTS 读取门禁和流程图入口。通用包不内置任何客户项目标准正文。
+
+需求、方案设计和高代码需求都先做平台标准元数据能力匹配。字段、对象、布局、验证规则、查重过滤器、工作流/审批、共享/权限、公式/汇总、自动编号、查找筛选、相关列表等低代码能力能满足时，优先用平台元数据实现；即便用户把事项归类为高代码，也应先说明可用低代码能力，再判断是否需要自定义类、触发器或定时类补充。
+
 技能包根目录包含 `cloudcc-cli.config.json`。公有云默认使用 `https://dc52.apis.cloudcc.cn/metadata`；私有云初始化时将当前环境的 `metadataService.url` 改为用户提供的私有云 MetadataService 地址。
 
 批量创建对象、字段和全局选项列表时，plan metadata 会返回 `batchItemResults`、`batchExecutableCount` 和 `batchPrecheckFailedCount`。调用方可以在 apply 前区分 `PLANNED`、`SKIPPED`、`FAILED_PRECHECK` 单项结果；实际 apply 仍保持 SQL 批处理和事务保护。

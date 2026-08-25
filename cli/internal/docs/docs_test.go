@@ -147,6 +147,7 @@ func TestHighCodePublishValidationGateDocs(t *testing.T) {
 
 func TestMethodologyAndPlaybookDocsAreEmbedded(t *testing.T) {
 	for _, module := range []string{
+		"methodology/projectGovernance",
 		"methodology/blueprint",
 		"methodology/globalModeling",
 		"methodology/moduleDesign",
@@ -170,6 +171,25 @@ func TestMethodologyAndPlaybookDocsAreEmbedded(t *testing.T) {
 		if devguide == "" {
 			t.Fatalf("%s devguide is empty", module)
 		}
+	}
+}
+
+func TestProjectGovernanceSeparatesStandardsFromProjectFacts(t *testing.T) {
+	content, err := Read("methodology/projectGovernance", "devguide")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !containsAll(
+		content,
+		"00-governance/standards",
+		"kind: project-standard",
+		"standard_id: STD-001",
+		"`AGENTS.md` 只写短门禁",
+		"标准不得独立维护",
+		"01-blueprint/processes",
+		"cloudcc doctor project-governance <projectPath>",
+	) {
+		t.Fatalf("project governance doc should define standard registry, read gates, fact separation, process artifacts, and read-only validation")
 	}
 }
 

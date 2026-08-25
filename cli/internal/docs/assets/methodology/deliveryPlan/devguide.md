@@ -114,13 +114,18 @@ docs/delivery/<project-code>/
 │   ├── 00-delivery-index.md
 │   ├── 01-project-scope.md
 │   ├── 02-environment-config.md
-│   └── 03-risk-issue-decision-log.md
+│   ├── 03-risk-issue-decision-log.md
+│   └── standards/
+│       ├── 00-standard-index.md
+│       └── archive/
 ├── 01-blueprint/
 │   ├── 00-blueprint-index.md
 │   ├── 01-business-scope.md
 │   ├── 02-end-to-end-process.md
 │   ├── 03-module-architecture.md
-│   └── 04-phase-roadmap.md
+│   ├── 04-phase-roadmap.md
+│   └── processes/
+│       └── 00-process-index.md
 ├── 02-global-modeling/
 │   ├── 00-global-modeling-index.md
 │   ├── 01-standard-environment-baseline.md
@@ -167,12 +172,15 @@ docs/delivery/<project-code>/
 
 通用命名规则：
 
-- 文件名使用小写英文、数字和连字符。
+- 核心固定交付物文件名使用小写英文、数字和连字符。
 - 中文标题写在文档 H1，不写进固定工作文件名。
+- 项目扩展标准可遵循项目 `AGENTS.md` 明确声明的文档语言规范；无论使用何种语言，文件名必须稳定，标准必须有唯一 `standard_id`。
 - 固定工作文件不带日期，保持链接稳定。
 - 对外评审、签字、上线留证版本放入同级 `snapshots/` 目录。
 - 快照命名为 `<YYYYMMDD>-<artifact-key>-v<major>.<minor>-<status>.<ext>`。
 - 大型矩阵可有同名 `.xlsx`，但必须保留同名 `.md` 作为口径和状态入口。
+
+项目标准的职责、索引、读取门禁和归档规则以 `methodology/projectGovernance devguide` 为准。`AGENTS.md` 只保存强制读取入口，不复制标准正文；标准不复制 FEAT、ADR、DevOps 或任务板中的事实。
 
 ## 推荐拆分
 

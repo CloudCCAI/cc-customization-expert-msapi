@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"cloudcc-customization-expert-go/internal/docs"
+	"cloudcc-customization-expert-go/internal/governance"
 	"cloudcc-customization-expert-go/internal/modules"
 	"cloudcc-customization-expert-go/internal/msapi"
 	"cloudcc-customization-expert-go/internal/openapi"
@@ -36,7 +37,7 @@ func Run(args []string, stdout io.Writer, stderr io.Writer, cwd string) int {
 	action, resource := args[0], args[1]
 	rest := args[2:]
 
-	if version.IsVersionAction(action) && resource != "version" && !(action == "doctor" && (resource == "classes" || resource == "provider")) {
+	if version.IsVersionAction(action) && resource != "version" && !(action == "doctor" && (resource == "classes" || resource == "provider" || resource == "project-governance")) {
 		if err := version.Handle(action, append([]string{resource}, rest...), stdout, stderr); err != nil {
 			fmt.Fprintln(stderr, err)
 			return 1
@@ -51,6 +52,9 @@ func Run(args []string, stdout io.Writer, stderr io.Writer, cwd string) int {
 	case action == "doctor" && resource == "provider":
 		projectPath := firstOr(rest, cwd)
 		err = provider.WriteDoctor(projectPath, stdout)
+	case action == "doctor" && resource == "project-governance":
+		projectPath := firstOr(rest, cwd)
+		err = governance.WriteDoctor(projectPath, stdout)
 	case resource == "msapi" || resource == "metadata":
 		if err = provider.RequireMSAPI(firstOr(rest, cwd)); err == nil {
 			err = msapi.Handle(action, resource, rest, stdout, cwd)

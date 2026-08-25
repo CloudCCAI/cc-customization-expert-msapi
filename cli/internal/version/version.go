@@ -34,7 +34,8 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	case "changelog":
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
-		fmt.Fprintln(stderr, "- High-code platform-capability routing now requires all business and high-code requests to prefer platform standard metadata before Java code when low-code capabilities can satisfy the requirement; this includes fields, objects, layouts, validation rules, dupeCatcher, workflow/approval, sharing/security, formulas/rollups, automatic-number fields, lookup filters, and related lists, with code reserved for unsupported external, cross-object, dynamic, governance, or complex orchestration cases.")
+		fmt.Fprintln(stderr, "- Project-standard governance now separates AGENTS read gates, long-lived standards, FEAT/ADR/DevOps facts, blueprint process artifacts, and dynamic task state; cloudcc doctor project-governance validates the local structure without writes, and release purity gates reject customer identifiers and local absolute paths.")
+		fmt.Fprintln(stderr, "- Requirement-design and high-code platform-capability routing now requires business, functional, design, and high-code requests to prefer platform standard metadata before Java code when low-code capabilities can satisfy the requirement; even if the user classifies the request as high-code, the skill should name the low-code capability that can implement it before reserving code for unsupported external, cross-object, dynamic, governance, or complex orchestration cases.")
 		fmt.Fprintln(stderr, "- High-code performance guidance now forbids generated classes, triggers, and timer helpers from calling cquery*/cqlQuery*/pagedQuery inside loops for per-row enrichment, duplicate checks, or existence checks; generated code should collect keys, query with IN or bounded batches, build lookup maps, and then assemble results.")
 		fmt.Fprintln(stderr, "- High-code JSON return guidance now discourages net.sf.json JSONObject/JSONArray for generated business return structures because of performance and JSONNull risks; generated classes, triggers, and timer helpers should return Map<String,Object>, List<Map<String,Object>>, or explicit DTOs unless an existing fixed contract requires compatibility.")
 		fmt.Fprintln(stderr, "- High-code CQL guidance now requires generated cqlQuery business reads to add the platform logical-delete predicate, commonly is_deleted = '0', for every queried business object or alias by default, only omitting it for explicit recycle-bin, deleted-record audit, or deletion-state comparison requirements.")
@@ -229,6 +230,7 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "Usage:")
 	fmt.Fprintln(stdout, "  cloudcc --version")
 	fmt.Fprintln(stdout, "  cloudcc doc <layer>/<module> introduction|devguide")
+	fmt.Fprintln(stdout, "  cloudcc doctor project-governance [projectPath]")
 	fmt.Fprintln(stdout, "  cloudcc get config [projectPath]")
 	fmt.Fprintln(stdout, "  cloudcc use config <env> [projectPath]")
 	fmt.Fprintln(stdout, "  cloudcc create project <name|.>")

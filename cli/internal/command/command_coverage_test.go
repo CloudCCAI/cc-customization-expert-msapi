@@ -39,6 +39,8 @@ func TestVersionDocumentationConfigAndProjectCommands(t *testing.T) {
 		{name: "changelog", args: []string{"changelog"}, wantErr: "Low-code metadata shortcuts"},
 		{name: "doc-introduction", args: []string{"doc", "platform/overview", "introduction"}, wantOut: "CloudCC"},
 		{name: "doc-devguide", args: []string{"doc", "platform/object", "devguide"}, wantOut: "object"},
+		{name: "doc-project-governance", args: []string{"doc", "methodology/projectGovernance", "devguide"}, wantOut: "project-standard"},
+		{name: "doctor-project-governance-not-adopted", args: []string{"doctor", "project-governance"}, wantOut: "not_adopted"},
 	}
 	for _, tc := range localCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -95,14 +97,17 @@ func TestVersionDocumentationConfigAndProjectCommands(t *testing.T) {
 	}
 }
 
-func TestGenericSkillSourceDoesNotContainProjectSpecificAssets(t *testing.T) {
+func TestGenericSkillSourceDoesNotContainLocalEvidencePaths(t *testing.T) {
 	_, file, _, ok := runtime.Caller(0)
 	if !ok {
 		t.Fatal("cannot resolve test file path")
 	}
 	root := filepath.Clean(filepath.Join(filepath.Dir(file), "../../.."))
-	upperProjectKey := strings.ToUpper("ty" + "zy")
-	lowerProjectKey := strings.ToLower(upperProjectKey)
+	forbidden := []string{
+		"/Vol" + "umes/",
+		"/Us" + "ers/",
+		":\\Us" + "ers\\",
+	}
 	var matches []string
 	err := filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
@@ -126,8 +131,10 @@ func TestGenericSkillSourceDoesNotContainProjectSpecificAssets(t *testing.T) {
 			return err
 		}
 		text := string(data)
-		if strings.Contains(text, upperProjectKey) || strings.Contains(text, lowerProjectKey) {
-			matches = append(matches, rel)
+		for _, value := range forbidden {
+			if strings.Contains(text, value) {
+				matches = append(matches, rel+":"+value)
+			}
 		}
 		return nil
 	})
@@ -135,7 +142,7 @@ func TestGenericSkillSourceDoesNotContainProjectSpecificAssets(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(matches) > 0 {
-		t.Fatalf("generic skill source must not contain project-specific assets: %v", matches)
+		t.Fatalf("generic skill source must not contain local evidence paths: %v", matches)
 	}
 }
 
