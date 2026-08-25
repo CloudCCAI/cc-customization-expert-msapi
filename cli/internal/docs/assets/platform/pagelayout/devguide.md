@@ -64,6 +64,57 @@ cloudcc create pagelayout . 20267D1465464C5OB6m5 "课程表2" add20261DA7347CZPA
 cloudcc create pagelayout . 20267D1465464C5OB6m5 "课程表2" add20261DA7347CZPAUz false
 ```
 
+### 批量创建页面布局
+
+一次要在同一个对象下创建多个页面布局时，使用 MetadataService plan/apply。文件顶层写 `objectId`、`objectApiName` 或 `objectPrefix` 指定目标对象，并在 `layouts[]` 中写每个布局。批量创建是对象级能力：同一个文件只能作用于一个对象，数组项不能覆盖到其它对象，也不能和其它 domain 混在同一次计划里提交。
+
+示例 `layouts-batch.json`：
+
+```json
+{
+  "objectId": "20267D1465464C5OB6m5",
+  "onExisting": "createOnly",
+  "layouts": [
+    {
+      "id": "layout_contract_default",
+      "layoutName": "合同默认布局",
+      "sections": [
+        {
+          "label": "基本信息",
+          "fields": ["name", "ownerid"]
+        }
+      ]
+    },
+    {
+      "targetLayoutId": "layout_contract_channel",
+      "layoutName": "渠道合同布局",
+      "sourceLayoutId": "layout_contract_default",
+      "isCloneDynamic": "true"
+    }
+  ]
+}
+```
+
+执行命令：
+
+```bash
+cloudcc plan msapi <projectPath> layouts @layouts-batch.json create
+cloudcc apply msapi <projectPath> <planId> '{"async":true}'
+cloudcc operation msapi <projectPath> <applyId>
+cloudcc get pagelayout <projectPath> <prefix>
+```
+
+`pagelayout` / `layouts` 都可作为 `plan msapi` 的 domain 参数。批量计划会逐项检查同批重复、目标对象已有同 ID / API 名 / 名称布局、数组项是否声明了其它对象。复制布局时，`sourceLayoutId` / `cloneFromLayoutId` / 复制形态下的 `layoutId` 必须属于同一个根对象，跨对象源布局会标记为 `FAILED_PRECHECK`。
+
+`onExisting` 支持：
+
+| 策略 | 行为 |
+|------|------|
+| `createOnly` | 默认策略；目标已存在时该项标记为 `FAILED_PRECHECK`，其它无关项继续生成步骤。 |
+| `skipExisting` | 目标已存在时跳过该项，plan metadata 记录为 `SKIPPED`。 |
+
+调用方应读取 plan metadata 中的 `batchItemResults`、`batchExecutableCount`、`batchPrecheckFailedCount`。`batchItemResults[].status` 可能是 `PLANNED`、`SKIPPED` 或 `FAILED_PRECHECK`；预检失败项不会生成 SQL 步骤。如果整批都没有可执行项，`apply` 会失败，避免提交空计划。
+
 ### 删除页面布局
 
 ```bash

@@ -126,7 +126,7 @@ func TestProjectOutputsDoctorRejectsSymlinkEscape(t *testing.T) {
 	}
 	linkPath := filepath.Join(project, "outputs", "linked-release.zip")
 	if err := os.Symlink(outsideArtifact, linkPath); err != nil {
-		t.Fatal(err)
+		t.Skipf("symlink creation is not available in this environment: %v", err)
 	}
 	sum := sha256.Sum256(content)
 	writeManifest(t, project, Manifest{

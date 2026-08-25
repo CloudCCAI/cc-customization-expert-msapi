@@ -103,6 +103,63 @@ cloudcc create button . 202646FC67ACF24D39sG "外链按钮" linkBtn detailBtn ur
 
 ---
 
+### 3.1 批量创建自定义按钮
+
+一次要在同一个对象下创建多个自定义按钮时，使用 MetadataService plan/apply。文件顶层写 `objectId`、`objectApiName` 或 `objectPrefix` 指定目标对象，并在 `buttons[]` 中写每个按钮。批量创建是对象级能力：同一个文件只能作用于一个对象，数组项不能覆盖到其它对象，也不能和其它 domain 混在同一次计划里提交。
+
+示例 `buttons-batch.json`：
+
+```json
+{
+  "objectId": "202646FC67ACF24D39sG",
+  "onExisting": "createOnly",
+  "buttons": [
+    {
+      "id": "btn_contract_submit",
+      "label": "提交合同",
+      "name": "submit_contract",
+      "category": "CustomButton",
+      "btnType": "detailBtn",
+      "event": "JavaScript",
+      "behavior": "self",
+      "functionCode": "alert('submit');"
+    },
+    {
+      "id": "btn_contract_open_help",
+      "label": "查看指引",
+      "name": "open_contract_help",
+      "category": "CustomButton",
+      "btnType": "listBtn",
+      "event": "URL",
+      "behavior": "newWindow",
+      "url": "https://example.com/help"
+    }
+  ]
+}
+```
+
+执行命令：
+
+```bash
+cloudcc plan msapi <projectPath> buttons @buttons-batch.json create
+cloudcc apply msapi <projectPath> <planId> '{"async":true}'
+cloudcc operation msapi <projectPath> <applyId>
+cloudcc get button <projectPath> <prefix>
+```
+
+`button` / `buttons` 都可作为 `plan msapi` 的 domain 参数。批量计划会逐项检查同批重复、目标对象已有同 ID / API 名 / 名称 / 标签按钮、以及数组项是否声明了其它对象。批量创建只处理自定义按钮；`category` 为 `StandardButton` 的项会标记为 `FAILED_PRECHECK`，标准按钮请使用对应的更新或配置能力。
+
+`onExisting` 支持：
+
+| 策略 | 行为 |
+|------|------|
+| `createOnly` | 默认策略；目标已存在时该项标记为 `FAILED_PRECHECK`，其它无关项继续生成步骤。 |
+| `skipExisting` | 目标已存在时跳过该项，plan metadata 记录为 `SKIPPED`。 |
+
+调用方应读取 plan metadata 中的 `batchItemResults`、`batchExecutableCount`、`batchPrecheckFailedCount`。`batchItemResults[].status` 可能是 `PLANNED`、`SKIPPED` 或 `FAILED_PRECHECK`；预检失败项不会生成 SQL 步骤。如果整批都没有可执行项，`apply` 会失败，避免提交空计划。
+
+---
+
 ## 4. 删除自定义按钮
 
 ```bash

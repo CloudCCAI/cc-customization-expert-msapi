@@ -47,6 +47,54 @@ cloudcc create validationRule . "b00" "规则1" "Batch_Size__c__f==5" "数量必
 cloudcc create validationRule . @validation-rule.json
 ```
 
+### 批量创建验证规则
+
+一次要在同一个对象下创建多个验证规则时，使用 MetadataService plan/apply。文件顶层写 `objectId`、`objectApiName` 或 `objectPrefix` 指定目标对象，并在 `validationRules[]` 中写每条规则。批量创建是对象级能力：同一个文件只能作用于一个对象，数组项不能覆盖到其它对象，也不能和其它 domain 混在同一次计划里提交。
+
+示例 `validation-rules-batch.json`：
+
+```json
+{
+  "objectPrefix": "b00",
+  "onExisting": "createOnly",
+  "validationRules": [
+    {
+      "id": "val_contract_amount_required",
+      "name": "合同金额必填",
+      "ruleContent": "ISBLANK(Amount__c)",
+      "errorMessage": "合同金额不能为空",
+      "isActive": "true"
+    },
+    {
+      "id": "val_contract_end_after_start",
+      "name": "结束日期晚于开始日期",
+      "ruleContent": "End_Date__c < Start_Date__c",
+      "errorMessage": "结束日期必须晚于开始日期"
+    }
+  ]
+}
+```
+
+执行命令：
+
+```bash
+cloudcc plan msapi <projectPath> validation-rules @validation-rules-batch.json create
+cloudcc apply msapi <projectPath> <planId> '{"async":true}'
+cloudcc operation msapi <projectPath> <applyId>
+cloudcc get validationRule <projectPath> <objectPrefix>
+```
+
+`validationRule` / `validation-rules` 都可作为 `plan msapi` 的 domain 参数。批量计划会逐项检查同批重复、目标对象已有同 ID / API 名 / 名称验证规则、以及数组项是否声明了其它对象。公式、错误提示、启用状态等仍按单条验证规则的字段填写；批量不会降低公式校验要求，提交前仍建议先使用平台公式校验或等价只读预检。
+
+`onExisting` 支持：
+
+| 策略 | 行为 |
+|------|------|
+| `createOnly` | 默认策略；目标已存在时该项标记为 `FAILED_PRECHECK`，其它无关项继续生成步骤。 |
+| `skipExisting` | 目标已存在时跳过该项，plan metadata 记录为 `SKIPPED`。 |
+
+调用方应读取 plan metadata 中的 `batchItemResults`、`batchExecutableCount`、`batchPrecheckFailedCount`。`batchItemResults[].status` 可能是 `PLANNED`、`SKIPPED` 或 `FAILED_PRECHECK`；预检失败项不会生成 SQL 步骤。如果整批都没有可执行项，`apply` 会失败，避免提交空计划。
+
 ### 查询验证规则列表
 
 ```bash

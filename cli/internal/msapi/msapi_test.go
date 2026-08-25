@@ -610,7 +610,7 @@ func TestProjectScanBuildsCompareRequest(t *testing.T) {
 	if err := Handle("scan", "msapi", []string{tmp, "project"}, &stdout, tmp); err != nil {
 		t.Fatal(err)
 	}
-	if received["source"] != "project:"+tmp[strings.LastIndex(tmp, "/")+1:] {
+	if received["source"] != "project:"+filepath.Base(tmp) {
 		t.Fatalf("unexpected source %#v", received["source"])
 	}
 	checks, ok := received["checks"].([]any)
@@ -695,7 +695,7 @@ func TestFieldMapScanBuildsReadOnlyRequest(t *testing.T) {
 	if !strings.Contains(stdout.String(), "read-only-field-map") {
 		t.Fatalf("expected field-map response, got %s", stdout.String())
 	}
-	if received["source"] != "field-map:"+tmp[strings.LastIndex(tmp, "/")+1:] {
+	if received["source"] != "field-map:"+filepath.Base(tmp) {
 		t.Fatalf("unexpected source %#v", received["source"])
 	}
 	objects, ok := received["objects"].([]any)
@@ -2299,7 +2299,7 @@ func TestSetupSvcLiveReplayEvidenceImportBlocksMissingPayload(t *testing.T) {
 		t.Fatalf("expected one repair source file, got %#v", sourceFiles)
 	}
 	sourceFile := sourceFiles[0].(map[string]any)
-	if sourceFile["targetPath"] != queryFile ||
+	if sourceFile["targetPath"] != filepath.ToSlash(queryFile) ||
 		sourceFile["artifactType"] != "query-readback" ||
 		!containsStringItem(sourceFile["missingEvidenceSections"].([]any), "readbackTables") {
 		t.Fatalf("expected repair source file details, got %#v", sourceFile)
@@ -5374,7 +5374,7 @@ func TestSetupSvcLiveReplaySourceExecutionPacketGroupsCaptureBatches(t *testing.
 	}
 	if !sourceExecutionHasGroup(groups, "setup-svc", "setup-svc", "manual_or_scripted_snapshot_capture", setupSvcLiveReplayOperationCount(), setupSvcLiveReplayOperationCount(), setupSvcLiveReplayOperationCount(), "tableSnapshots", "runtimeEffectChecks") ||
 		!sourceExecutionHasGroup(groups, "metadata-service", "metadata-service", "msapi_plan_apply_snapshot_capture", setupSvcLiveReplayWriteOperationCount(), setupSvcLiveReplayWriteOperationCount(), setupSvcLiveReplayWriteOperationCount(), "tableSnapshots", "runtimeEffectChecks") ||
-		!sourceExecutionHasGroup(groups, "metadata-service", "metadata-service", "msapi_scan_snapshot_capture", 21, 21, 21, "tableSnapshots", "runtimeEffectChecks") ||
+		!sourceExecutionHasGroup(groups, "metadata-service", "metadata-service", "msapi_scan_snapshot_capture", setupSvcLiveReplayOperationCount()-setupSvcLiveReplayWriteOperationCount(), setupSvcLiveReplayOperationCount()-setupSvcLiveReplayWriteOperationCount(), setupSvcLiveReplayOperationCount()-setupSvcLiveReplayWriteOperationCount(), "tableSnapshots", "runtimeEffectChecks") ||
 		!sourceExecutionHasGroup(groups, "query-readback", "msapi-query-readback", "msapi_query_readback_capture", setupSvcLiveReplayOperationCount(), setupSvcLiveReplayOperationCount(), setupSvcLiveReplayOperationCount(), "readbackTables", "cleanCounters") ||
 		!sourceExecutionHasGroup(groups, "normalized-diff", "local-normalized-diff", "approval_gated_generated_diff", setupSvcLiveReplayOperationCount(), setupSvcLiveReplayOperationCount(), setupSvcLiveReplayOperationCount(), "diffCounters", "nestedCleanCounters") ||
 		!sourceExecutionHasGroup(groups, "cleanup", "cleanup-verifier", "cleanup_residual_capture", setupSvcLiveReplayWriteOperationCount(), setupSvcLiveReplayWriteOperationCount(), setupSvcLiveReplayWriteOperationCount(), "residualCounters", "deletedOrRemovedEvidence") {
@@ -5467,30 +5467,31 @@ func TestSetupSvcLiveReplaySourceExecutionPacketGroupsCaptureBatches(t *testing.
 		t.Fatal(err)
 	}
 	totals = result["totals"].(map[string]any)
-	if int(totals["sourceFiles"].(float64)) != 21 ||
+	readOnlyOperationCount := setupSvcLiveReplayOperationCount() - setupSvcLiveReplayWriteOperationCount()
+	if int(totals["sourceFiles"].(float64)) != readOnlyOperationCount ||
 		int(totals["artifactTypes"].(float64)) != 1 ||
 		int(totals["captureGroups"].(float64)) != 1 ||
 		int(totals["evidenceSections"].(float64)) != 3 {
 		t.Fatalf("expected filtered metadata-service query scan execution packet, got %#v", totals)
 	}
 	groups = result["captureModeGroups"].([]any)
-	if len(groups) != 1 || !sourceExecutionHasGroup(groups, "metadata-service", "metadata-service", "msapi_scan_snapshot_capture", 21, 21, 21, "tableSnapshots", "runtimeEffectChecks", "metadataServiceDatasource") {
+	if len(groups) != 1 || !sourceExecutionHasGroup(groups, "metadata-service", "metadata-service", "msapi_scan_snapshot_capture", readOnlyOperationCount, readOnlyOperationCount, readOnlyOperationCount, "tableSnapshots", "runtimeEffectChecks", "metadataServiceDatasource") {
 		t.Fatalf("expected filtered metadata-service scan group, got %#v", groups)
 	}
 	if result["artifactType"] != "metadata-service" ||
 		result["sourceSystem"] != "metadata-service" ||
 		result["captureMode"] != "msapi_scan_snapshot_capture" ||
-		int(result["sourceFiles"].(float64)) != 21 ||
-		int(result["targetFiles"].(float64)) != 21 ||
-		int(result["domainOperations"].(float64)) != 21 ||
-		len(result["items"].([]any)) != 21 {
+		int(result["sourceFiles"].(float64)) != readOnlyOperationCount ||
+		int(result["targetFiles"].(float64)) != readOnlyOperationCount ||
+		int(result["domainOperations"].(float64)) != readOnlyOperationCount ||
+		len(result["items"].([]any)) != readOnlyOperationCount {
 		t.Fatalf("expected filtered metadata-service scan packet to mirror one capture batch, got %#v", result)
 	}
 	operatorBatch = result["operatorBatch"].(map[string]any)
 	if operatorBatch["artifactType"] != "metadata-service" ||
 		operatorBatch["captureMode"] != "msapi_scan_snapshot_capture" ||
-		int(operatorBatch["sourceFiles"].(float64)) != 21 ||
-		int(operatorBatch["targetFiles"].(float64)) != 21 ||
+		int(operatorBatch["sourceFiles"].(float64)) != readOnlyOperationCount ||
+		int(operatorBatch["targetFiles"].(float64)) != readOnlyOperationCount ||
 		!strings.Contains(operatorBatch["saveBatchCommand"].(string), "--capture-mode msapi_scan_snapshot_capture") ||
 		!strings.Contains(operatorBatch["dryRunImportCommand"].(string), "metadata-service-msapi_scan_snapshot_capture-source-capture-batch-readiness-complete.json") ||
 		!strings.Contains(operatorBatch["nextAction"].(string), "query scan capture") {
@@ -10299,8 +10300,10 @@ func containsStringItem(items []any, prefix string) bool {
 }
 
 func containsStringFragment(items []any, fragment string) bool {
+	normalizedFragment := strings.ReplaceAll(fragment, "\\", "/")
 	for _, item := range items {
-		if strings.Contains(item.(string), fragment) {
+		normalizedItem := strings.ReplaceAll(item.(string), "\\", "/")
+		if strings.Contains(normalizedItem, normalizedFragment) {
 			return true
 		}
 	}

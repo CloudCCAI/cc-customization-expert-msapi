@@ -69,6 +69,53 @@ cloudcc create recordType . <encodedBodyJson>
 
 ---
 
+### 3.1 批量创建记录类型
+
+一次要在同一个对象下创建多个记录类型时，使用 MetadataService plan/apply。文件顶层写 `objectId`、`objectApiName` 或 `objectPrefix` 指定目标对象，并在 `recordTypes[]` 中写每个记录类型。批量创建是对象级能力：同一个文件只能作用于一个对象，数组项不能覆盖到其它对象，也不能和其它 domain 混在同一次计划里提交。
+
+示例 `record-types-batch.json`：
+
+```json
+{
+  "objectPrefix": "b00",
+  "onExisting": "createOnly",
+  "recordTypes": [
+    {
+      "id": "rt_contract_standard",
+      "name": "标准合同",
+      "apiCode": "standard_contract",
+      "isenable": "true"
+    },
+    {
+      "id": "rt_contract_channel",
+      "name": "渠道合同",
+      "apiCode": "channel_contract",
+      "description": "渠道业务专用记录类型"
+    }
+  ]
+}
+```
+
+执行命令：
+
+```bash
+cloudcc plan msapi <projectPath> record-types @record-types-batch.json create
+cloudcc apply msapi <projectPath> <planId> '{"async":true}'
+cloudcc operation msapi <projectPath> <applyId>
+cloudcc getList recordType <projectPath> <objid>
+```
+
+`recordType` / `record-types` 都可作为 `plan msapi` 的 domain 参数。批量计划会逐项检查同批重复、目标对象已有同 ID / API 名 / 名称记录类型、以及数组项是否声明了其它对象。`onExisting` 支持：
+
+| 策略 | 行为 |
+|------|------|
+| `createOnly` | 默认策略；目标已存在时该项标记为 `FAILED_PRECHECK`，其它无关项继续生成步骤。 |
+| `skipExisting` | 目标已存在时跳过该项，plan metadata 记录为 `SKIPPED`。 |
+
+调用方应读取 plan metadata 中的 `batchItemResults`、`batchExecutableCount`、`batchPrecheckFailedCount`。`batchItemResults[].status` 可能是 `PLANNED`、`SKIPPED` 或 `FAILED_PRECHECK`；预检失败项不会生成 SQL 步骤。如果整批都没有可执行项，`apply` 会失败，避免提交空计划。
+
+---
+
 ## 4. 编辑记录类型
 
 **Step 1：获取回显数据**

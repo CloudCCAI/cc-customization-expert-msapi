@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.28"
+const Version = "2.2.29"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -34,6 +34,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	case "changelog":
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
+		fmt.Fprintln(stderr, "- Object-scoped MetadataService batch create now supports record types, page layouts, validation rules, and custom buttons with root-object enforcement, createOnly/skipExisting handling, item-level precheck results, and CLI user docs.")
 		fmt.Fprintln(stderr, "- Project outputs governance now provides a non-overwriting root outputs scaffold and read-only doctor for dynamic documents, project-specific tools, data/deployment/training/integration packages, relative references, delivered-artifact SHA-256, and sensitive-content risk without imposing fixed content templates.")
 		fmt.Fprintln(stderr, "- Advisory end-to-end test governance now provides a non-overwriting project scaffold, read-only impact recommendations, immutable human scope decisions, run manifests, and cloudcc doctor test-governance; recommendations remain non-blocking and do not replace target-role UAT or Go/No-Go.")
 		fmt.Fprintln(stderr, "- Rollup summary field creation now requires MetadataService 1.1.36 for platform-compatible filtered summary readback: filtered summaries write tp_sys_condition MAIN_OBJ_ID/BOOL_FILTER rows and derive AGGCONDITIONDIS so filtered summary fields can be shown and edited correctly.")

@@ -1,6 +1,6 @@
 ﻿{
     "packageName":  "cc-customization-expert-msapi",
-    "version":  "2.2.28-msapi",
+    "version":  "2.2.29-msapi",
     "releaseDate":  "2026-08-25",
     "compatCloudccCliVersion":  "2.5.3",
     "runtime":  "go",
@@ -132,6 +132,23 @@
                                                                                             "upsert"
                                                                                         ],
                                                                          "reason":  "Requires MetadataService plan metadata batchItemResults/batchExecutableCount/batchPrecheckFailedCount so independent preflight validation failures do not block unrelated batch items, while apply-time SQL remains batched and transactional."
+                                                                     },
+                                                                     {
+                                                                         "capability":  "msapi.objectScopedBatchCreate.domains",
+                                                                         "label":  "Object-scoped batch create for record types, page layouts, validation rules, and buttons",
+                                                                         "introducedInSkillVersion":  "2.2.29-msapi",
+                                                                         "minimumMetadataServiceVersion":  "1.1.37",
+                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.37",
+                                                                         "domains":  [
+                                                                                         "record-types",
+                                                                                         "layouts",
+                                                                                         "validation-rules",
+                                                                                         "buttons"
+                                                                                     ],
+                                                                         "operations":  [
+                                                                                            "create"
+                                                                                        ],
+                                                                         "reason":  "Requires MetadataService compilers to accept recordTypes[], layouts[], validationRules[], and buttons[] under one resolved root object, enforce same-object prechecks, and emit item-level batch metadata."
                                                                      },
                                                                      {
                                                                          "capability":  "msapi.fields.rollupSummaryDerivedCreate",
