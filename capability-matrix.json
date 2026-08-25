@@ -2,8 +2,8 @@
   "schemaVersion": "cloudcc-dual-provider-capability-matrix/v1",
   "releaseBaseline": "2.2.5",
   "msapiBaseline": {
-    "domains": 21,
-    "operations": 91,
+    "domains": 22,
+    "operations": 97,
     "source": "cli/internal/msapi/setup_svc_live_replay.go:setupSvcLiveReplayDomains"
   },
   "semantics": {
@@ -28,6 +28,7 @@
     {"id":"buttons","uiapiResource":"button","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
     {"id":"custom-settings","uiapiResource":"customSetting","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
     {"id":"dupe-catchers","uiapiResource":"dupeCatcher","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
+    {"id":"workflows","uiapiResource":"workflow","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","activate":"contract_tested","deactivate":"contract_tested","query":"contract_tested"}},
     {"id":"single-sign-ons","uiapiResource":"singleSignOn","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
     {"id":"identity-providers","uiapiResource":"identityProvider","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
     {"id":"approval-processes","uiapiResource":"approval","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},

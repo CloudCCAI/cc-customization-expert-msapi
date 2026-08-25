@@ -1,7 +1,7 @@
 ﻿{
     "packageName":  "cc-customization-expert-msapi",
-    "version":  "2.2.19-msapi",
-    "releaseDate":  "2026-08-24",
+    "version":  "2.2.22-msapi",
+    "releaseDate":  "2026-08-25",
     "compatCloudccCliVersion":  "2.5.3",
     "runtime":  "go",
     "metadataService":  {
@@ -99,10 +99,10 @@
                                                                      },
                                                                      {
                                                                          "capability":  "msapi.fields.rollupSummaryDerivedCreate",
-                                                                         "label":  "Rollup summary field creation with setup-web-shaped payloads and derived runtime SQL",
-                                                                         "introducedInSkillVersion":  "2.2.18-msapi",
-                                                                         "minimumMetadataServiceVersion":  "1.1.33",
-                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.33",
+                                                                         "label":  "Rollup summary field creation with setup-web-compatible API references and derived runtime SQL",
+                                                                         "introducedInSkillVersion":  "2.2.20-msapi",
+                                                                         "minimumMetadataServiceVersion":  "1.1.34",
+                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.34",
                                                                          "domains":  [
                                                                                          "fields"
                                                                                      ],
@@ -110,7 +110,26 @@
                                                                                             "create",
                                                                                             "upsert"
                                                                                         ],
-                                                                         "reason":  "Requires MetadataService to normalize setup-web field payloads, derive rollup summary executeExpression/decimalPlaces/summaryfieldtype, support batch fields[] rollup summary creation, and fail closed when filtered summaries lack compilable SQL conditions."
+                                                                         "reason":  "Requires MetadataService to normalize rollup summary summarizedObj/aggregateField into setup-web-compatible API form, parse string conditionVals, derive executeExpression/decimalPlaces/summaryfieldtype, support batch fields[] rollup summary creation, and fail closed when filtered summaries lack UI condition rows or SQL conditions."
+                                                                     },
+                                                                     {
+                                                                         "capability":  "msapi.workflows.phase1",
+                                                                         "label":  "Workflow rule CRUD, condition rows, readback, and explicit activation plans",
+                                                                         "introducedInSkillVersion":  "2.2.21-msapi",
+                                                                         "minimumMetadataServiceVersion":  "1.1.35",
+                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.35",
+                                                                         "domains":  [
+                                                                                         "workflows"
+                                                                                     ],
+                                                                         "operations":  [
+                                                                                            "create",
+                                                                                            "update",
+                                                                                            "delete",
+                                                                                            "activate",
+                                                                                            "deactivate",
+                                                                                            "query"
+                                                                                        ],
+                                                                         "reason":  "Requires MetadataService workflow compiler and read-only /metadata/v1/workflows endpoints aligned to setup-web /api/workFlowSetup/listworkflows, detailWorkflow, saveNewButton, saveWorkflow, deleteWorkflow, and activeWorkflow."
                                                                      }
                                                                  ]
                                      },

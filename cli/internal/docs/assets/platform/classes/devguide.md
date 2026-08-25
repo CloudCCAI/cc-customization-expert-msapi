@@ -695,7 +695,7 @@ CloudCC Query Language（CQL）查询，类似 SQL，直接传入查询语句执
 
 **适用场景**
 
-复杂联查、需要精确控制 SQL 语句的场景，如跨对象关联查询等。
+复杂联查、需要精确控制 SQL 语句的场景，如跨对象关联查询等。业务查询默认只读取未逻辑删除数据。
 
 **方法签名**
 
@@ -718,7 +718,7 @@ List<CCObject> cqlQueryWithLogInfo(String objectApiName, String cql, String logL
 | 参数名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
 | `objectApiName` | String | 是（联查时不需要） | 主对象 API 名称，多对象联查时传逗号分隔的对象名，如 `"Account,Contact"` |
-| `cql` | String | 是 | CQL 查询语句，语法参考 SQL SELECT，字段名使用对象字段 API 名 |
+| `cql` | String | 是 | CQL 查询语句，语法参考 SQL SELECT，字段名使用对象字段 API 名。平台业务数据删除默认是逻辑删除，AI 生成业务查询时必须默认为每个业务对象拼接逻辑删除过滤，常见字段为 `is_deleted = '0'`；联查时按对象别名拼接，如 `a.is_deleted = '0'`、`c.is_deleted = '0'`。若目标对象实际字段为 `is_delete` 或其他名称，必须按实际字段拼接。只有用户明确要求查询回收站/已删除数据、删除审计或删除状态对比时，才允许不加该条件 |
 | `logLevel` | String | 否 | 日志级别，`"DEBUG"`、`"INFO"`、`"ERROR"` |
 
 **返回值**
@@ -728,32 +728,48 @@ List<CCObject> cqlQueryWithLogInfo(String objectApiName, String cql, String logL
 
 > 注意：CQL 语句会经过合法性校验，禁止 DDL 操作（DROP、CREATE、ALTER 等），违反则返回 `null` 或抛出异常。
 
+> 注意：`cqlQuery` 不要假设平台会自动排除逻辑删除数据。生成自定义类、触发器或定时类中的业务 CQL 时，默认必须把平台逻辑删除条件写入每个业务对象的 `WHERE` 条件，常见写法是 `is_deleted = '0'`；如果目标对象使用别名或不同逻辑删除字段名，例如 `is_delete`，必须按实际字段和别名补齐。
+
 **示例**
 
 ```java
 // 单对象 CQL 查询
 List<CCObject> list = ccService.cqlQuery(
     "Account",
-    "SELECT id, name__c, phone__c FROM Account WHERE status__c = '启用'"
+    "SELECT id, name__c, phone__c FROM Account " +
+    "WHERE is_deleted = '0' AND status__c = '启用'"
 );
 
 // 多对象联查（联系人关联客户）
 List<Map> list2 = ccService.cqlQuery(
     "SELECT a.id, a.name__c, c.name__c AS contactName " +
     "FROM Account a, Contact c " +
-    "WHERE a.id = c.accountid__c AND a.status__c = '启用'"
+    "WHERE a.is_deleted = '0' AND c.is_deleted = '0' " +
+    "AND a.id = c.accountid__c AND a.status__c = '启用'"
 );
 
 // 需要抛出异常时使用
 try {
     List<CCObject> list3 = ccService.cqlQueryThrowException(
         "Account",
-        "SELECT id, name__c FROM Account WHERE id = 'xxx'"
+        "SELECT id, name__c FROM Account WHERE is_deleted = '0' AND id = 'xxx'"
     );
 } catch (Exception e) {
     System.out.println("CQL 执行失败：" + e.getMessage());
 }
 ```
+
+错误写法：
+
+```java
+// 缺少 is_deleted = '0'，会把逻辑删除数据也纳入业务判断
+List<CCObject> list = ccService.cqlQuery(
+    "Account",
+    "SELECT id, name__c FROM Account WHERE status__c = '启用'"
+);
+```
+
+如果需求明确要看已删除数据，应在代码注释或方法名中说明业务原因，例如回收站查询、删除审计或删除状态对比；普通查重、存在性判断、同步读取、报表辅助查询、触发器/定时类业务处理都必须默认排除已删除数据。
 
 ---
 
@@ -2764,6 +2780,7 @@ AI 默认应避免：
 
 - `expression` 是数据库侧过滤条件，查重、存在性、幂等和编号前置判断必须把真正的业务键下推到这里
 - `cquery*` 相关方法有平台返回条数上限，默认通常为 5000 且可配置；`1=1` 后循环最多只能判断返回窗口内的数据，大表上会出现假阴性
+- `cqlQuery` 是手写 CQL，不要假设平台自动过滤逻辑删除数据；默认必须为每个业务对象拼接 `is_deleted = '0'`
 - 即使当前数据量小，生成代码也不能假设对象永远小；这类代码一旦进入触发器、定时类或复用自定义类，会随业务增长放大为性能和正确性问题
 
 应优先：
@@ -2772,6 +2789,7 @@ AI 默认应避免：
 - 只查必要字段
 - 把业务键、当前记录排除条件、状态、时间范围等边界写进查询条件
 - 存在性判断只取 `id`，并用 `pagedQuery(..., "1", "1", ..., "id")` 或有明确条件的 `cqueryByFields`
+- 使用 `cqlQuery` 联查时，为每个业务对象或别名补上逻辑删除条件，例如 `a.is_deleted = '0' AND c.is_deleted = '0'`
 - 提前构造索引或映射
 - 把批量处理合并到同一逻辑块
 
@@ -2915,6 +2933,7 @@ AI 不得：
 - 默认使用 `new Date()` 作为业务时间
 - 使用字段显示名代替 API 名称
 - 无条件全量查询大对象
+- 生成缺少 `is_deleted = '0'` 的业务 `cqlQuery`，除非需求明确包含已删除数据
 - 生成超过 2000 行的单个 Java 源文件
 - 将复杂业务需求全部塞进一个自定义类而不拆分职责
 - 将关键逻辑全部堆在入口方法里
@@ -2947,13 +2966,14 @@ AI 完成代码后，必须自检：
    等，对外或需数据权限用 `cqueryWithRoleRight`；复杂联查用 `cqlQuery`，分页用
    `pagedQuery` / `pageQuery` 等）
 4. 是否所有查重、存在性判断、幂等判断都带业务键过滤，并且没有用 `1=1` 全量查询后循环比对
-5. 是否对写操作做了失败处理
-6. 是否对关键步骤加了日志
-7. 是否避免了直接 `new Date()`
-8. 是否把复杂逻辑拆成了可读的方法
-9. 是否单个 Java 文件低于 2000 行；复杂需求是否拆分成多个自定义类
-10. 是否避免了不必要硬编码
-11. 是否让返回结果对调用方足够清晰
+5. 是否所有业务 `cqlQuery` 都默认排除逻辑删除数据；多对象联查是否为每个对象别名加了 `is_deleted = '0'`
+6. 是否对写操作做了失败处理
+7. 是否对关键步骤加了日志
+8. 是否避免了直接 `new Date()`
+9. 是否把复杂逻辑拆成了可读的方法
+10. 是否单个 Java 文件低于 2000 行；复杂需求是否拆分成多个自定义类
+11. 是否避免了不必要硬编码
+12. 是否让返回结果对调用方足够清晰
 
 ## 17. 推荐骨架
 

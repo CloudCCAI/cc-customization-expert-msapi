@@ -31,7 +31,7 @@ func TestVersionDocumentationConfigAndProjectCommands(t *testing.T) {
 		wantErr string
 	}{
 		{name: "help-empty", args: nil, wantOut: "CloudCC CLI Go"},
-		{name: "version", args: []string{"--version"}, wantOut: "2.2.19-msapi"},
+		{name: "version", args: []string{"--version"}, wantOut: "2.2.22-msapi"},
 		{name: "help", args: []string{"help"}, wantOut: "Usage:"},
 		{name: "doctor", args: []string{"doctor"}, wantOut: "node/npm: not required"},
 		{name: "docs", args: []string{"docs"}, wantOut: "cloudcc doc"},
@@ -257,14 +257,14 @@ func TestLowCodeShortcutCommandMatrix(t *testing.T) {
 	resources := []string{
 		"application", "button", "customSetting", "dupeCatcher", "fields", "globalSelectList",
 		"identityProvider", "menu", "object", "pagelayout", "permission", "profile",
-		"recordType", "role", "sharingRule", "singleSignOn", "validationRule", "view",
+		"recordType", "role", "sharingRule", "singleSignOn", "validationRule", "view", "workflow",
 	}
 	for _, resource := range resources {
 		t.Run(resource+"-read", func(t *testing.T) {
 			calls = nil
 			var stdout, stderr bytes.Buffer
 			args := []string{"get", resource, projectPath}
-			if resource == "fields" || resource == "pagelayout" || resource == "recordType" {
+			if resource == "fields" || resource == "pagelayout" || resource == "recordType" || resource == "validationRule" {
 				args = append(args, "obj-001")
 			}
 			if exit := Run(args, &stdout, &stderr, projectPath); exit != 0 {
@@ -295,6 +295,15 @@ func TestLowCodeShortcutCommandMatrix(t *testing.T) {
 				assertCommandCall(t, calls, http.MethodGet, "/metadata/v1/roles")
 			} else if resource == "sharingRule" {
 				assertCommandCall(t, calls, http.MethodGet, "/metadata/v1/sharing-rules")
+			} else if resource == "validationRule" {
+				assertCommandCall(t, calls, http.MethodGet, "/metadata/v1/validation-rules")
+				if calls[0].RawQuery != "object=obj-001" {
+					t.Fatalf("expected object selector query, got %#v", calls[0])
+				}
+			} else if resource == "view" {
+				assertCommandCall(t, calls, http.MethodPost, "/metadata/v1/object-views:query")
+			} else if resource == "workflow" {
+				assertCommandCall(t, calls, http.MethodGet, "/metadata/v1/workflows")
 			} else {
 				assertCommandCall(t, calls, http.MethodGet, "/metadata/v1/scans/standard-catalog")
 			}

@@ -10214,6 +10214,8 @@ func setupSvcLiveReplayMetadataServiceDeleteSpec(domain string, operation string
 		return map[string]any{"id": "obj_cc_replay_setting", "apiName": "cc_replay_setting"}
 	case "dupe-catchers":
 		return map[string]any{"id": "dup_cc_replay"}
+	case "workflows":
+		return map[string]any{"id": "acd_cc_replay_workflow", "objectId": "obj_cc_replay"}
 	case "single-sign-ons":
 		return map[string]any{"id": "sso_cc_replay"}
 	case "identity-providers":
@@ -10263,6 +10265,8 @@ func setupSvcLiveReplayMetadataServiceCreateSpec(domain string) map[string]any {
 		return map[string]any{"id": "obj_cc_replay_setting", "apiName": "cc_replay_setting", "label": "回放设置", "fields": []any{map[string]any{"id": "field_cc_replay_limit", "apiName": "cc_replay_limit", "nameLabel": "回放上限", "type": "N"}}, "regenerateLayout": true, "layoutId": "layout_cc_replay_setting", "sectionId": "sect_cc_replay_setting", "allProfileIds": []any{"aaa000001", "aaa000002"}}
 	case "dupe-catchers":
 		return map[string]any{"id": "dup_cc_replay", "name": "回放查重", "objectId": "obj_cc_replay", "active": "1", "isprofile": true, "errormessage": "回放数据不能重复", "insertoperation": "check", "updateoperation": "check", "conditions": []any{map[string]any{"id": "cond_dup_cc_replay", "fieldId": "isdeleted", "operator": "=", "value": "0"}}, "rules": []any{map[string]any{"id": "dupr_cc_replay_name", "fieldId": "field_cc_replay_text", "matchOption": "exact", "firstLetters": "3"}}}
+	case "workflows":
+		return map[string]any{"id": "acd_cc_replay_workflow", "name": "回放工作流", "apiName": "cc_replay_workflow", "targetObjectId": "obj_cc_replay", "targetObject": "回放对象", "evaluateRuleType": "U", "condtionOption": "R", "conditions": []any{map[string]any{"id": "cond_wf_cc_replay", "fieldId": "field_cc_replay_text", "operator": "=", "value": "启用", "boolFilter": "1"}}}
 	case "single-sign-ons":
 		return map[string]any{"id": "sso_cc_replay", "name": "回放 SSO", "issuer": "https://idp.example.com/cc-replay", "entityId": "cloudcc-cc-replay", "loginUrl": "https://idp.example.com/login", "enableLogout": true, "requestBinding": "HTTP-POST", "appDomain": "https://crm.example.com/", "orgId": "00Dccreplay", "certName": "cc-replay-idp.crt"}
 	case "identity-providers":
@@ -15686,6 +15690,7 @@ func setupSvcLiveReplayDomains() []setupSvcLiveReplayDomain {
 		liveReplayDomain("buttons", []string{"create", "update", "delete", "query"}, []string{"tp_sys_button", "tp_sys_button_scope", "tp_sys_layout_button", "tp_sys_relatedlist_button", "tp_sys_view_button", "tp_sys_lookuplayout", "tp_sys_multi_lang"}),
 		liveReplayDomain("custom-settings", []string{"create", "update", "delete", "query"}, []string{"tp_sys_object", "tp_sys_schemetable", "tp_sys_multi_lang", "tp_sys_layout", "tp_sys_profile_layout", "tp_sys_layout_section", "tp_sys_section_field"}),
 		liveReplayDomain("dupe-catchers", []string{"create", "update", "delete", "query"}, []string{"tp_sys_dupecatcher", "tp_sys_dupecatcherule", "tp_sys_condition"}),
+		liveReplayDomain("workflows", []string{"create", "update", "delete", "activate", "deactivate", "query"}, []string{"tp_sys_workflow", "tp_sys_condition", "tp_sys_actions_relation", "tp_sys_workflowdepend", "tp_sys_schedular"}),
 		liveReplayDomain("single-sign-ons", []string{"create", "update", "delete", "query"}, []string{"tp_sys_sp_idps"}),
 		liveReplayDomain("identity-providers", []string{"create", "update", "delete", "query"}, []string{"tp_sys_idp_config", "tp_sys_idp_sps"}),
 		liveReplayDomain("approval-processes", []string{"create", "update", "delete", "query"}, []string{"tp_sys_approval", "tp_sys_approval_step", "tp_sys_approval_step_layout", "tp_sys_apralrellist", "tp_sys_apralrellist_fields", "tp_sys_actions_relation", "tp_sys_condition"}),
@@ -15753,6 +15758,8 @@ func setupSvcLiveReplayRuntimeEffects(domain string) []string {
 		return []string{"setting-object-table-view-allocation", "setting-field-expansion", "setting-layout-profile-expansion", "translated-label-expansion", "delete-cleanup"}
 	case "dupe-catchers":
 		return []string{"dupe-rule-field-condition-expansion", "dupe-rule-firstletters-normalization", "dupe-rule-delete-cleanup"}
+	case "workflows":
+		return []string{"workflow-condition-expansion", "workflow-activation-toggle", "workflow-trigger-action-cleanup"}
 	case "single-sign-ons":
 		return []string{"saml-sp-row-lifecycle", "sso-derived-route-generation", "sso-certificate-update-preservation", "sso-sp-cache-refresh", "sso-delete-cleanup"}
 	case "identity-providers":
@@ -15894,6 +15901,8 @@ func setupSvcLiveReplayQueryReadbackExpectations(domain string) []string {
 		return []string{"setting-object-field-readback", "setting-layout-profile-readback", "datatable-view-readback"}
 	case "dupe-catchers":
 		return []string{"dupe-rule-field-condition-readback", "dupe-lowercase-audit-action-readback", "matching-action-readback"}
+	case "workflows":
+		return []string{"workflow-rule-condition-readback", "workflow-detail-action-trigger-readback", "workflow-active-status-readback"}
 	case "single-sign-ons":
 		return []string{"sso-saml-setting-readback", "sso-derived-route-readback", "sso-lowercase-audit-action-readback", "enabled-status-readback"}
 	case "identity-providers":

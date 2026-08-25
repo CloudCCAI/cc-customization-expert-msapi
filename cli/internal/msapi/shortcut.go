@@ -39,6 +39,8 @@ var lowCodeShortcutDomains = map[string]string{
 	"singleSignOn":     "single-sign-ons",
 	"validationRule":   "validation-rules",
 	"view":             "object-views",
+	"workflow":         "workflows",
+	"workflowRule":     "workflows",
 }
 
 var lowCodeShortcutActions = map[string]bool{
@@ -57,6 +59,10 @@ var lowCodeShortcutActions = map[string]bool{
 	"add":         true,
 	"remove":      true,
 	"delete":      true,
+	"enable":      true,
+	"disable":     true,
+	"activate":    true,
+	"deactivate":  true,
 	"purge":       true,
 }
 
@@ -93,6 +99,9 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 	}
 	if resource == "validationRule" && isShortcutRead(action) {
 		return handleValidationRuleReadShortcut(action, projectPath, rest, stdout, cwd)
+	}
+	if (resource == "workflow" || resource == "workflowRule") && isShortcutRead(action) {
+		return handleWorkflowReadShortcut(action, projectPath, rest, stdout, cwd)
 	}
 	if resource == "object" && isShortcutRead(action) {
 		return handleObjectReadShortcut(action, projectPath, rest, stdout, cwd)
@@ -1496,6 +1505,9 @@ func shortcutPlanSpec(action string, resource string, args []string) (map[string
 	if resource == "validationRule" {
 		return validationRuleShortcutSpec(action, args)
 	}
+	if resource == "workflow" || resource == "workflowRule" {
+		return workflowShortcutSpec(action, args)
+	}
 	if resource == "fields" && strings.TrimSpace(action) == "delete" {
 		if len(args) == 0 || strings.TrimSpace(args[0]) == "" {
 			return nil, "", fmt.Errorf("cloudcc delete fields <projectPath> <fieldId> [objectId] now creates a MetadataService delete plan")
@@ -1705,6 +1717,74 @@ func validationRuleShortcutSpec(action string, args []string) (map[string]any, s
 	}
 }
 
+func handleWorkflowReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
+	action = strings.TrimSpace(action)
+	c, _, err := newClient([]string{projectPath}, cwd)
+	if err != nil {
+		return err
+	}
+	if action == "detail" || action == "editInfo" || action == "validDelete" {
+		if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
+			return fmt.Errorf("cloudcc %s workflow <projectPath> <workflow-id>", action)
+		}
+		return c.getJSON(stdout, "/metadata/v1/workflows/"+url.PathEscape(strings.TrimSpace(args[0])))
+	}
+	if len(args) > 1 {
+		return fmt.Errorf("cloudcc %s workflow <projectPath> [object-id-or-filter]", action)
+	}
+	path := "/metadata/v1/workflows"
+	if len(args) == 1 && strings.TrimSpace(args[0]) != "" {
+		values := url.Values{}
+		values.Set("filter", strings.TrimSpace(args[0]))
+		path += "?" + values.Encode()
+	}
+	return c.getJSON(stdout, path)
+}
+
+func workflowShortcutSpec(action string, args []string) (map[string]any, string, error) {
+	operation := shortcutOperation(action, "workflow")
+	if len(args) > 0 && looksLikeJSONArg(args[0]) {
+		body, err := parseObject(args[0], "cloudcc "+action+" workflow")
+		return body, operation, err
+	}
+	switch strings.TrimSpace(action) {
+	case "create":
+		if len(args) < 3 {
+			return nil, "", fmt.Errorf("cloudcc create workflow <projectPath> <targetObjectId> <name> <encodedOptionsJson> now creates a MetadataService plan")
+		}
+		options, err := parseObject(args[2], "cloudcc create workflow")
+		if err != nil {
+			return nil, "", err
+		}
+		options["targetobjectid"] = strings.TrimSpace(args[0])
+		options["targetObjectId"] = strings.TrimSpace(args[0])
+		options["name"] = strings.TrimSpace(args[1])
+		return options, operation, nil
+	case "update", "modify", "editSave", "save":
+		if len(args) == 0 || strings.TrimSpace(args[0]) == "" {
+			return nil, "", fmt.Errorf("cloudcc %s workflow <projectPath> <workflowId|encodedWorkflowJson> [encodedOptionsJson] now creates a MetadataService plan", action)
+		}
+		if len(args) > 1 && looksLikeJSONArg(args[1]) {
+			body, err := parseObject(args[1], "cloudcc "+action+" workflow")
+			if err != nil {
+				return nil, "", err
+			}
+			if firstShortcutValue(body, "id", "workflowId", "objid") == "" {
+				body["id"] = strings.TrimSpace(args[0])
+			}
+			return body, operation, nil
+		}
+		return map[string]any{"id": strings.TrimSpace(args[0])}, operation, nil
+	case "delete", "remove", "enable", "disable", "activate", "deactivate":
+		if len(args) == 0 || strings.TrimSpace(args[0]) == "" {
+			return nil, "", fmt.Errorf("cloudcc %s workflow <projectPath> <workflowId> now creates a MetadataService plan", action)
+		}
+		return map[string]any{"id": strings.TrimSpace(args[0])}, operation, nil
+	default:
+		return shortcutBodySpec(action, "workflow", args)
+	}
+}
+
 func shortcutBodySpec(action string, resource string, args []string) (map[string]any, string, error) {
 	if len(args) > 0 && looksLikeJSONArg(args[0]) {
 		body, err := parseObject(args[0], "cloudcc "+action+" "+resource)
@@ -1746,6 +1826,10 @@ func shortcutOperation(action string, resource string) string {
 	switch strings.TrimSpace(action) {
 	case "create":
 		return "create"
+	case "enable", "activate":
+		return "activate"
+	case "disable", "deactivate":
+		return "deactivate"
 	case "delete", "remove":
 		return "delete"
 	default:

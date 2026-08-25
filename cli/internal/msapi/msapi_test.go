@@ -780,8 +780,8 @@ func TestSetupSvcLiveReplayReadinessIsReadOnlyAndCoversAllDomains(t *testing.T) 
 		t.Fatalf("expected all domains in readiness totals, got %#v", totals)
 	}
 	domains := result["domains"].([]any)
-	if len(domains) != 21 {
-		t.Fatalf("expected 21 covered domains, got %d", len(domains))
+	if len(domains) != 22 {
+		t.Fatalf("expected 22 covered domains, got %d", len(domains))
 	}
 	seen := map[string]bool{}
 	for _, raw := range domains {
@@ -794,7 +794,7 @@ func TestSetupSvcLiveReplayReadinessIsReadOnlyAndCoversAllDomains(t *testing.T) 
 			t.Fatalf("expected evidence requirements for domain, got %#v", domain)
 		}
 	}
-	for _, required := range []string{"objects", "fields", "layouts", "permissions", "approval-processes", "reports", "dashboards", "object-views"} {
+	for _, required := range []string{"objects", "fields", "layouts", "permissions", "approval-processes", "reports", "dashboards", "object-views", "workflows"} {
 		if !seen[required] {
 			t.Fatalf("expected domain %s in readiness output", required)
 		}
@@ -818,20 +818,20 @@ func TestSetupSvcLiveReplayCoverageAuditCoversCRUDQAndVariants(t *testing.T) {
 		t.Fatalf("expected passed read-only coverage audit, got %#v", result)
 	}
 	totals := result["totals"].(map[string]any)
-	if int(totals["domains"].(float64)) != 21 ||
+	if int(totals["domains"].(float64)) != 22 ||
 		int(totals["operations"].(float64)) != setupSvcLiveReplayOperationCount() ||
-		int(totals["canonicalCrudQueryDomains"].(float64)) != 21 ||
-		int(totals["queryOperations"].(float64)) != 21 ||
-		int(totals["writeOperations"].(float64)) != 70 ||
-		int(totals["variantOperations"].(float64)) != 7 {
+		int(totals["canonicalCrudQueryDomains"].(float64)) != 22 ||
+		int(totals["queryOperations"].(float64)) != 22 ||
+		int(totals["writeOperations"].(float64)) != 75 ||
+		int(totals["variantOperations"].(float64)) != 9 {
 		t.Fatalf("unexpected coverage totals: %#v", totals)
 	}
-	if int(totals["runtimeEffects"].(float64)) != 90 ||
-		int(totals["queryReadbackExpectations"].(float64)) != 70 {
+	if int(totals["runtimeEffects"].(float64)) != 94 ||
+		int(totals["queryReadbackExpectations"].(float64)) != 74 {
 		t.Fatalf("expected runtime/readback expectation coverage totals, got %#v", totals)
 	}
 	families := result["operationFamilies"].(map[string]any)
-	if len(families["create"].([]any)) != 21 || len(families["update"].([]any)) != 21 || len(families["query"].([]any)) != 21 {
+	if len(families["create"].([]any)) != 22 || len(families["update"].([]any)) != 22 || len(families["query"].([]any)) != 22 {
 		t.Fatalf("expected canonical operation family coverage, got %#v", families)
 	}
 	if !containsStringItem(families["variants"].([]any), "objects/physical-purge") ||
@@ -840,14 +840,16 @@ func TestSetupSvcLiveReplayCoverageAuditCoversCRUDQAndVariants(t *testing.T) {
 		!containsStringItem(families["variants"].([]any), "roles/assign") ||
 		!containsStringItem(families["variants"].([]any), "reports/folder-create") ||
 		!containsStringItem(families["variants"].([]any), "reports/folder-update") ||
-		!containsStringItem(families["variants"].([]any), "reports/folder-delete") {
+		!containsStringItem(families["variants"].([]any), "reports/folder-delete") ||
+		!containsStringItem(families["variants"].([]any), "workflows/activate") ||
+		!containsStringItem(families["variants"].([]any), "workflows/deactivate") {
 		t.Fatalf("expected variant operations to be visible, got %#v", families["variants"])
 	}
 	testEvidence := result["testEvidenceContract"].(map[string]any)
 	if testEvidence["status"] != "passed" ||
-		int(testEvidence["domains"].(float64)) != 21 ||
+		int(testEvidence["domains"].(float64)) != 22 ||
 		int(testEvidence["operations"].(float64)) != setupSvcLiveReplayOperationCount() ||
-		int(totals["testEvidenceDomains"].(float64)) != 21 ||
+		int(totals["testEvidenceDomains"].(float64)) != 22 ||
 		int(totals["testEvidenceOperations"].(float64)) != setupSvcLiveReplayOperationCount() {
 		t.Fatalf("expected complete replay test evidence coverage, got contract=%#v totals=%#v", testEvidence, totals)
 	}

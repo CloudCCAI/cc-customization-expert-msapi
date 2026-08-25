@@ -86,4 +86,4 @@
 
 ## 待确认
 
-手册说明工作流、批准和动作能力，但当前技能 CLI 未完整实现 workflow/approval/action 的创建命令。涉及这些能力时，应以后台配置页面或后续补充 CLI 能力为准。
+手册说明工作流、批准和动作能力。当前技能 CLI 已提供批准过程和工作流规则的 MSAPI 低代码能力；工作流规则入口见 `cloudcc doc platform/workflow devguide`。工作流 phase 1 覆盖规则本体、条件、删除和启停，动作、时间触发器、周期触发器仍应作为后续 workflow action/trigger 子能力处理。

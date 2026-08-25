@@ -194,8 +194,8 @@ MetadataService 支持 setup-svc 对外开放的全部字段编码。编码区�
 - `apiName` / `label`：累计汇总字段 API 名和显示名；显式 `id` 可选，但长度不能超过 20。
 - `type`: 固定为 `C`。
 - `childtype` / `expressionType`：汇总方法，常用 `COUNT`、`SUM`、`MIN`、`MAX`。
-- `summarizedObj` / `childid`：`<子对象ID>:<子对象物理表或对象API名>:<指向主对象的关系列>`。
-- `aggregateField` / `fieldid`：非 `COUNT` 必填，格式为 `<被汇总字段ID>:<字段类型>:<物理列或API名>`；公式字段可使用 `<字段ID>:Z:<字段API名>:<公式返回类型>`。
+- `summarizedObj` / `childid`：`<子对象ID>:<子对象API名>:<指向主对象的主详/查找字段API名>`。不要使用物理表名或物理列名；MetadataService 会在能识别旧输入时自动归一化为 Web 端可回显的 API 形态。
+- `aggregateField` / `fieldid`：非 `COUNT` 必填，格式为 `<被汇总字段ID>:<字段类型>:<被汇总字段API名>`；公式字段可使用 `<字段ID>:Z:<字段API名>:<公式返回类型>`。不要使用 `DATAFIELD_REF` 物理列。
 
 支持的 SUM 汇总字段类型与 setup-web 保持一致：数字 `N`、百分比 `P`、币种 `c`、评分 `SCORE`，以及返回这些类型的公式字段。`COUNT` 不需要 `aggregateField`。
 
@@ -208,8 +208,8 @@ MetadataService 支持 setup-svc 对外开放的全部字段编码。编码区�
   "label": "明细合计",
   "type": "C",
   "childtype": "SUM",
-  "summarizedObj": "<detailObjectId>:<detailTable>:<masterLookupColumn>",
-  "aggregateField": "<amountFieldId>:N:<amountDataField>"
+  "summarizedObj": "<detailObjectId>:<detailObjectApiName>:<masterRelationFieldApiName>",
+  "aggregateField": "<amountFieldId>:N:<amountFieldApiName>"
 }
 ```
 
@@ -226,9 +226,9 @@ cloudcc apply msapi <projectPath> <planId>
 {
   "objid": "<masterObjectId>",
   "fdtype": "C",
-  "childid": "<detailObjectId>:<detailTable>:<masterLookupColumn>",
+  "childid": "<detailObjectId>:<detailObjectApiName>:<masterRelationFieldApiName>",
   "childtype": "SUM",
-  "fieldid": "<amountFieldId>:N:<amountDataField>",
+  "fieldid": "<amountFieldId>:N:<amountFieldApiName>",
   "obj": {
     "apiname": "line_total",
     "nameLabel": "明细合计"
@@ -248,15 +248,15 @@ cloudcc apply msapi <projectPath> <planId>
       "label": "明细数量",
       "type": "C",
       "childtype": "COUNT",
-      "summarizedObj": "<detailObjectId>:<detailTable>:<masterLookupColumn>"
+      "summarizedObj": "<detailObjectId>:<detailObjectApiName>:<masterRelationFieldApiName>"
     },
     {
       "apiName": "line_total",
       "label": "明细合计",
       "type": "C",
       "childtype": "SUM",
-      "summarizedObj": "<detailObjectId>:<detailTable>:<masterLookupColumn>",
-      "aggregateField": "<amountFieldId>:N:<amountDataField>"
+      "summarizedObj": "<detailObjectId>:<detailObjectApiName>:<masterRelationFieldApiName>",
+      "aggregateField": "<amountFieldId>:N:<amountFieldApiName>"
     }
   ]
 }
@@ -268,7 +268,7 @@ cloudcc apply msapi <projectPath> <planId> '{"async":true}'
 cloudcc operation msapi <projectPath> <applyId>
 ```
 
-筛选条件会先按 `relatedId=<summaryFieldId>` 清理旧行，再写入 `tp_sys_condition`。如果只传 `conditionVals`，当前 MetadataService 无法像 setup-svc 的 `conditionService.getWhereSQLFromConditions(...)` 一样把任意条件树完整编译成 SQL；为了避免生成漏筛选的 `executeExpression`，启用筛选时必须同时提供 `aggCondition`，或直接提供已审核的完整 `executeExpression`：
+筛选条件会先按 `relatedId=<summaryFieldId>` 清理旧行，再写入 `tp_sys_condition`。过滤型累计汇总需要同时提供两类信息：`conditionVals` / `summaryConditions` 用于 Web 端回显和编辑条件行；`aggCondition` 或已审核的完整 `executeExpression` 用于生成实际执行 SQL。当前 MetadataService 无法像 setup-svc 的 `conditionService.getWhereSQLFromConditions(...)` 一样把任意条件树完整编译成 SQL；为了避免生成漏筛选的 `executeExpression`，启用筛选时必须同时提供 `conditionVals` 和 `aggCondition`，或提供 `conditionVals` 加完整 `executeExpression`：
 
 ```json
 {
@@ -277,8 +277,8 @@ cloudcc operation msapi <projectPath> <applyId>
   "label": "生效明细合计",
   "type": "C",
   "childtype": "SUM",
-  "summarizedObj": "<detailObjectId>:<detailTable>:<masterLookupColumn>",
-  "aggregateField": "<amountFieldId>:N:<amountDataField>",
+  "summarizedObj": "<detailObjectId>:<detailObjectApiName>:<masterRelationFieldApiName>",
+  "aggregateField": "<amountFieldId>:N:<amountFieldApiName>",
   "isAggfilter": true,
   "aggCondition": "status__c='Active'",
   "conditionVals": {
@@ -288,7 +288,7 @@ cloudcc operation msapi <projectPath> <applyId>
 }
 ```
 
-如果过滤场景没有 `aggCondition` 且没有 `executeExpression`，plan 会返回 `summary_filter_sql_required`，不会生成一个可能漏数据的累计汇总字段。
+如果过滤场景没有 `conditionVals` 条件行，plan 会返回 `summary_filter_conditions_required`，避免生成 Web 端无法回显/编辑的字段；如果有条件行但没有 `aggCondition` 且没有 `executeExpression`，plan 会返回 `summary_filter_sql_required`，不会生成一个可能漏数据的累计汇总字段。
 
 主详字段会更新明细对象的 `accessable`、`is_master`、`parentobjid`，将主对象标记为 `master`，并向已有后代对象传播新的父路径：
 
