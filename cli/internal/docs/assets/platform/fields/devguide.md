@@ -49,7 +49,7 @@ cloudcc delete fields <projectPath> <fieldId> <objid>
 
 ### 2.2 MetadataService 完整字段元数据
 
-`cloudcc plan msapi <projectPath> fields @field.json create` 会按 setup-svc 的真实保存语义展开字段元数据；对象计划中的 `fields[]` 也使用同一条展开链路。普通 CLI `create fields` 的位置参数只覆盖基础字段模板，自动编号、查找筛选和相关列表等高级配置应使用 MetadataService spec。
+`cloudcc plan msapi <projectPath> fields @field.json create` 会按平台元数据保存规则展开字段元数据；对象计划中的 `fields[]` 也使用同一条展开链路。普通 CLI `create fields` 的位置参数只覆盖基础字段模板，自动编号、查找筛选和相关列表等高级配置应使用 MetadataService spec。
 
 字段创建如果会进入页面布局，必须先按 `platform/pagelayout devguide` 的页面布局配置方法论判断落位。能读取对象布局详情时，优先在字段 spec 中显式提供 `layoutPlacements`，或在字段创建后通过 `pagelayout detail` / `pagelayout update` 调整 PC 和 mobile 布局。只有缺少布局上下文时才允许依赖 MetadataService 自动摆放，并在输出中标注为兜底。
 
@@ -110,7 +110,7 @@ apply 阶段会优先批量执行字段主表行，再按既有顺序执行语�
 
 新建自定义对象且名称字段类型为自动编号时，对象 spec 可直接提供 `showFormat`、`beginIndex`；MetadataService 会为默认名称字段生成对应配置。已有对象若历史上缺少 `tp_sys_autonum`，应先审计并补齐数据，不能依赖编辑页容忍空结果。
 
-查找字段筛选支持 setup-svc 的 `conditionVals` wire shape；计划会设置主字段的 `isenableFilter` / `filterType` / `filterLogic`，并替换该字段的 `tp_sys_lookup_filter_condition` 条件行：
+查找字段筛选支持 `conditionVals` 条件配置；计划会设置主字段的 `isenableFilter` / `filterType` / `filterLogic`，并替换该字段的 `tp_sys_lookup_filter_condition` 条件行：
 
 ```json
 {
@@ -153,7 +153,7 @@ apply 阶段会优先批量执行字段主表行，再按既有顺序执行语�
 
 ### 2.3 MetadataService 字段类型矩阵
 
-MetadataService 支持 setup-svc 对外开放的全部字段编码。编码区分大小写：`c` 是币种，`C` 是累计汇总；`ENC` / `ENCD` 可作为输入别名，但落库会规范为 setup-svc 使用的 `enc` / `encd`。
+MetadataService 支持平台开放的全部字段编码。编码区分大小写：`c` 是币种，`C` 是累计汇总；`ENC` / `ENCD` 可作为输入别名，保存时会规范为平台字段编码 `enc` / `encd`。
 
 | 字段族 | 类型 | 物理槽位与关键展开 |
 | --- | --- | --- |
@@ -186,7 +186,7 @@ MetadataService 支持 setup-svc 对外开放的全部字段编码。编码区�
 }
 ```
 
-累计汇总字段必须使用 MetadataService spec 创建，不要使用位置参数版 `cloudcc create fields ...`。CLI/MetadataService 会按 setup-svc 的保存语义补齐入库数据：`datafieldRef=none`、`decimalPlaces`、`summaryfieldtype` 和 `executeExpression` 会根据汇总方法、子对象和汇总字段自动派生；调用方通常不需要也不应该自己拼 `executeExpression`。
+累计汇总字段必须使用 MetadataService spec 创建，不要使用位置参数版 `cloudcc create fields ...`。CLI/MetadataService 会按平台元数据规则补齐保存所需数据：`datafieldRef=none`、`decimalPlaces`、`summaryfieldtype`、`displayThousands`、`isReplicable` 和 `executeExpression` 会根据汇总方法、子对象和汇总字段自动派生；调用方通常不需要也不应该自己拼 `executeExpression`。
 
 必填字段：
 
@@ -194,10 +194,10 @@ MetadataService 支持 setup-svc 对外开放的全部字段编码。编码区�
 - `apiName` / `label`：累计汇总字段 API 名和显示名；显式 `id` 可选，但长度不能超过 20。
 - `type`: 固定为 `C`。
 - `childtype` / `expressionType`：汇总方法，常用 `COUNT`、`SUM`、`MIN`、`MAX`。
-- `summarizedObj` / `childid`：`<子对象ID>:<子对象API名>:<指向主对象的主详/查找字段API名>`。不要使用物理表名或物理列名；MetadataService 会在能识别旧输入时自动归一化为 Web 端可回显的 API 形态。
+- `summarizedObj` / `childid`：`<子对象ID>:<子对象API名>:<指向主对象的主详/查找字段API名>`。不要使用物理表名或物理列名；MetadataService 会在能识别旧输入时自动归一化为平台字段编辑页可显示的 API 形态。
 - `aggregateField` / `fieldid`：非 `COUNT` 必填，格式为 `<被汇总字段ID>:<字段类型>:<被汇总字段API名>`；公式字段可使用 `<字段ID>:Z:<字段API名>:<公式返回类型>`。不要使用 `DATAFIELD_REF` 物理列。
 
-支持的 SUM 汇总字段类型与 setup-web 保持一致：数字 `N`、百分比 `P`、币种 `c`、评分 `SCORE`，以及返回这些类型的公式字段。`COUNT` 不需要 `aggregateField`。
+支持的 SUM 汇总字段类型包括数字 `N`、百分比 `P`、币种 `c`、评分 `SCORE`，以及返回这些类型的公式字段。`COUNT` 不需要 `aggregateField`。
 
 单个累计汇总字段创建示例：
 
@@ -220,7 +220,7 @@ cloudcc plan msapi <projectPath> fields @rollup-field.json create
 cloudcc apply msapi <projectPath> <planId>
 ```
 
-也可以传 setup-web 风格字段名；MetadataService 会兼容 `objid`、`fdtype`、`childid`、`childtype`、`fieldid`、`isaggfilter` 和嵌套 `obj`：
+也可以传兼容旧版字段别名；MetadataService 会兼容 `objid`、`fdtype`、`childid`、`childtype`、`fieldid`、`isaggfilter` 和嵌套 `obj`：
 
 ```json
 {
@@ -268,7 +268,7 @@ cloudcc apply msapi <projectPath> <planId> '{"async":true}'
 cloudcc operation msapi <projectPath> <applyId>
 ```
 
-筛选条件会先按 `relatedId=<summaryFieldId>` 清理旧行，再写入 `tp_sys_condition`。过滤型累计汇总需要同时提供两类信息：`conditionVals` / `summaryConditions` 用于 Web 端回显和编辑条件行；`aggCondition` 或已审核的完整 `executeExpression` 用于生成实际执行 SQL。当前 MetadataService 无法像 setup-svc 的 `conditionService.getWhereSQLFromConditions(...)` 一样把任意条件树完整编译成 SQL；为了避免生成漏筛选的 `executeExpression`，启用筛选时必须同时提供 `conditionVals` 和 `aggCondition`，或提供 `conditionVals` 加完整 `executeExpression`：
+筛选条件会先按 `relatedId=<summaryFieldId>` 清理旧行，再写入 `tp_sys_condition`。过滤型累计汇总需要同时提供两类信息：`conditionVals` / `summaryConditions` 用于平台字段编辑页显示和编辑条件行；`aggCondition` 或已审核的完整 `executeExpression` 用于生成实际执行 SQL。当前 MetadataService 不会自动把任意条件树完整编译成 SQL；为了避免生成漏筛选的 `executeExpression`，启用筛选时必须同时提供 `conditionVals` 和 `aggCondition`，或提供 `conditionVals` 加完整 `executeExpression`：
 
 ```json
 {
@@ -288,7 +288,9 @@ cloudcc operation msapi <projectPath> <applyId>
 }
 ```
 
-如果过滤场景没有 `conditionVals` 条件行，plan 会返回 `summary_filter_conditions_required`，避免生成 Web 端无法回显/编辑的字段；如果有条件行但没有 `aggCondition` 且没有 `executeExpression`，plan 会返回 `summary_filter_sql_required`，不会生成一个可能漏数据的累计汇总字段。
+使用 MetadataService `1.1.36` 及以上时，筛选型累计汇总会按平台字段编辑页可显示的形态保存：字段定义使用 `isAggfilter=true`、`aggCondition`、`aggConditiondis` 表达累计汇总筛选；条件行写入 `MAIN_OBJ_ID`、`FIELD_ID`、`OPERATOR`、`VALUE`、`BOOL_FILTER`。字段编辑页依赖这些条件行还原筛选 UI，因此不要只提供 `aggCondition` 而省略 `conditionVals`。
+
+如果过滤场景没有 `conditionVals` 条件行，plan 会返回 `summary_filter_conditions_required`，避免生成平台字段编辑页无法显示/编辑筛选条件的字段；如果有条件行但没有 `aggCondition` 且没有 `executeExpression`，plan 会返回 `summary_filter_sql_required`，不会生成一个可能漏数据的累计汇总字段。
 
 主详字段会更新明细对象的 `accessable`、`is_master`、`parentobjid`，将主对象标记为 `master`，并向已有后代对象传播新的父路径：
 
@@ -315,7 +317,7 @@ cloudcc operation msapi <projectPath> <applyId>
 }
 ```
 
-创建前会执行 setup-svc 同级约束：每对象最多 1 个主详字段、2 个自动编号、10 个长文本 `J`、10 个文件字段、25 个图片字段；文本/加密长度、数字精度、上传数量、多选可见行数、重复选项和值域也会在 plan 阶段直接拒绝。字段删除会同步清理选项、筛选、相关列表、依赖、引用、自动编号、全局选项、语言、权限以及复合子字段元数据。
+创建前会执行平台字段约束：每对象最多 1 个主详字段、2 个自动编号、10 个长文本 `J`、10 个文件字段、25 个图片字段；文本/加密长度、数字精度、上传数量、多选可见行数、重复选项和值域也会在 plan 阶段直接拒绝。字段删除会同步清理选项、筛选、相关列表、依赖、引用、自动编号、全局选项、语言、权限以及复合子字段元数据。
 
 ---
 

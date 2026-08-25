@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.25"
+const Version = "2.2.26"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -34,15 +34,16 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	case "changelog":
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
+		fmt.Fprintln(stderr, "- Rollup summary field creation now requires MetadataService 1.1.36 for platform-compatible filtered summary readback: filtered summaries write tp_sys_condition MAIN_OBJ_ID/BOOL_FILTER rows and derive AGGCONDITIONDIS so filtered summary fields can be shown and edited correctly.")
 		fmt.Fprintln(stderr, "- Project-standard governance now separates AGENTS read gates, long-lived standards, FEAT/ADR/DevOps facts, blueprint process artifacts, and dynamic task state; cloudcc doctor project-governance validates the local structure without writes, and release purity gates reject customer identifiers and local absolute paths.")
 		fmt.Fprintln(stderr, "- Requirement-design and high-code platform-capability routing now requires business, functional, design, and high-code requests to prefer platform standard metadata before Java code when low-code capabilities can satisfy the requirement; even if the user classifies the request as high-code, the skill should name the low-code capability that can implement it before reserving code for unsupported external, cross-object, dynamic, governance, or complex orchestration cases.")
 		fmt.Fprintln(stderr, "- High-code performance guidance now forbids generated classes, triggers, and timer helpers from calling cquery*/cqlQuery*/pagedQuery inside loops for per-row enrichment, duplicate checks, or existence checks; generated code should collect keys, query with IN or bounded batches, build lookup maps, and then assemble results.")
 		fmt.Fprintln(stderr, "- High-code JSON return guidance now discourages net.sf.json JSONObject/JSONArray for generated business return structures because of performance and JSONNull risks; generated classes, triggers, and timer helpers should return Map<String,Object>, List<Map<String,Object>>, or explicit DTOs unless an existing fixed contract requires compatibility.")
 		fmt.Fprintln(stderr, "- High-code CQL guidance now requires generated cqlQuery business reads to add the platform logical-delete predicate, commonly is_deleted = '0', for every queried business object or alias by default, only omitting it for explicit recycle-bin, deleted-record audit, or deletion-state comparison requirements.")
-		fmt.Fprintln(stderr, "- Rollup summary field creation now stores summarizedObj/aggregateField in setup-web-compatible API form, normalizes physical table/column inputs when catalogs are available, parses string conditionVals, and requires filtered summaries to include UI condition rows plus SQL conditions.")
+		fmt.Fprintln(stderr, "- Rollup summary field creation now stores summarizedObj/aggregateField in platform-readable API form, normalizes physical table/column inputs when catalogs are available, parses string conditionVals, and requires filtered summaries to include UI condition rows plus SQL conditions.")
 		fmt.Fprintln(stderr, "- High-code business-source guidance now treats cquery* expressions as database-side business boundaries, documents the platform result limit risk, and forbids generated existence checks, duplicate checks, idempotency guards, and numbering prechecks from using 1=1 full-table reads followed by Java-side loops; generated classes, triggers, and timer classes must push business-key predicates into cqueryByFields/pagedQuery and select only needed fields.")
 		fmt.Fprintln(stderr, "- High-code source-size guidance now requires generated classes, triggers, and timer-related custom classes to keep each Java file under 2000 lines and split complex requirements into multiple cooperating classes before one file becomes too large.")
-		fmt.Fprintln(stderr, "- Field rollup summary creation now documents MetadataService specs for single and batch fields, setup-web-shaped payload aliases, server-derived executeExpression/decimalPlaces/summaryfieldtype, and fail-closed filtered-summary SQL requirements.")
+		fmt.Fprintln(stderr, "- Field rollup summary creation now documents MetadataService specs for single and batch fields, compatible payload aliases, server-derived executeExpression/decimalPlaces/summaryfieldtype, and fail-closed filtered-summary SQL requirements.")
 		fmt.Fprintln(stderr, "- Batch MetadataService create plans for objects, fields, and global select lists now report item-level precheck results in plan metadata: PLANNED, SKIPPED, or FAILED_PRECHECK with per-item error details, while keeping apply-time SQL execution batched and transactional.")
 		fmt.Fprintln(stderr, "- Batch MetadataService create apply for objects, fields, and global select lists now documents async apply with {\"async\":true}, an applyId equal to operationId, and operation polling to avoid gateway timeout ambiguity.")
 		fmt.Fprintln(stderr, "- Skill initialization now ships cloudcc-cli.config.json at the skill root with the public-cloud MetadataService default https://dc52.apis.cloudcc.cn/metadata; private-cloud initialization updates metadataService.url with the user's private endpoint.")
