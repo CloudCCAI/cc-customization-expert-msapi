@@ -2745,7 +2745,7 @@ AI 生成或改写自定义类时，单个 Java 源文件必须控制在 2000 �
 
 AI 需要根据调用场景选择返回值类型：
 
-- 页面/按钮/组件接口：优先 `JSONObject`、`Map` 或稳定结构对象
+- 页面/按钮/组件接口：优先 `Map<String,Object>`、`List<Map<String,Object>>` 或稳定 Java DTO
 - 内部服务方法：优先返回明确业务结果
 - 仅做写操作的方法：可返回 `void`，但必须通过异常或日志暴露失败
 
@@ -2754,6 +2754,8 @@ AI 需要根据调用场景选择返回值类型：
 - 返回值结构要稳定
 - 不要同一方法一会儿返回字符串、一会儿返回对象
 - 对外接口最好带成功标识和错误信息
+- 不推荐使用 `net.sf.json.JSONObject` / `JSONArray` 作为业务返回值或通用中间结构；该库效率低，且 null 值容易产生 `JSONNull` 相关运行时问题
+- 如果历史方法签名或外部调用方已经固定为 `net.sf.json`，只能做局部兼容；新生成代码必须优先返回 `Map` / `List<Map>`，并显式处理 null
 
 ## 8. 数据与查询规范
 
@@ -2773,6 +2775,7 @@ AI 默认应避免：
 - 无条件全表查询
 - 无限制 `select *`
 - 在循环里反复查同一批数据
+- 在 `for` / `while` 循环内调用 `cquery`、`cqueryByFields`、`cqlQuery`、`pagedQuery` 等查询方法做逐条补字段、逐条查重或逐条存在性判断
 - 为了判断“是否存在”“是否重复”“是否已处理”而先查出整张表再在 Java 中循环比对
 - 把 `cquery*` 的 `expression` 当成“候选集描述”，再用 Java 判断真正条件
 
@@ -2780,6 +2783,8 @@ AI 默认应避免：
 
 - `expression` 是数据库侧过滤条件，查重、存在性、幂等和编号前置判断必须把真正的业务键下推到这里
 - `cquery*` 相关方法有平台返回条数上限，默认通常为 5000 且可配置；`1=1` 后循环最多只能判断返回窗口内的数据，大表上会出现假阴性
+- 循环内查询会形成 N+1 查询：输入 200 条就可能打 201 次查询，触发器和定时类中会快速放大为超时、锁等待或接口限流
+- 大数量查重、补齐引用对象字段、同步前置读取、列表组装等场景必须先收集 key，再批量查询和本地映射
 - `cqlQuery` 是手写 CQL，不要假设平台自动过滤逻辑删除数据；默认必须为每个业务对象拼接 `is_deleted = '0'`
 - 即使当前数据量小，生成代码也不能假设对象永远小；这类代码一旦进入触发器、定时类或复用自定义类，会随业务增长放大为性能和正确性问题
 
@@ -2790,7 +2795,9 @@ AI 默认应避免：
 - 把业务键、当前记录排除条件、状态、时间范围等边界写进查询条件
 - 存在性判断只取 `id`，并用 `pagedQuery(..., "1", "1", ..., "id")` 或有明确条件的 `cqueryByFields`
 - 使用 `cqlQuery` 联查时，为每个业务对象或别名补上逻辑删除条件，例如 `a.is_deleted = '0' AND c.is_deleted = '0'`
-- 提前构造索引或映射
+- 先遍历输入收集去重后的 ID / 业务键，再用 `IN` 条件或分页分批查询必要字段
+- 提前构造 `Map<Id, CCObject>`、`Map<String, CCObject>` 或 `Map<String, Map<String,Object>>`，循环阶段只做内存查找和结果组装
+- 当 `IN` 值较多时按固定批次分片查询，避免单条 CQL/SQL 过长
 - 把批量处理合并到同一逻辑块
 
 查重/存在性判断禁止写法：
@@ -2817,6 +2824,54 @@ if (currentId != null && currentId.trim().length() > 0) {
 List exists = cs.pagedQuery("Account", expression, "1", "1", "false", "id");
 boolean duplicateTax = exists != null && exists.size() > 0;
 ```
+
+循环内查询禁止写法：
+
+```java
+for (int i = 0; i < materials.size(); i++) {
+    CCObject material = (CCObject) materials.get(i);
+    String materialId = text(material.get("sku_id"));
+    List products = cs.cqueryByFields(
+        "Product",
+        "id = '" + escape(materialId) + "'",
+        "id,name,cpdm,kz"
+    );
+    // 每条 material 都查一次 Product，形成 N+1 查询
+}
+```
+
+正确写法应先收集 key，再批量查询并构建映射：
+
+```java
+Set<String> materialIds = new HashSet<String>();
+for (int i = 0; i < materials.size(); i++) {
+    CCObject material = (CCObject) materials.get(i);
+    String materialId = text(material.get("sku_id"));
+    if (materialId.length() > 0) {
+        materialIds.add(materialId);
+    }
+}
+
+Map<String, CCObject> productById = new HashMap<String, CCObject>();
+if (!materialIds.isEmpty()) {
+    String expression = "id in (" + quoteForIn(materialIds) + ")";
+    List products = cs.cqueryByFields("Product", expression, "id,name,cpdm,kz");
+    if (products != null) {
+        for (int i = 0; i < products.size(); i++) {
+            CCObject product = (CCObject) products.get(i);
+            productById.put(text(product.get("id")), product);
+        }
+    }
+}
+
+for (int i = 0; i < materials.size(); i++) {
+    CCObject material = (CCObject) materials.get(i);
+    CCObject product = productById.get(text(material.get("sku_id")));
+    // 这里只做内存映射和结果组装
+}
+```
+
+`quoteForIn` 代表本地辅助方法：必须对每个 ID/业务键做去空、去重、单引号转义，再拼成 `'id1','id2'` 形式；如果 key 数量很多，应按固定批次分片生成多个 `IN` 查询。
 
 如果后续只需要编号基数，也不能为了 `size()` 查全量；必须改用带业务范围的计数/分页策略，或把编号生成交给平台自动编号/独立编号对象，避免并发下重复编号。
 
@@ -2933,6 +2988,7 @@ AI 不得：
 - 默认使用 `new Date()` 作为业务时间
 - 使用字段显示名代替 API 名称
 - 无条件全量查询大对象
+- 在循环内执行查询造成 N+1 查询；必须先收集 key 批量读取
 - 生成缺少 `is_deleted = '0'` 的业务 `cqlQuery`，除非需求明确包含已删除数据
 - 生成超过 2000 行的单个 Java 源文件
 - 将复杂业务需求全部塞进一个自定义类而不拆分职责
@@ -2966,14 +3022,15 @@ AI 完成代码后，必须自检：
    等，对外或需数据权限用 `cqueryWithRoleRight`；复杂联查用 `cqlQuery`，分页用
    `pagedQuery` / `pageQuery` 等）
 4. 是否所有查重、存在性判断、幂等判断都带业务键过滤，并且没有用 `1=1` 全量查询后循环比对
-5. 是否所有业务 `cqlQuery` 都默认排除逻辑删除数据；多对象联查是否为每个对象别名加了 `is_deleted = '0'`
-6. 是否对写操作做了失败处理
-7. 是否对关键步骤加了日志
-8. 是否避免了直接 `new Date()`
-9. 是否把复杂逻辑拆成了可读的方法
-10. 是否单个 Java 文件低于 2000 行；复杂需求是否拆分成多个自定义类
-11. 是否避免了不必要硬编码
-12. 是否让返回结果对调用方足够清晰
+5. 是否没有在循环内执行查询；补齐引用字段、查重、存在性判断是否先收集 key 后批量查询并构建 Map
+6. 是否所有业务 `cqlQuery` 都默认排除逻辑删除数据；多对象联查是否为每个对象别名加了 `is_deleted = '0'`
+7. 是否对写操作做了失败处理
+8. 是否对关键步骤加了日志
+9. 是否避免了直接 `new Date()`
+10. 是否把复杂逻辑拆成了可读的方法
+11. 是否单个 Java 文件低于 2000 行；复杂需求是否拆分成多个自定义类
+12. 是否避免了不必要硬编码
+13. 是否让返回结果对调用方足够清晰
 
 ## 17. 推荐骨架
 
@@ -2981,8 +3038,9 @@ AI 完成代码后，必须自检：
 
 
 ```java
-import net.sf.json.JSONObject;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 // 这里包含了DevLogger，SendEmail等常用方法，不用再单独引入。
 import com.cloudcc.core.*;
 
@@ -2998,14 +3056,14 @@ public class XxxService {
         this.logger = new DevLogger(userInfo);
     }
 
-    public JSONObject execute(String recordId) throws Exception {
-        JSONObject result = new JSONObject();
+    public Map<String, Object> execute(String recordId) throws Exception {
+        Map<String, Object> result = new HashMap<String, Object>();
         logger.devLogInfo("XxxService.execute start, recordId=" + recordId);
         try {
             validate(recordId);
 
             List<CCObject> records = queryData(recordId);
-            JSONObject calcResult = calculate(records);
+            Map<String, Object> calcResult = calculate(records);
             updateData(recordId, calcResult);
 
             result.put("success", true);
@@ -3028,13 +3086,13 @@ public class XxxService {
         return cs.cquery("ObjectApiName", "id = '" + recordId + "'", null);
     }
 
-    private JSONObject calculate(List<CCObject> records) {
-        JSONObject result = new JSONObject();
+    private Map<String, Object> calculate(List<CCObject> records) {
+        Map<String, Object> result = new HashMap<String, Object>();
         result.put("count", records == null ? 0 : records.size());
         return result;
     }
 
-    private void updateData(String recordId, JSONObject calcResult) throws Exception {
+    private void updateData(String recordId, Map<String, Object> calcResult) throws Exception {
         CCObject obj = new CCObject("ObjectApiName");
         obj.put("id", recordId);
         obj.put("last_execute_time", TimeUtil.getNowDate(userInfo));
