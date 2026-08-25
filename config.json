@@ -1,9 +1,45 @@
 ﻿{
     "packageName":  "cc-customization-expert-msapi",
-    "version":  "2.2.26-msapi",
+    "version":  "2.2.28-msapi",
     "releaseDate":  "2026-08-25",
     "compatCloudccCliVersion":  "2.5.3",
     "runtime":  "go",
+    "projectOutputs":  {
+                           "schemaVersion":  "cloudcc-project-outputs/v1",
+                           "root":  "outputs",
+                           "fixedTemplates":  false,
+                           "fixedFiles":  [
+                                              "README.md",
+                                              "00-output-index.md",
+                                              "output-manifest.json"
+                                          ],
+                           "kinds":  [
+                                         "document",
+                                         "tool",
+                                         "data-package",
+                                         "deployment-package",
+                                         "training-package",
+                                         "integration-package",
+                                         "other"
+                                     ],
+                           "commands":  [
+                                            "init project-outputs",
+                                            "doctor project-outputs"
+                                        ]
+                       },
+    "testGovernance":  {
+                           "schemaVersion":  "cloudcc-test-governance/v1",
+                           "advisory":  true,
+                           "blocking":  false,
+                           "humanDecisionRequired":  true,
+                           "commands":  [
+                                            "init test-governance",
+                                            "advise testing",
+                                            "decide testing",
+                                            "record testing",
+                                            "doctor test-governance"
+                                        ]
+                       },
     "metadataService":  {
                             "promptWhenMissing":  true,
                             "publicCloudDefaultUrl":  "https://dc52.apis.cloudcc.cn/metadata",

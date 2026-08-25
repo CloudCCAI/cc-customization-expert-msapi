@@ -31,7 +31,7 @@ func TestVersionDocumentationConfigAndProjectCommands(t *testing.T) {
 		wantErr string
 	}{
 		{name: "help-empty", args: nil, wantOut: "CloudCC CLI Go"},
-		{name: "version", args: []string{"--version"}, wantOut: "2.2.26-msapi"},
+		{name: "version", args: []string{"--version"}, wantOut: "2.2.28-msapi"},
 		{name: "help", args: []string{"help"}, wantOut: "Usage:"},
 		{name: "doctor", args: []string{"doctor"}, wantOut: "node/npm: not required"},
 		{name: "docs", args: []string{"docs"}, wantOut: "cloudcc doc"},
@@ -40,7 +40,11 @@ func TestVersionDocumentationConfigAndProjectCommands(t *testing.T) {
 		{name: "doc-introduction", args: []string{"doc", "platform/overview", "introduction"}, wantOut: "CloudCC"},
 		{name: "doc-devguide", args: []string{"doc", "platform/object", "devguide"}, wantOut: "object"},
 		{name: "doc-project-governance", args: []string{"doc", "methodology/projectGovernance", "devguide"}, wantOut: "project-standard"},
+		{name: "doc-project-outputs", args: []string{"doc", "methodology/projectOutputs", "devguide"}, wantOut: "cloudcc-project-outputs/v1"},
+		{name: "doc-test-governance", args: []string{"doc", "methodology/testGovernance", "devguide"}, wantOut: "advisory: true"},
 		{name: "doctor-project-governance-not-adopted", args: []string{"doctor", "project-governance"}, wantOut: "not_adopted"},
+		{name: "doctor-project-outputs-not-adopted", args: []string{"doctor", "project-outputs"}, wantOut: "not_adopted"},
+		{name: "doctor-test-governance-not-adopted", args: []string{"doctor", "test-governance"}, wantOut: "not_adopted"},
 	}
 	for _, tc := range localCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -94,6 +98,110 @@ func TestVersionDocumentationConfigAndProjectCommands(t *testing.T) {
 	root := readCommandTestJSON(t, filepath.Join(configProject, "cloudcc-cli.config.json"))
 	if root["use"] != "test" {
 		t.Fatalf("expected active env test, got %#v", root["use"])
+	}
+}
+
+func TestProjectOutputsCommandLifecycle(t *testing.T) {
+	project := t.TempDir()
+	var stdout, stderr bytes.Buffer
+	if exit := Run([]string{"init", "project-outputs", project, "demo-crm"}, &stdout, &stderr, project); exit != 0 {
+		t.Fatalf("init project-outputs failed: %s", stderr.String())
+	}
+	if !strings.Contains(stdout.String(), `"status":"initialized"`) || !strings.Contains(stdout.String(), `outputs/output-manifest.json`) {
+		t.Fatalf("unexpected project outputs init result: %s", stdout.String())
+	}
+	stdout.Reset()
+	stderr.Reset()
+	if exit := Run([]string{"doctor", "project-outputs", project}, &stdout, &stderr, project); exit != 0 {
+		t.Fatalf("doctor project-outputs failed: %s output=%s", stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stdout.String(), `"status":"passed"`) || !strings.Contains(stdout.String(), `"outputCount":0`) {
+		t.Fatalf("unexpected project outputs doctor result: %s", stdout.String())
+	}
+}
+
+func TestTestingGovernanceCommandLifecycle(t *testing.T) {
+	project := t.TempDir()
+	var stdout, stderr bytes.Buffer
+	if exit := Run([]string{"init", "test-governance", project, "demo-crm"}, &stdout, &stderr, project); exit != 0 {
+		t.Fatalf("init test-governance failed: %s", stderr.String())
+	}
+	if !strings.Contains(stdout.String(), `"status":"initialized"`) {
+		t.Fatalf("unexpected init output: %s", stdout.String())
+	}
+
+	changePath := filepath.Join(project, "change.json")
+	writeCommandTestFile(t, changePath, `{
+  "schemaVersion":"cloudcc-test-change/v1",
+  "changeSetId":"CHG-CMD-001",
+  "phase":"development",
+  "resources":[{"kind":"layout","name":"AccountLayout","module":"account"}]
+}`)
+	stdout.Reset()
+	stderr.Reset()
+	if exit := Run([]string{"advise", "testing", project, "@" + changePath}, &stdout, &stderr, project); exit != 0 {
+		t.Fatalf("advise testing failed: %s", stderr.String())
+	}
+	var recommendation map[string]any
+	if err := json.Unmarshal(stdout.Bytes(), &recommendation); err != nil {
+		t.Fatal(err)
+	}
+	if recommendation["advisory"] != true || recommendation["blocking"] != false || recommendation["recommendationHash"] == "" {
+		t.Fatalf("unexpected recommendation: %#v", recommendation)
+	}
+
+	decisionPath := filepath.Join(project, "decision.json")
+	decisionPayload := map[string]any{
+		"schemaVersion":  "cloudcc-test-decision/v1",
+		"recommendation": recommendation,
+		"selectedScope":  "smoke",
+		"confirmedBy":    "human",
+		"decidedByRole":  "project-manager",
+		"decidedAt":      "2026-08-25T07:00:00Z",
+	}
+	decisionBytes, err := json.Marshal(decisionPayload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeCommandTestFile(t, decisionPath, string(decisionBytes))
+	stdout.Reset()
+	stderr.Reset()
+	if exit := Run([]string{"decide", "testing", project, "@" + decisionPath}, &stdout, &stderr, project); exit != 0 {
+		t.Fatalf("decide testing failed: %s", stderr.String())
+	}
+	if !strings.Contains(stdout.String(), `"verificationState":"pending_execution"`) {
+		t.Fatalf("unexpected decision output: %s", stdout.String())
+	}
+
+	runPath := filepath.Join(project, "run.json")
+	writeCommandTestFile(t, runPath, `{
+  "schemaVersion":"cloudcc-test-run/v1",
+  "runId":"TEST-RUN-CMD-001",
+  "changeSetId":"CHG-CMD-001",
+  "sourceRevision":"revision-cmd-001",
+  "environment":"SIT",
+  "status":"passed",
+  "startedAt":"2026-08-25T07:10:00Z",
+  "completedAt":"2026-08-25T07:11:00Z",
+  "scenarioResults":[{"scenarioId":"E2E-ACCOUNT-001","status":"passed"}],
+  "businessAcceptanceStatus":"pending"
+}`)
+	stdout.Reset()
+	stderr.Reset()
+	if exit := Run([]string{"record", "testing", project, "@" + runPath}, &stdout, &stderr, project); exit != 0 {
+		t.Fatalf("record testing failed: %s", stderr.String())
+	}
+	if !strings.Contains(stdout.String(), `"verificationState":"pending_uat"`) {
+		t.Fatalf("unexpected run output: %s", stdout.String())
+	}
+
+	stdout.Reset()
+	stderr.Reset()
+	if exit := Run([]string{"doctor", "test-governance", project}, &stdout, &stderr, project); exit != 0 {
+		t.Fatalf("doctor test-governance failed: %s output=%s", stderr.String(), stdout.String())
+	}
+	if !strings.Contains(stdout.String(), `"status":"passed"`) || !strings.Contains(stdout.String(), `"decisionCount":1`) || !strings.Contains(stdout.String(), `"runCount":1`) {
+		t.Fatalf("unexpected doctor output: %s", stdout.String())
 	}
 }
 
@@ -160,6 +268,15 @@ func TestSkillRootConfigDefaultsPublicMetadataService(t *testing.T) {
 	}
 	if got := dev["executionMode"]; got != "msapi" {
 		t.Fatalf("expected skill root executionMode msapi, got %#v", got)
+	}
+	skillConfig := readCommandTestJSON(t, filepath.Join(root, "config.json"))
+	testGovernance := skillConfig["testGovernance"].(map[string]any)
+	if testGovernance["advisory"] != true || testGovernance["blocking"] != false || testGovernance["humanDecisionRequired"] != true {
+		t.Fatalf("expected advisory human-confirmed test governance, got %#v", testGovernance)
+	}
+	projectOutputs := skillConfig["projectOutputs"].(map[string]any)
+	if projectOutputs["schemaVersion"] != "cloudcc-project-outputs/v1" || projectOutputs["root"] != "outputs" || projectOutputs["fixedTemplates"] != false {
+		t.Fatalf("expected dynamic governed project outputs config, got %#v", projectOutputs)
 	}
 }
 

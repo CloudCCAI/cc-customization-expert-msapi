@@ -1,4 +1,4 @@
-﻿# cc-customization-expert-msapi v2.2.26-msapi
+﻿# cc-customization-expert-msapi v2.2.28-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -15,7 +15,11 @@ Strict MetadataService package: low-code operations require MetadataService.
 
 项目交付目录和跨模块长期标准按 `cloudcc doc methodology/projectGovernance devguide` 治理；可用 `tools/bin/cloudcc doctor project-governance <projectPath>` 只读检查标准索引、元数据、AGENTS 读取门禁和流程图入口。通用包不内置任何客户项目标准正文。
 
+项目最终文档、项目专用工具、数据/部署/培训/集成包按 `cloudcc doc methodology/projectOutputs devguide` 治理；`init project-outputs` 只创建根 `outputs/` 的 README、索引和 manifest，具体产出目录按项目要求动态创建，`doctor project-outputs` 只读检查路径、状态、SHA-256 和敏感内容风险。
+
 需求、方案设计和高代码需求都先做平台标准元数据能力匹配。字段、对象、布局、验证规则、查重过滤器、工作流/审批、共享/权限、公式/汇总、自动编号、查找筛选、相关列表等低代码能力能满足时，优先用平台元数据实现；即便用户把事项归类为高代码，也应先说明可用低代码能力，再判断是否需要自定义类、触发器或定时类补充。
+
+端到端测试按 `cloudcc doc methodology/testGovernance devguide` 采用建议层＋人工确认层：`init test-governance` 只创建缺失的中性骨架，`advise testing` 输出非阻断建议，`decide testing` 保存人工范围决定，`record testing` 保存运行 manifest，`doctor test-governance` 只读检查结构、哈希、引用和敏感文件风险。通用包不内置客户测试用例、决策、运行证据或 UAT 结论。
 
 技能包根目录包含 `cloudcc-cli.config.json`。公有云默认使用 `https://dc52.apis.cloudcc.cn/metadata`；私有云初始化时将当前环境的 `metadataService.url` 改为用户提供的私有云 MetadataService 地址。
 

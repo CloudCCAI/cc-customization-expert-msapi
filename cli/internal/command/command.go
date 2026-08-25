@@ -10,7 +10,9 @@ import (
 	"cloudcc-customization-expert-go/internal/modules"
 	"cloudcc-customization-expert-go/internal/msapi"
 	"cloudcc-customization-expert-go/internal/openapi"
+	"cloudcc-customization-expert-go/internal/projectoutputs"
 	"cloudcc-customization-expert-go/internal/provider"
+	"cloudcc-customization-expert-go/internal/testgovernance"
 	"cloudcc-customization-expert-go/internal/version"
 )
 
@@ -37,7 +39,7 @@ func Run(args []string, stdout io.Writer, stderr io.Writer, cwd string) int {
 	action, resource := args[0], args[1]
 	rest := args[2:]
 
-	if version.IsVersionAction(action) && resource != "version" && !(action == "doctor" && (resource == "classes" || resource == "provider" || resource == "project-governance")) {
+	if version.IsVersionAction(action) && resource != "version" && !(action == "doctor" && (resource == "classes" || resource == "provider" || resource == "project-governance" || resource == "project-outputs" || resource == "test-governance")) {
 		if err := version.Handle(action, append([]string{resource}, rest...), stdout, stderr); err != nil {
 			fmt.Fprintln(stderr, err)
 			return 1
@@ -55,6 +57,12 @@ func Run(args []string, stdout io.Writer, stderr io.Writer, cwd string) int {
 	case action == "doctor" && resource == "project-governance":
 		projectPath := firstOr(rest, cwd)
 		err = governance.WriteDoctor(projectPath, stdout)
+	case resource == "project-outputs" && (action == "init" || action == "doctor"):
+		err = projectoutputs.Handle(action, rest, stdout, cwd)
+	case resource == "test-governance" && (action == "init" || action == "doctor"):
+		err = testgovernance.Handle(action, rest, stdout, cwd)
+	case resource == "testing" && (action == "advise" || action == "decide" || action == "record"):
+		err = testgovernance.Handle(action, rest, stdout, cwd)
 	case resource == "msapi" || resource == "metadata":
 		if err = provider.RequireMSAPI(firstOr(rest, cwd)); err == nil {
 			err = msapi.Handle(action, resource, rest, stdout, cwd)

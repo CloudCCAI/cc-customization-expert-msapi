@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.26"
+const Version = "2.2.28"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -34,6 +34,8 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	case "changelog":
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
+		fmt.Fprintln(stderr, "- Project outputs governance now provides a non-overwriting root outputs scaffold and read-only doctor for dynamic documents, project-specific tools, data/deployment/training/integration packages, relative references, delivered-artifact SHA-256, and sensitive-content risk without imposing fixed content templates.")
+		fmt.Fprintln(stderr, "- Advisory end-to-end test governance now provides a non-overwriting project scaffold, read-only impact recommendations, immutable human scope decisions, run manifests, and cloudcc doctor test-governance; recommendations remain non-blocking and do not replace target-role UAT or Go/No-Go.")
 		fmt.Fprintln(stderr, "- Rollup summary field creation now requires MetadataService 1.1.36 for platform-compatible filtered summary readback: filtered summaries write tp_sys_condition MAIN_OBJ_ID/BOOL_FILTER rows and derive AGGCONDITIONDIS so filtered summary fields can be shown and edited correctly.")
 		fmt.Fprintln(stderr, "- Project-standard governance now separates AGENTS read gates, long-lived standards, FEAT/ADR/DevOps facts, blueprint process artifacts, and dynamic task state; cloudcc doctor project-governance validates the local structure without writes, and release purity gates reject customer identifiers and local absolute paths.")
 		fmt.Fprintln(stderr, "- Requirement-design and high-code platform-capability routing now requires business, functional, design, and high-code requests to prefer platform standard metadata before Java code when low-code capabilities can satisfy the requirement; even if the user classifies the request as high-code, the skill should name the low-code capability that can implement it before reserving code for unsupported external, cross-object, dynamic, governance, or complex orchestration cases.")
@@ -232,6 +234,13 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc --version")
 	fmt.Fprintln(stdout, "  cloudcc doc <layer>/<module> introduction|devguide")
 	fmt.Fprintln(stdout, "  cloudcc doctor project-governance [projectPath]")
+	fmt.Fprintln(stdout, "  cloudcc init project-outputs <projectPath> <projectCode>")
+	fmt.Fprintln(stdout, "  cloudcc doctor project-outputs [projectPath]")
+	fmt.Fprintln(stdout, "  cloudcc init test-governance <projectPath> <projectCode>")
+	fmt.Fprintln(stdout, "  cloudcc advise testing <projectPath> <@change.json|json>")
+	fmt.Fprintln(stdout, "  cloudcc decide testing <projectPath> <@decision.json|json>")
+	fmt.Fprintln(stdout, "  cloudcc record testing <projectPath> <@run.json|json>")
+	fmt.Fprintln(stdout, "  cloudcc doctor test-governance [projectPath]")
 	fmt.Fprintln(stdout, "  cloudcc get config [projectPath]")
 	fmt.Fprintln(stdout, "  cloudcc use config <env> [projectPath]")
 	fmt.Fprintln(stdout, "  cloudcc create project <name|.>")

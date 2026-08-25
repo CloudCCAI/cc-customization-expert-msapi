@@ -148,6 +148,8 @@ func TestHighCodePublishValidationGateDocs(t *testing.T) {
 func TestMethodologyAndPlaybookDocsAreEmbedded(t *testing.T) {
 	for _, module := range []string{
 		"methodology/projectGovernance",
+		"methodology/projectOutputs",
+		"methodology/testGovernance",
 		"methodology/blueprint",
 		"methodology/globalModeling",
 		"methodology/moduleDesign",
@@ -171,6 +173,53 @@ func TestMethodologyAndPlaybookDocsAreEmbedded(t *testing.T) {
 		if devguide == "" {
 			t.Fatalf("%s devguide is empty", module)
 		}
+	}
+}
+
+func TestProjectOutputsDocumentsDynamicDocumentsAndTools(t *testing.T) {
+	content, err := Read("methodology/projectOutputs", "devguide")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !containsAll(
+		content,
+		"cloudcc init project-outputs <projectPath> <projectCode>",
+		"cloudcc doctor project-outputs <projectPath>",
+		"cloudcc-project-outputs/v1",
+		"output-manifest.json",
+		"document",
+		"tool",
+		"data-package",
+		"deployment-package",
+		"training-package",
+		"integration-package",
+		"SHA-256",
+		"不预建 documents、tools、operations、migration、training 等目录",
+	) {
+		t.Fatalf("project outputs doc should define a dynamic document/tool delivery boundary and machine manifest")
+	}
+}
+
+func TestTestGovernanceDocumentsAdvisoryHumanConfirmedLifecycle(t *testing.T) {
+	content, err := Read("methodology/testGovernance", "devguide")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !containsAll(
+		content,
+		"cloudcc init test-governance <projectPath> <projectCode>",
+		"cloudcc advise testing <projectPath> @change.json",
+		"cloudcc decide testing <projectPath> @decision.json",
+		"cloudcc record testing <projectPath> @run.json",
+		"cloudcc doctor test-governance <projectPath>",
+		"advisory: true",
+		"blocking: false",
+		"risk_accepted",
+		"pending_uat",
+		"evidence/testing/decisions",
+		"evidence/testing/runs",
+	) {
+		t.Fatalf("test governance doc should define advisory recommendations, human decisions, run evidence, and truthful acceptance states")
 	}
 }
 

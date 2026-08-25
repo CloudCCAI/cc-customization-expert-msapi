@@ -162,13 +162,29 @@ docs/delivery/<project-code>/
 │   ├── 01-uat-scenario-matrix.md
 │   ├── 02-permission-acceptance-matrix.md
 │   ├── 03-cutover-runbook.md
-│   └── 04-rollback-runbook.md
+│   ├── 04-rollback-runbook.md
+│   ├── 05-test-impact-matrix.md
+│   ├── 06-test-data-catalog.md
+│   ├── 07-environment-account-matrix.md
+│   └── 08-requirement-test-traceability.md
 └── 08-release-evidence/
     ├── 00-release-evidence-index.md
     ├── 01-msapi-plan-apply-changes.md
     ├── 02-production-readiness-gate.md
     └── 03-post-release-verification.md
 ```
+
+`docs/delivery/<project-code>/` 保存实施过程中的标准工作文档、设计和验证入口。项目实际提交给客户或接收方的最终文档、工具及其他包，与其并列放在项目根目录：
+
+```text
+<project-root>/outputs/
+├── README.md
+├── 00-output-index.md
+├── output-manifest.json
+└── <按项目实际要求动态创建的交付物目录>/
+```
+
+`outputs/` 不预设“方案汇报”“用户手册”“运维工具”等固定分类或模板。每项交付物由 `output-manifest.json` 登记类型、状态、责任人、需求来源、文件路径或外部引用；已批准或已交付的本地实体必须记录 SHA-256。可用 `cloudcc init project-outputs <projectPath> <projectCode>` 初始化三个固定治理文件，并用 `cloudcc doctor project-outputs <projectPath>` 做只读检查。完整规则见 `methodology/projectOutputs devguide`。
 
 通用命名规则：
 
@@ -181,6 +197,8 @@ docs/delivery/<project-code>/
 - 大型矩阵可有同名 `.xlsx`，但必须保留同名 `.md` 作为口径和状态入口。
 
 项目标准的职责、索引、读取门禁和归档规则以 `methodology/projectGovernance devguide` 为准。`AGENTS.md` 只保存强制读取入口，不复制标准正文；标准不复制 FEAT、ADR、DevOps 或任务板中的事实。
+
+端到端测试资产和人工范围决策按 `methodology/testGovernance devguide` 治理。项目可以使用 `cloudcc init test-governance <projectPath> <projectCode>` 初始化不覆盖现有文件的 draft 骨架，用 `advise testing` 生成非阻断建议、`decide testing` 保存人工选择、`record testing` 保存运行 manifest，并用 `doctor test-governance` 做只读结构检查。完整执行证据位于 `evidence/testing`，发布目录只引用本次采用的证据。
 
 ## 推荐拆分
 
