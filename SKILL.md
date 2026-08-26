@@ -1,12 +1,12 @@
-﻿---
+---
 name: cc-customization-expert-msapi
-version: 2.2.29-msapi
+version: 2.2.30-msapi
 description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService."
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.2.29-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.2.30-msapi
 
-当前技能版本：`2.2.29-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.2.30-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
 
@@ -57,4 +57,3 @@ tools/bin/cloudcc publish classes ExampleClass /path/to/project
 ```
 
 MSAPI 的 `plan/apply/changes/rollback`、setup-svc parity replay 和报告/字段等详细命令使用 `cloudcc --help` 与内置 `platform/*` 文档。UIAPI 模式下仅使用已适配的低代码资源命令；未适配域会返回明确错误。
-

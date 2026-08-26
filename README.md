@@ -1,4 +1,4 @@
-﻿# cc-customization-expert-msapi v2.2.29-msapi
+# cc-customization-expert-msapi v2.2.30-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -32,4 +32,3 @@ Strict MetadataService package: low-code operations require MetadataService.
 ## Package Purity
 
 本包是生成产物，不包含 `.git`、`.claw`、测试夹具、项目证据、凭据或本地绝对路径。请勿直接修改 `dist/`；修改源代码或模板后使用仓库发布脚本重新生成。
-
