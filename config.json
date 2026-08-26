@@ -1,6 +1,6 @@
 {
     "packageName":  "cc-customization-expert-msapi",
-    "version":  "2.2.30-msapi",
+    "version":  "2.2.31-msapi",
     "releaseDate":  "2026-08-26",
     "compatCloudccCliVersion":  "2.5.3",
     "runtime":  "go",
@@ -149,6 +149,27 @@
                                                                                             "create"
                                                                                         ],
                                                                          "reason":  "Requires MetadataService compilers to accept recordTypes[], layouts[], validationRules[], and buttons[] under one resolved root object, enforce same-object prechecks, and emit item-level batch metadata."
+                                                                     },
+                                                                     {
+                                                                         "capability":  "msapi.lowcodeAvailabilityClosure",
+                                                                         "label":  "Low-code module usability closure for layouts, search layouts, tabs, and record type profile defaults",
+                                                                         "introducedInSkillVersion":  "2.2.31-msapi",
+                                                                         "minimumMetadataServiceVersion":  "1.1.38",
+                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.38",
+                                                                         "domains":  [
+                                                                                         "objects",
+                                                                                         "fields",
+                                                                                         "record-types",
+                                                                                         "layouts",
+                                                                                         "applications",
+                                                                                         "profiles"
+                                                                                     ],
+                                                                         "operations":  [
+                                                                                            "create",
+                                                                                            "update",
+                                                                                            "query"
+                                                                                        ],
+                                                                         "reason":  "Requires MetadataService low-code availability closure gates for in-plan default layout placement, record type profile/default/layout fallback, application tab reference validation, search layout enrichment, and profile/application readback evidence."
                                                                      },
                                                                      {
                                                                          "capability":  "msapi.fields.rollupSummaryDerivedCreate",

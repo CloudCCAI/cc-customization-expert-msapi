@@ -13,7 +13,15 @@ GET /metadata/v1/profiles/{id}
 - `filter` 对 ID、名称、API 名称和描述做不区分大小写的包含匹配。
 - `selector` 对 ID、名称和 API 名称做精确匹配，并返回全部精确匹配项。
 - CLI 的 detail/delete 必须检查结果数量为 1；数量为 0 或大于 1 时 fail closed。
-- `/metadata/v1/profiles/{id}` 只接受已经解析出的 ID，返回简档详情、用户引用计数和权限关联行计数。
+- `/metadata/v1/profiles/{id}` 只接受已经解析出的 ID，返回简档详情、用户引用计数、权限关联行计数和 `relations` 明细。
+
+`detail profile` 的 `relations` 会展开：
+
+- `tp_sys_profile_infoset`：应用、选项卡、对象、记录类型等可见性与默认标记。
+- `tp_sys_profile_field`：对象字段可见/只读设置。
+- `tp_sys_profile_layout`：简档、对象、记录类型到页面布局的映射。
+
+验收记录类型可见性时，不要只看关联行数量；必须确认目标 profile 的 `recordtype` 行 `isenable=true`、`isdefault=true`，且 `tp_sys_profile_layout` 中存在对应 `recordtypeId + layoutId`。
 
 ## CLI 用法
 

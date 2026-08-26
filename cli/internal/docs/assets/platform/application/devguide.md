@@ -184,13 +184,31 @@ cloudcc doc platform/application devguide
 
 ---
 
-## 9. 推荐操作顺序
+## 9. 元数据完整性门禁
+
+应用只能绑定已经存在的选项卡实体。`tabs` / `tabIds` 引用纯 `tabId` 时，MetadataService 会先检查 `tp_sys_tab`；如果选项卡不存在，计划会以 `application_tab_reference_missing` 拒绝。
+
+正确顺序是：
+
+```bash
+cloudcc create menu object . <objectId> "售后工单"
+cloudcc get menu . <tabId-or-name>
+cloudcc create application . "售后工作台" after_sales_app "<resolved-tab-id>"
+cloudcc detail application . <appId>
+```
+
+`detail application` 回读会返回 `tabResolved` 和 `missingTabIds`。只有 `tabResolved=true` 且目标 profile 对应用与选项卡均可见时，才能把应用导航视为可交付。
+
+---
+
+## 10. 推荐操作顺序
 
 ```bash
 # 1) 先查现有应用，避免重名
 cloudcc get application .
 
-# 2) 创建应用
+# 2) 先创建对象选项卡，再创建应用
+cloudcc create menu object . <objectId> "销售菜单"
 cloudcc create application . "销售工作台" sales_workbench
 
 # 3) 再次查询确认已创建
@@ -202,7 +220,7 @@ cloudcc delete application . <appId>
 
 ---
 
-## 10. 编辑保存接口参考（非 CLI 命令）
+## 11. 编辑保存接口参考（非 CLI 命令）
 
 当前 `application` 模块支持 `create/get/delete/update`，其中更新命令为：`cloudcc update application ...`。  
 若需要了解完整后端接口字段与前端组装规则，可参考下述接口整理文档：

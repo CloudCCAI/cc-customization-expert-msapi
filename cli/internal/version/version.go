@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.30"
+const Version = "2.2.31"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -34,6 +34,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	case "changelog":
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
+		fmt.Fprintln(stderr, "- Low-code module availability closure: object create now places in-plan business fields on generated default PC/mobile layouts, enriches default views and search layouts, expands embedded record types through profile/layout/default bindings, rejects missing application tab references, and returns profile/application readback evidence for acceptance gates.")
 		fmt.Fprintln(stderr, "- Object-scoped MetadataService batch create now supports record types, page layouts, validation rules, and custom buttons with root-object enforcement, createOnly/skipExisting handling, item-level precheck results, and CLI user docs.")
 		fmt.Fprintln(stderr, "- Project outputs governance now provides a non-overwriting root outputs scaffold and read-only doctor for dynamic documents, project-specific tools, data/deployment/training/integration packages, relative references, delivered-artifact SHA-256, and sensitive-content risk without imposing fixed content templates.")
 		fmt.Fprintln(stderr, "- Advisory end-to-end test governance now provides a non-overwriting project scaffold, read-only impact recommendations, immutable human scope decisions, run manifests, and cloudcc doctor test-governance; recommendations remain non-blocking and do not replace target-role UAT or Go/No-Go.")

@@ -168,6 +168,44 @@ cloudcc get object <projectPath> custom
 3. 返回 `planId`、`operationId`、风险、步骤和告警。
 4. 不直接写库；执行必须由 `cloudcc apply msapi <projectPath> <planId>` 完成。
 
+### 4.5 完整业务模块闭环配置
+
+当对象、字段、记录类型、页面布局、搜索布局和可见性在同一个对象创建 spec 中提交时，MetadataService 会把业务字段直接落入本次计划生成的默认 PC/mobile 布局，不再依赖“字段创建时数据库已经存在布局”的窄兜底。
+
+推荐写法：
+
+```json
+{
+  "id": "obj_after_sales",
+  "apiName": "after_sales_ticket",
+  "label": "售后工单",
+  "nameLabel": "工单编号",
+  "profiles": ["aaa000001"],
+  "fields": [
+    {"id": "field_subject", "apiName": "subject", "label": "主题", "type": "S"},
+    {"id": "field_customer", "apiName": "customer", "label": "客户", "type": "S"},
+    {"id": "field_description", "apiName": "description", "label": "问题描述", "type": "X"}
+  ],
+  "recordTypes": [
+    {"id": "rt_aft_standard", "apiName": "standard", "name": "标准工单"}
+  ],
+  "searchLayouts": {
+    "searchFields": ["subject", "customer"],
+    "searchResults": ["subject", "customer", "description"],
+    "lookupResults": ["subject", "customer"],
+    "quickCreate": ["subject", "customer"]
+  }
+}
+```
+
+闭环规则：
+
+- 未显式提供 `layoutPlacements` / `sectionFields` / `layoutIds` 时，对象内业务字段会自动生成 PC 与 mobile 布局落位。
+- PC 短字段按双列平衡，长文本字段按整行处理；mobile 始终单列。
+- 默认“全部”视图会补入业务字段，避免只有编号字段。
+- `searchLayouts.searchFields/searchResults/lookupResults/quickCreate` 会写入 `tp_sys_lookuplayout`；未显式配置时会以本次创建的业务字段兜底。
+- 对象内 `recordTypes[]` 会复用完整记录类型编译链，自动绑定对象可见简档、默认记录类型和默认布局；一次声明多个记录类型时，仅第一个作为兜底默认，避免同一简档产生多个默认记录类型。
+
 ---
 
 ## 5. 删除对象

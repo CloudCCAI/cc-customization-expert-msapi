@@ -221,6 +221,8 @@ data
 
 创建或补齐自定义字段时，技能应先主动设计布局落位；MetadataService 的自动摆放只能作为兜底。只要能读取到对象布局详情，就在字段计划中显式给出 `layoutPlacements`，或通过 `pagelayout update` 同步调整 PC / mobile 布局。
 
+对象创建 spec 内嵌 `fields[]` 时，MetadataService 会把业务字段落入本次计划生成的默认 PC/mobile 布局：短字段按 PC 双列平衡，长文本按 PC 整行，mobile 单列。字段单独创建时，仍会读取数据库已有 root/mobile 布局并自动摆放；如果目标布局还不存在，应改用对象内完整编排或显式 `layoutPlacements`，不要把普通 warning 当成交付完成。
+
 ### 输入信息
 
 - 先读取对象字段全集和全局对象字段字典，确认新增字段与已有字段的业务关系、是否复用标准字段、是否属于同一业务分组。

@@ -69,7 +69,40 @@ cloudcc create recordType . <encodedBodyJson>
 
 ---
 
-### 3.1 批量创建记录类型
+### 3.1 简档与布局分配
+
+推荐使用 `profileAssignments` 明确表达记录类型在每个简档下是否启用、是否默认以及使用哪个布局：
+
+```json
+{
+  "objid": "obj_after_sales",
+  "id": "rt_aft_standard",
+  "name": "标准工单",
+  "apiCode": "standard_ticket",
+  "profileAssignments": [
+    {
+      "profileId": "aaa000001",
+      "enabled": true,
+      "default": true,
+      "layoutId": "lay_ticket_service"
+    }
+  ]
+}
+```
+
+兼容字段 `pslist`、`profileRecordTypes`、`profileBindings`、`profiles` 仍可读取；新配置优先使用 `profileAssignments`，避免 `profiles[]` 与 `layouts[]` 并列数组无法表达一一对应关系。
+
+未传任何简档绑定时，MetadataService 会从该对象已有的对象权限简档推导记录类型绑定，并默认 `enabled=true`、`default=true`。在对象创建 spec 内嵌 `recordTypes[]` 时，如果对象 spec 已声明 `profiles`，这些简档会作为计划内兜底直接绑定到本次生成的默认布局；若一次内嵌多个记录类型，则只把第一个记录类型设为默认，其余记录类型默认启用但不抢占默认标记。需要其它默认策略时，必须显式写 `profileAssignments.default`。
+
+验收时必须回读：
+
+- `tp_sys_profile_infoset.INFO_CATEGORY=recordtype`
+- `ISENABLE=true`
+- `ISDEFAULT=true`
+- `tp_sys_profile_layout.LAYOUT_ID`
+- `tp_sys_profile_layout.RECORDTYPE_ID`
+
+### 3.2 批量创建记录类型
 
 一次要在同一个对象下创建多个记录类型时，使用 MetadataService plan/apply。文件顶层写 `objectId`、`objectApiName` 或 `objectPrefix` 指定目标对象，并在 `recordTypes[]` 中写每个记录类型。批量创建是对象级能力：同一个文件只能作用于一个对象，数组项不能覆盖到其它对象，也不能和其它 domain 混在同一次计划里提交。
 
