@@ -19,7 +19,7 @@
 - 已完成 `cloudcc doc platform/project devguide` 的环境初始化
 - 项目根目录存在可用配置，且包含 `accessToken`
 - 已准备应用名称、应用代码
-- 若需自定义菜单挂载，已准备菜单 ID 列表
+- 若需自定义菜单挂载，已准备 CLI 创建菜单后的真实菜单 ID / tabId 列表
 
 ---
 
@@ -38,10 +38,16 @@ cloudcc doc platform/application <introduction|devguide>
 - `path` / `projectPath`：项目路径
 - `p1`：应用名称
 - `p2`：应用代码
-- `duel1`：菜单 ID 列表（逗号分隔，可选）
+- `duel1`：真实菜单 ID / tabId 列表（逗号分隔，可选）
 - `encodedCondJson`：URI 编码后的 JSON 查询条件
 - `appId`：应用 ID
 - `encodedOptionsJson`：URI 编码后的 JSON 覆盖参数（用于更新）
+
+ID 使用规则：
+
+- 应用的 `appId`、菜单的 `tabId`、简档的 `profileId` 都可以使用，但必须来自 CloudCC/CLI 创建回执、扫描或 detail/readback，不能自行构造。
+- 本模块不把菜单自身扩展为 `apiName` 优先引用；应用绑定菜单仍使用真实 `tabId`。
+- 只有“对象引用”推荐优先使用对象 `apiName`，例如先用对象 `apiName` 创建菜单，再从菜单创建回执中读取真实 `tabId` 绑定应用。
 
 ---
 
@@ -56,13 +62,15 @@ cloudcc create application <path> <p1> <p2> [duel1]
 - `path`：项目路径，推荐传 `.` 表示当前目录
 - `p1`：应用名称（例如 `销售工作台`）
 - `p2`：应用代码（例如 `sales_workbench`）
-- `duel1`：菜单 ID 列表，多个 ID 以逗号分隔
+- `duel1`：真实菜单 ID / tabId 列表，多个 ID 以逗号分隔
 
 ### 4.2 默认行为与自动补全
 
 - 若未传 `duel1`，CLI 会默认使用 `acf000001`
 - 若传入 `duel1` 但不包含 `acf000001`，CLI 会自动补入该 ID
 - 创建过程中会自动查询角色列表并注入权限参数
+- 如果没有传应用可见简档集合，或集合为空，MetadataService 默认按当前租户 `tp_sys_profile` 的全部简档生成应用可见性。
+- 只传 `aaa000001` 通常只代表系统管理员简档可见，不代表其它简档可见。
 
 ### 4.3 示例
 
@@ -191,13 +199,20 @@ cloudcc doc platform/application devguide
 正确顺序是：
 
 ```bash
-cloudcc create menu object . <objectId> "售后工单"
-cloudcc get menu . <tabId-or-name>
+cloudcc create menu object . <objectApiName-or-real-objectId> "售后工单"
+cloudcc get menu . <resolved-tab-id>
 cloudcc create application . "售后工作台" after_sales_app "<resolved-tab-id>"
 cloudcc detail application . <appId>
 ```
 
 `detail application` 回读会返回 `tabResolved` 和 `missingTabIds`。只有 `tabResolved=true` 且目标 profile 对应用与选项卡均可见时，才能把应用导航视为可交付。
+
+简档可见性说明：
+
+- `visibleProfileIds` / `visibleProfiles` / `profileIds` 表示实际启用的应用可见简档。
+- `allProfileIds` / `allProfiles` / `profileUniverse` 表示应用可见性关系的简档全集。
+- 如果两个集合都未传或为空，MetadataService 会默认对当前租户全部简档生成启用关系。
+- 如果只传 `aaa000001`，通常只有系统管理员简档可见；其它简档用户不会自动看到该应用。
 
 ---
 

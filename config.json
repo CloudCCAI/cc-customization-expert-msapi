@@ -1,6 +1,6 @@
 {
     "packageName":  "cc-customization-expert-msapi",
-    "version":  "2.2.31-msapi",
+    "version":  "2.2.32-msapi",
     "releaseDate":  "2026-08-26",
     "compatCloudccCliVersion":  "2.5.3",
     "runtime":  "go",
@@ -170,6 +170,21 @@
                                                                                             "query"
                                                                                         ],
                                                                          "reason":  "Requires MetadataService low-code availability closure gates for in-plan default layout placement, record type profile/default/layout fallback, application tab reference validation, search layout enrichment, and profile/application readback evidence."
+                                                                     },
+                                                                     {
+                                                                         "capability":  "msapi.menuApplicationReferenceProfiles",
+                                                                         "label":  "Menu object references by object API name and default all-profile visibility",
+                                                                         "introducedInSkillVersion":  "2.2.32-msapi",
+                                                                         "minimumMetadataServiceVersion":  "1.1.40",
+                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.40",
+                                                                         "domains":  [
+                                                                                         "menus",
+                                                                                         "applications"
+                                                                                     ],
+                                                                         "operations":  [
+                                                                                            "create"
+                                                                                        ],
+                                                                         "reason":  "Requires MetadataService to resolve menu object references from object apiName to real object ID/PREFIX, validate supplied object ID or prefix for consistency when present, and default omitted or empty menu/application profile collections to all runtime tp_sys_profile rows."
                                                                      },
                                                                      {
                                                                          "capability":  "msapi.fields.rollupSummaryDerivedCreate",
