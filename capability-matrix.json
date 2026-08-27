@@ -2,9 +2,9 @@
   "schemaVersion": "cloudcc-dual-provider-capability-matrix/v1",
   "releaseBaseline": "2.2.5",
   "msapiBaseline": {
-    "domains": 22,
-    "operations": 97,
-    "source": "cli/internal/msapi/setup_svc_live_replay.go:setupSvcLiveReplayDomains"
+    "domains": 23,
+    "operations": 101,
+    "source": "MetadataService capability catalog; live replay evidence coverage remains independently audited"
   },
   "semantics": {
     "shared": "Business intent, stable CLI vocabulary, input normalization, and documented result shape.",
@@ -34,6 +34,7 @@
     {"id":"approval-processes","uiapiResource":"approval","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
     {"id":"reports","uiapiResource":"report","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","folder-create":"contract_tested","folder-update":"contract_tested","folder-delete":"contract_tested","query":"contract_tested"}},
     {"id":"dashboards","uiapiResource":"dashboard","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
-    {"id":"object-views","uiapiResource":"view","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}}
+    {"id":"object-views","uiapiResource":"view","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
+    {"id":"api-registrars","uiapiResource":"apiRegistrar","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested","detail":"contract_tested","debug":"contract_tested","logs":"contract_tested","log-detail":"contract_tested"}}
   ]
 }

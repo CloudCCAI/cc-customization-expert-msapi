@@ -21,6 +21,7 @@
 - 触发器或其调用的自定义类不得在 `for`/`while` 循环内调用 `cquery*`、`cqlQuery*`、`pagedQuery` 等查询方法逐条补字段、逐条查重或逐条判断存在性；必须先收集记录 ID/业务键，批量查询并构建 Map 后再循环组装，避免 N+1 查询
 - 触发器或其调用的自定义类使用 `cqlQuery` 时，默认必须为每个业务对象或别名拼接逻辑删除过滤，常见写法是 `is_deleted = '0'`、`a.is_deleted = '0'`；若目标对象实际字段为 `is_delete` 或其他名称，必须按实际字段拼接。只有明确处理回收站、删除审计或删除状态对比时才允许包含已删除数据
 - 触发器调用的自定义类不要把 `net.sf.json.JSONObject`/`JSONArray` 作为业务返回结构；优先返回 `Map<String,Object>`、`List<Map<String,Object>>` 或明确 DTO，避免 `JSONNull` 运行时问题和低效 JSON 转换
+- 触发器需要调用外部 HTTP 服务时，必须通过自定义类封装接口注册器 `CCRemoteClient` 调用，源码只使用已调试且为 `ACTIVE` 的 `apiCode`；不得在触发器中硬编码 URL。同步远程调用会延长保存事务，非强一致场景优先使用 commit 后触发、定时类或异步集成链路，并禁止无界重试。完整规则见 `platform/apiRegistrar devguide`
 
 ## 3. 触发时间
 

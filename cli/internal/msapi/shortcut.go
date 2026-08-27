@@ -13,6 +13,13 @@ import (
 var lowCodeShortcutDomains = map[string]string{
 	"approval":         "approval-processes",
 	"approvalProcess":  "approval-processes",
+	"apiRegistrar":     "api-registrars",
+	"apiRegister":      "api-registrars",
+	"api-registrar":    "api-registrars",
+	"api-register":     "api-registrars",
+	"apiregistrar":     "api-registrars",
+	"apiregister":      "api-registrars",
+	"api-registrars":   "api-registrars",
 	"application":      "applications",
 	"button":           "buttons",
 	"customSetting":    "custom-settings",
@@ -51,6 +58,7 @@ var lowCodeShortcutActions = map[string]bool{
 	"editInfo":    true,
 	"validDelete": true,
 	"create":      true,
+	"register":    true,
 	"update":      true,
 	"save":        true,
 	"modify":      true,
@@ -99,6 +107,9 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 	}
 	if resource == "validationRule" && isShortcutRead(action) {
 		return handleValidationRuleReadShortcut(action, projectPath, rest, stdout, cwd)
+	}
+	if isApiRegistrarShortcutResource(resource) && isShortcutRead(action) {
+		return handleApiRegistrarReadShortcut(action, projectPath, rest, stdout, cwd)
 	}
 	if (resource == "workflow" || resource == "workflowRule") && isShortcutRead(action) {
 		return handleWorkflowReadShortcut(action, projectPath, rest, stdout, cwd)
@@ -164,6 +175,43 @@ func handleObjectViewReadShortcut(action string, projectPath string, args []stri
 		body["objectId"] = strings.TrimSpace(args[0])
 	}
 	return c.writeJSON(stdout, http.MethodPost, "/metadata/v1/object-views:query", body)
+}
+
+func handleApiRegistrarReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
+	c, _, err := newClient([]string{projectPath}, cwd)
+	if err != nil {
+		return err
+	}
+	if action == "detail" || (action == "get" && len(args) == 1 && strings.TrimSpace(args[0]) != "" && !looksLikeJSONArg(args[0])) {
+		if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
+			return fmt.Errorf("cloudcc %s apiRegistrar <projectPath> <id-apiCode-or-apiName>", action)
+		}
+		return c.getJSON(stdout, "/metadata/v1/api-registrars/"+url.PathEscape(strings.TrimSpace(args[0])))
+	}
+	if len(args) > 1 {
+		return fmt.Errorf("cloudcc %s apiRegistrar <projectPath> [searchKeyword]", action)
+	}
+	values := url.Values{}
+	if len(args) == 1 && strings.TrimSpace(args[0]) != "" {
+		if looksLikeJSONArg(args[0]) {
+			query, err := parseObject(args[0], "cloudcc "+action+" apiRegistrar")
+			if err != nil {
+				return err
+			}
+			for _, key := range []string{"searchKeyword", "status", "page", "pageSize"} {
+				if value := strings.TrimSpace(stringValue(query[key])); value != "" {
+					values.Set(key, value)
+				}
+			}
+		} else {
+			values.Set("searchKeyword", strings.TrimSpace(args[0]))
+		}
+	}
+	path := "/metadata/v1/api-registrars"
+	if encoded := values.Encode(); encoded != "" {
+		path += "?" + encoded
+	}
+	return c.getJSON(stdout, path)
 }
 
 func handleObjectReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
@@ -1823,8 +1871,12 @@ func shortcutOperation(action string, resource string) string {
 	if resource == "view" && (strings.TrimSpace(action) == "update" || strings.TrimSpace(action) == "editSave" || strings.TrimSpace(action) == "modify") {
 		return "update"
 	}
+	if isApiRegistrarShortcutResource(resource) &&
+		(strings.TrimSpace(action) == "update" || strings.TrimSpace(action) == "modify" || strings.TrimSpace(action) == "save") {
+		return "update"
+	}
 	switch strings.TrimSpace(action) {
-	case "create":
+	case "create", "register":
 		return "create"
 	case "enable", "activate":
 		return "activate"
@@ -1835,6 +1887,10 @@ func shortcutOperation(action string, resource string) string {
 	default:
 		return "upsert"
 	}
+}
+
+func isApiRegistrarShortcutResource(resource string) bool {
+	return lowCodeShortcutDomains[strings.TrimSpace(resource)] == "api-registrars"
 }
 
 func looksLikeJSONArg(value string) bool {

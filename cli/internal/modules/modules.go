@@ -22,6 +22,21 @@ type endpoint struct {
 }
 
 var genericEndpoints = map[string]map[string]endpoint{
+	"apiRegistrar": {
+		"get":        {"setup", "/api/register/list"},
+		"getList":    {"setup", "/api/register/list"},
+		"detail":     {"setup", "/api/register/detail"},
+		"create":     {"setup", "/api/register/register"},
+		"register":   {"setup", "/api/register/register"},
+		"update":     {"setup", "/api/register/update"},
+		"modify":     {"setup", "/api/register/update"},
+		"delete":     {"setup", "/api/register/delete"},
+		"debug":      {"setup", "/api/register/debug"},
+		"test":       {"setup", "/api/register/debug"},
+		"logs":       {"setup", "/api/register/logs"},
+		"logDetail":  {"setup", "/api/register/logDetail"},
+		"log-detail": {"setup", "/api/register/logDetail"},
+	},
 	"approval": {
 		"get":     {"setup", "/api/approvalsetup/list"},
 		"getList": {"setup", "/api/approvalsetup/list"},
@@ -248,6 +263,9 @@ var genericEndpoints = map[string]map[string]endpoint{
 }
 
 func Handle(action string, resource string, args []string, stdout io.Writer, stderr io.Writer, cwd string) error {
+	if resource == "apiRegister" || resource == "api-registrar" || resource == "api-register" {
+		resource = "apiRegistrar"
+	}
 	switch resource {
 	case "config":
 		return handleConfig(action, args, stdout, cwd)

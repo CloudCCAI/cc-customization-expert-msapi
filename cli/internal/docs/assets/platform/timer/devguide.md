@@ -22,6 +22,7 @@
 - 定时类或其调用的自定义类不得在 `for`/`while` 循环内调用 `cquery*`、`cqlQuery*`、`pagedQuery` 等查询方法逐条补字段、逐条查重或逐条判断存在性；定时任务默认按批量数据处理，必须先收集 key，批量查询并构建 Map，避免 N+1 查询和任务超时
 - 定时类或其调用的自定义类使用 `cqlQuery` 扫描待处理数据或做联查时，默认必须排除逻辑删除数据；每个业务对象或别名都要拼接平台逻辑删除条件，常见写法是 `is_deleted = '0'`，若目标对象实际字段为 `is_delete` 或其他名称，必须按实际字段拼接；除非需求明确是回收站、删除审计或删除状态对比
 - 定时类调用的自定义类不要把 `net.sf.json.JSONObject`/`JSONArray` 作为业务返回结构；优先返回 `Map<String,Object>`、`List<Map<String,Object>>` 或明确 DTO，避免 `JSONNull` 运行时问题和低效 JSON 转换
+- 定时类调用外部 HTTP 服务时，必须通过接口注册器 `CCRemoteClient`，源码只使用已调试且为 `ACTIVE` 的 `apiCode`，不得硬编码 URL 或误用 `apiName`。任务必须分页并保留业务游标/幂等键，区分 HTTP 成功、远端业务失败和本地处理失败；重试必须有次数上限。完整规则见 `platform/apiRegistrar devguide`
 
 ## 3. 文件约束
 

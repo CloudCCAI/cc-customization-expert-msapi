@@ -83,12 +83,13 @@ pagelayout -> script -> customPage -> pagecomponent -> staticResource -> classes
 推荐模块：
 
 ```text
-openapi -> classes -> timer/scheduleJob -> identityProvider/singleSignOn -> sidecar
+openapi -> apiRegistrar -> classes -> triggers/timer/scheduleJob -> identityProvider/singleSignOn -> sidecar
 ```
 
 说明：
 
 - 数据 CRUD 优先看 OpenAPI。
+- CloudCC 高代码主动调用外部 HTTP 服务时，先在接口注册器登记 URL、调试并取得运行态 `apiCode`。
 - 服务端业务封装用类。
 - 定时同步用定时类和定时作业。
 - 身份统一用 IdP/SSO。
@@ -124,7 +125,7 @@ project/config -> almRelease -> package -> classes/triggers/pagecomponent/static
 | 页面入口 | 应用、菜单、视图、布局 | application, menu, view, pagelayout |
 | 自动化 | 工作流、审批、动作、触发器、定时 | automation, triggers, timer, scheduleJob |
 | 前端扩展 | 页面、组件、脚本、静态资源 | customPage, pagecomponent, script, html, staticResource |
-| 集成 | OpenAPI、服务端类、SSO、sidecar | openapi, classes, integrationArchitecture |
+| 集成 | OpenAPI、接口注册器、服务端类、SSO、sidecar | openapi, apiRegistrar, classes, integrationArchitecture |
 | 移动端 | 移动布局、离线、扫一扫、签到 | mobileCapabilities |
 | 交付 | 项目配置、软件包、多环境发布 | project, config, almRelease |
 | 标准应用目录 | CRM、商务云、CPQ、现场服务云、客户服务云、项目云、伙伴云、利润云 | application, menu, object, fields, standard-catalog |

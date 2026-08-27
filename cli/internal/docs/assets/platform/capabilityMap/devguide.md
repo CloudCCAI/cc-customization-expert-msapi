@@ -37,6 +37,8 @@
 - 需要周期性后台处理
 - 需要标准配置无法表达的保存前/保存后逻辑
 
+外部接口调用还要继续区分方向：外部系统调用 CloudCC 使用 OpenAPI；CloudCC 自定义类、触发器调用的类或定时类主动调用外部 HTTP 服务，使用 `apiRegistrar -> CCRemoteClient`。后者先完成注册、服务端调试和 `ACTIVE` 状态确认，再生成只引用 `apiCode` 的高代码。
+
 ## 输出模板
 
 ```text

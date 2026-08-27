@@ -1,7 +1,7 @@
 {
     "packageName":  "cc-customization-expert-msapi",
-    "version":  "2.2.32-msapi",
-    "releaseDate":  "2026-08-26",
+    "version":  "2.2.33-msapi",
+    "releaseDate":  "2026-08-27",
     "compatCloudccCliVersion":  "2.5.3",
     "runtime":  "go",
     "projectOutputs":  {
@@ -185,6 +185,23 @@
                                                                                             "create"
                                                                                         ],
                                                                          "reason":  "Requires MetadataService to resolve menu object references from object apiName to real object ID/PREFIX, validate supplied object ID or prefix for consistency when present, and default omitted or empty menu/application profile collections to all runtime tp_sys_profile rows."
+                                                                     },
+                                                                     {
+                                                                         "capability":  "msapi.apiRegistrars.phase1",
+                                                                         "label":  "API registrar metadata CRUD and readback with runtime debug separation",
+                                                                         "introducedInSkillVersion":  "2.2.33-msapi",
+                                                                         "minimumMetadataServiceVersion":  "1.1.41",
+                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.41",
+                                                                         "domains":  [
+                                                                                         "api-registrars"
+                                                                                     ],
+                                                                         "operations":  [
+                                                                                            "create",
+                                                                                            "update",
+                                                                                            "delete",
+                                                                                            "query"
+                                                                                        ],
+                                                                         "reason":  "Requires MetadataService-generated id/apiName, caller-defined or securely generated unique apiCode, DRAFT-on-create/update behavior, logical delete, read-only list/detail endpoints, and rejection of runtime-maintained debug/status fields; debug and log calls remain direct setup-svc runtime operations."
                                                                      },
                                                                      {
                                                                          "capability":  "msapi.fields.rollupSummaryDerivedCreate",

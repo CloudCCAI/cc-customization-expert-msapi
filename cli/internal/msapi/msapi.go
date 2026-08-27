@@ -1277,7 +1277,7 @@ func isCanonicalDomain(value string) bool {
 	switch strings.TrimSpace(value) {
 	case "objects", "fields", "global-select-lists", "record-types", "layouts", "profiles", "permissions",
 		"sharing-rules", "validation-rules", "applications", "menus", "buttons", "roles", "custom-settings", "dupe-catchers",
-		"single-sign-ons", "identity-providers", "approval-processes", "reports", "dashboards", "object-views":
+		"single-sign-ons", "identity-providers", "approval-processes", "reports", "dashboards", "object-views", "api-registrars":
 		return true
 	default:
 		return false
@@ -1328,6 +1328,8 @@ func normalizeDomain(value string) string {
 		return "single-sign-ons"
 	case "identityProvider", "identity-provider", "identityprovider", "idp", "identity-providers":
 		return "identity-providers"
+	case "apiRegistrar", "apiRegister", "api-registrar", "api-register", "apiregistrar", "apiregister", "api-registrars":
+		return "api-registrars"
 	default:
 		return strings.TrimSpace(value)
 	}

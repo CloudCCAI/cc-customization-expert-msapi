@@ -21,6 +21,10 @@
 - 哪些做法必须避免
 - 修改类的时候，要将测试类也一起调整
 
+### 外部 HTTP 调用门禁
+
+自定义类需要主动调用外部 HTTP 服务时，优先使用平台接口注册器和 `CCRemoteClient`，并先读取 `platform/apiRegistrar devguide`。源码只使用注册项的 `apiCode`，不得硬编码远程 URL，也不得误用软件包标识 `apiName`。生成代码前必须确认注册项调试成功且为 `ACTIVE`；调用后必须检查 `CCRemoteResult` 的执行结果、HTTP 状态和错误信息，按需记录 `traceId`。接口修改会回到 `DRAFT`，必须重新调试后再投入运行。
+
 ## 2. 自包含编译与发布链路
 
 CloudCC 自定义类不是普通 Maven 项目。技能已经把平台编译所需的 `cceg.jar`、cclib 和主要第三方依赖固化到 `assets/class-compiler/WEB-INF`，开发者不需要也不应获取 `setup-svc`、`main-svc` 或 CloudCC 平台源码。
