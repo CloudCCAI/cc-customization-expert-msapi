@@ -1,12 +1,12 @@
 ---
 name: cc-customization-expert-msapi
-version: 2.2.34-msapi
+version: 2.2.36-msapi
 description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService."
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.2.34-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.2.36-msapi
 
-当前技能版本：`2.2.34-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.2.36-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
 
@@ -27,8 +27,6 @@ description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict Metad
 - 用户提出业务需求、功能需求、需求设计、方案设计或高代码需求时，默认先进入需求设计/方案设计模式：先识别业务目标、对象/字段、页面、流程、权限、数据质量、集成和批处理边界，再匹配平台标准低代码能力。总体原则是优先使用平台标准元数据解决需求问题；即便用户把需求归类为“写类”“写触发器”“写定时类”等高代码需求，也必须先告知哪些低代码能力可以实现或部分实现该需求，并给出低代码优先的推荐路径。只有低代码能力无法覆盖、需要外部集成/复杂编排/动态跨对象计算/历史数据治理等场景时，才进入高代码设计和源码生成。
 - 任何业务需求或高代码需求都必须先做平台标准元数据能力匹配：字段类型、对象/字段配置、页面布局、验证规则、查重过滤器、工作流/审批、共享/权限、公式/汇总、自动编号、查找筛选、相关列表等低代码能力能满足时，默认必须优先使用这些平台标准元数据实现，并走 MetadataService scan/plan/apply/rollback 或对应低代码快捷命令；不得因为用户提到“写类”“写触发器”“写定时类”就直接生成 Java 代码。若用户把可低代码实现的事项归类为高代码需求，必须明确提示“该需求优先建议用 <具体低代码能力> 实现”，再说明是否仍需要少量高代码补充。
 - 全局对象字段字典必须作为元数据处置决策表处理：先分类 `创建字段`、`复用标准字段`、`复用现有自定义字段`、`不建字段`、`迁移定位键`、`源编码映射`、`仅crosswalk`、`系统字段`、`全局选项集` 或 `待确认`，再按最终设计明确、结构化列明确、英文源字段 snake_case 规范化、中文拼音兜底、扫描匹配、人工确认的顺序确定 API。`待定`、空 API、占位 API、`待确认` 行以及非字段处置行不得进入 MSAPI fields plan。
-- 跨环境对象/字段迁移必须先做源健康分类和目标物理预检。源 API 空、非法长度/精度、公式返回类型缺失、筛选汇总无条件、物理引用不存在等归为 `source_invalid`，不得混入目标迁移故障；目标 datatable 槽位不足或特殊对象命名列缺失归为 `target_physical_gap`；目标标准对象元数据、物理表或运行时能力缺失归为 `platform_baseline_gap`，只能平台 seed/upgrade，禁止创建同名自定义替身。
-- 全局选项引用必须同时解析源端迁移列表和目标端内置列表，按稳定 ID/API 名绑定；计划前明确“本地选项为空”与“存在全局关联”，不得因本地值为空误判失败。对象和字段标签必须保留全部语言记录、默认语言和空备注语义，不得只复制 zh/en，也不得把标签自动回填到备注，除非请求显式启用回填。
 - 高代码写入（classes、triggers、timer、script、html、staticResource、pagecomponent、customPage 等）不进入 MetadataService 元数据写域，继续走 CloudCC 原资源 API。
 - 接口注册器属于低代码配置元数据：create/update/delete/query 走 MetadataService，debug/logs/logDetail 保持 setup-svc 实时运行态通道。高代码调用外部 HTTP 前读取 `platform/apiRegistrar devguide`，源码只使用已调试且为 `ACTIVE` 的 `apiCode`，不得硬编码 URL 或误用软件包标识 `apiName`。
 - 高代码发布前先读 `cloudcc doc platform/classes|triggers|timer devguide` 或 `platform/almRelease devguide`；从技能 `2.2.7` 开始，classes/triggers/timer 的 publish 要求目标 setup-svc `19.3.R20` 或更高版本。classes 固定执行本地编译、目标 setup-svc validate、最后 save；triggers/timer 执行目标 setup-svc validate、最后 save；并把 validate 失败详情返回调用方。
@@ -57,9 +55,6 @@ tools/bin/cloudcc create project demo-cloudcc
 tools/bin/cloudcc create object /path/to/project '<provider-specific object input>'
 tools/bin/cloudcc plan msapi /path/to/project objects @object.json create
 tools/bin/cloudcc apply msapi /path/to/project <planId>
-tools/bin/cloudcc migrate msapi /path/to/project classify @migration-items.json
-tools/bin/cloudcc migrate msapi /path/to/project physical-preflight @physical-preflight.json
-tools/bin/cloudcc migrate msapi /path/to/project archive-evidence @verified-operations.json
 tools/bin/cloudcc publish classes ExampleClass /path/to/project
 ```
 

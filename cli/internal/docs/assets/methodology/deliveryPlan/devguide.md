@@ -58,14 +58,6 @@ project/config
 - 实施顺序为 `scan`、`plan`、人工或智能体复核、`apply`、`changes`、`rollback-plan`、必要时 `rollback`。
 - 必须保留 `planId`、`operationId`、变更证据和回滚证据。
 
-#### 跨环境对象/字段迁移闭环
-
-- 源环境只读扫描后先执行 `cloudcc migrate msapi <projectPath> classify @items.json`，固定区分 `source_invalid`、`target_physical_gap`、`platform_baseline_gap`、`skill_gap`、`service_bug`、`ready` 和 `verified`。
-- 创建前执行 `physical-preflight`：datatable 对比容量槽位，特殊对象对比命名列，标准对象同时检查目标元数据、物理表和运行时能力。标准对象基线缺失只能平台 seed/upgrade，不能创建同名自定义对象或空表替代。
-- 全局选项引用同时对照源迁移清单和目标内置清单，按稳定 ID/API 名绑定；本地选项为空但存在全局关联时不属于源缺陷。
-- 对象和字段必须传递完整 `labels` / `translations` / `multiLang` 数组，保留所有 locale 和 `isDefault`；空 `remark` 保持为空，只有显式 `fillRemarkFromLabel=true` 才允许标签回填。
-- 每批 apply 后用 `archive-evidence` 保存 operation、changes、rollback-plan 和 checkpoint；按 `retryWorklist` 续跑，并确认 conservation 的输入、分类、归档和重试计数守恒。
-
 ### 6. 高代码与页面扩展
 
 - classes、triggers、timer、scheduleJob、script、html、staticResource、pagecomponent、customPage、site、jsp、sidecar 不纳入 MetadataService 写域。

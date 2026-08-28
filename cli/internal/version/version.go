@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.34"
+const Version = "2.2.36"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -34,7 +34,8 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	case "changelog":
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
-		fmt.Fprintln(stderr, "- Object/field migration reliability closure adds stable responsibility classification, physical/platform preflight, resumable operation/change/rollback evidence archival, UTF-8 standard-catalog file output, and source/target conservation counters.")
+		fmt.Fprintln(stderr, "- Retracted migration-specific classify, physical-preflight, evidence-archive, and direct catalog-output surfaces; existing object/field scan and create fixes remain available through the normal MSAPI contract.")
+		fmt.Fprintln(stderr, "- Object/field database-fidelity closure preserves explicit nested display-thousands values before defaults, preserves object null/explicit remarks, and validates setup-svc physical slot families without comparing mutable SQL column types.")
 		fmt.Fprintln(stderr, "- Menu/application guidance now clarifies that all IDs must come from CLI/service readback, object references should prefer object API name while still allowing real object ID/prefix, and omitted profile collections default to all runtime profiles.")
 		fmt.Fprintln(stderr, "- Low-code module availability closure: object create now places in-plan business fields on generated default PC/mobile layouts, enriches default views and search layouts, expands embedded record types through profile/layout/default bindings, rejects missing application tab references, and returns profile/application readback evidence for acceptance gates.")
 		fmt.Fprintln(stderr, "- Object-scoped MetadataService batch create now supports record types, page layouts, validation rules, and custom buttons with root-object enforcement, createOnly/skipExisting handling, item-level precheck results, and CLI user docs.")
@@ -250,9 +251,7 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc create project <name|.>")
 	fmt.Fprintln(stdout, "  cloudcc <query|pageQuery|create|update|delete|upsert> openapi <projectPath> <encodedBodyJson> [isMcp]")
 	fmt.Fprintln(stdout, "  cloudcc capabilities msapi [projectPath]")
-	fmt.Fprintln(stdout, "  cloudcc scan msapi [projectPath] standard-catalog [--output <file>|@file]")
-	fmt.Fprintln(stdout, "  cloudcc scan msapi [projectPath] [summary|project|highcode|online-highcode|setup-svc-live-replay-readiness|setup-svc-live-replay-environment|setup-svc-live-replay-packet|setup-svc-live-replay-coverage|setup-svc-live-replay-preflight|setup-svc-live-replay-evidence|setup-svc-live-replay-gaps|setup-svc-live-replay-capture-plan|setup-svc-live-replay-worklist|setup-svc-live-replay-source-checklist|setup-svc-live-replay-source-health|setup-svc-live-replay-source-validate|setup-svc-live-replay-source-execution-packet|setup-svc-live-replay-evidence-bundle|setup-svc-live-replay-promotion|setup-svc-live-replay-completion-audit|local|@compareRequest.json]")
-	fmt.Fprintln(stdout, "  cloudcc migrate msapi [projectPath] <compare|classify|physical-preflight|archive-evidence> <@request.json|json>")
+	fmt.Fprintln(stdout, "  cloudcc scan msapi [projectPath] [summary|standard-catalog|project|highcode|online-highcode|setup-svc-live-replay-readiness|setup-svc-live-replay-environment|setup-svc-live-replay-packet|setup-svc-live-replay-coverage|setup-svc-live-replay-preflight|setup-svc-live-replay-evidence|setup-svc-live-replay-gaps|setup-svc-live-replay-capture-plan|setup-svc-live-replay-worklist|setup-svc-live-replay-source-checklist|setup-svc-live-replay-source-health|setup-svc-live-replay-source-validate|setup-svc-live-replay-source-execution-packet|setup-svc-live-replay-evidence-bundle|setup-svc-live-replay-promotion|setup-svc-live-replay-completion-audit|local|@compareRequest.json]")
 	fmt.Fprintln(stdout, "  cloudcc apply msapi [projectPath] setup-svc-live-replay-packet <@packet.json|packetJson> [--dry-run]")
 	fmt.Fprintln(stdout, "  cloudcc apply msapi [projectPath] setup-svc-live-replay-workspace [@packet.json] [--dry-run|--execute --approval CLOUDCC_SETUP_SVC_PARITY_EVIDENCE_WORKSPACE_APPROVED]")
 	fmt.Fprintln(stdout, "  cloudcc apply msapi [projectPath] setup-svc-live-replay-normalized-diff [manifest.json] [--dry-run|--execute --approval CLOUDCC_SETUP_SVC_PARITY_NORMALIZED_DIFF_APPROVED]")
