@@ -981,7 +981,7 @@ func createJavaResource(dir string, resource string, args []string, stderr io.Wr
 	}
 	test := fmt.Sprintf("package %s.%s;\n\npublic class %sTest {\n}\n", pkg, name, name)
 	_ = os.WriteFile(filepath.Join(target, name+"Test.java"), []byte(test), 0644)
-	_ = jsonx.WriteObjectFile(filepath.Join(target, "config.json"), map[string]any{"name": name, "version": "2", "interface": true})
+	_ = jsonx.WriteObjectFile(filepath.Join(target, "config.json"), map[string]any{"name": name, "version": highCodeDefaultVersion, "interface": true})
 	fmt.Fprintf(stderr, "Created %s resource: %s\n", resource, target)
 	return nil
 }
@@ -1010,14 +1010,21 @@ func publishJavaResource(dir string, apiName string, args []string, stdout io.Wr
 	if err != nil {
 		return err
 	}
+	timerID := strings.TrimSpace(fmt.Sprint(configID(cfgContent)))
+	operationEdit := timerID != "" && timerID != "<nil>"
+	var preSaveDetail map[string]any
+	if operationEdit {
+		preSaveDetail, _ = setupSvcDetail(cfg, "/api/"+apiName+"/detail", timerID, "timer detail")
+	}
+	publishVersion := highCodePublishVersion(cfgContent, preSaveDetail, operationEdit)
 	endpoint := "/api/" + apiName + "/save"
 	body := map[string]any{
 		"id":       configID(cfgContent),
 		"name":     name,
 		"source":   encodeJavaURLDecoderComponent(source),
-		"version":  firstAny(cfgContent["version"], "2"),
 		"folderId": "wgd",
 	}
+	putHighCodeVersion(body, publishVersion)
 	remoteValidation, err := validateRemoteCustomCode(cfg, "timer", name, "/api/"+apiName+"/validate", body)
 	if err != nil {
 		_ = writeJSON(stdout, map[string]any{"status": "blocked_remote_validation", "resource": "timer", "name": name, "remoteValidation": remoteValidation})
@@ -1034,6 +1041,15 @@ func publishJavaResource(dir string, apiName string, args []string, stdout io.Wr
 	}
 	if id := recursiveFirstStringValue(saveResponse, "id"); id != "" {
 		cfgContent["id"] = id
+		savedVersion := publishVersion
+		if detail, detailErr := setupSvcDetail(cfg, "/api/"+apiName+"/detail", id, "timer detail"); detailErr == nil {
+			if version := highCodeRecordVersion(detail); version != "" {
+				savedVersion = version
+			}
+		}
+		if savedVersion != "" {
+			cfgContent["version"] = savedVersion
+		}
 		_ = jsonx.WriteObjectFile(filepath.Join(srcDir, "config.json"), cfgContent)
 	}
 	return writeJSON(stdout, map[string]any{"status": "published", "resource": "timer", "name": name, "remoteValidation": remoteValidation, "saveResponse": saveResponse})
@@ -1092,13 +1108,18 @@ func publishClassResource(args []string, stdout io.Writer, stderr io.Writer, cwd
 			return fmt.Errorf("cannot establish idempotent class publish target: %w", err)
 		}
 	}
+	var preSaveDetail map[string]any
+	if classID != "" {
+		preSaveDetail, _ = classDetail(publishURL, accessToken, classID)
+	}
+	publishVersion := highCodePublishVersion(cfgContent, preSaveDetail, classID != "")
 	body := map[string]any{
 		"id":       classID,
 		"name":     name,
 		"source":   encodeJavaURLDecoderComponent(source),
-		"version":  firstAny(cfgContent["version"], "2"),
 		"folderId": "wgd",
 	}
+	putHighCodeVersion(body, publishVersion)
 	remoteValidation, err := validateRemoteCustomCodeWithBase(publishURL, accessToken, "classes", name, "/api/ccfag/validate", body)
 	if err != nil {
 		_ = writeJSON(stdout, map[string]any{"status": "blocked_remote_validation", "resource": "classes", "name": name, "localValidation": validation, "remoteValidation": remoteValidation})
@@ -1138,6 +1159,10 @@ func publishClassResource(args []string, stdout io.Writer, stderr io.Writer, cwd
 		return fmt.Errorf("class saved but readback source does not match the locally validated source")
 	}
 	cfgContent["id"] = classID
+	savedVersion := firstNonBlankString(highCodeRecordVersion(detailResponse), publishVersion)
+	if savedVersion != "" {
+		cfgContent["version"] = savedVersion
+	}
 	if err := jsonx.WriteObjectFile(filepath.Join(srcDir, "config.json"), cfgContent); err != nil {
 		return fmt.Errorf("class published but local config id could not be updated: %w", err)
 	}
@@ -1151,6 +1176,54 @@ func publishClassResource(args []string, stdout io.Writer, stderr io.Writer, cwd
 		"saveResponse":         saveResponse,
 		"readbackSourceSha256": readbackDigest,
 	})
+}
+
+const highCodeDefaultVersion = "3"
+
+func highCodePublishVersion(cfgContent map[string]any, currentRecord any, operationEdit bool) string {
+	if !operationEdit {
+		return highCodeDefaultVersion
+	}
+	if version := highCodeRecordVersion(currentRecord); version != "" {
+		return version
+	}
+	if currentRecord != nil {
+		return "2"
+	}
+	return firstNonBlankString(anyString(cfgContent["version"]), anyString(cfgContent["Version"]))
+}
+
+func highCodeRecordVersion(record any) string {
+	return recursiveFirstStringValue(record, "version")
+}
+
+func putHighCodeVersion(body map[string]any, version string) {
+	version = strings.TrimSpace(version)
+	if version != "" {
+		body["version"] = version
+	}
+}
+
+func setupSvcDetail(cfg config.Config, path string, id string, label string) (map[string]any, error) {
+	var response map[string]any
+	if err := postClassResponse(cfg, "setup", path, map[string]any{"id": id}, &response); err != nil {
+		return nil, err
+	}
+	if message := cloudCCResponseFailure(response); message != "" {
+		return nil, fmt.Errorf("%s failed: %s", label, message)
+	}
+	return response, nil
+}
+
+func classDetail(setupURL string, accessToken string, id string) (map[string]any, error) {
+	var response map[string]any
+	if err := httpclient.New().PostClass(setupURL+"/api/ccfag/detail", map[string]any{"id": id}, accessToken, &response); err != nil {
+		return nil, err
+	}
+	if message := cloudCCResponseFailure(response); message != "" {
+		return nil, fmt.Errorf("class detail failed: %s", message)
+	}
+	return response, nil
 }
 
 func lookupClassID(setupURL string, accessToken string, name string) (string, error) {

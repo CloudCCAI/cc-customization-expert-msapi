@@ -39,8 +39,9 @@ CloudCC 自定义类不是普通 Maven 项目。技能已经把平台编译所�
 
 1. 先执行同 `cloudcc validate classes` 一致的本地 `FagTemplate` 编译验证。
 2. 本地验证通过后，调用目标 setup-svc 的 `POST /api/ccfag/validate`，让目标环境按真实租户依赖校验待保存源码。
-3. 远程 validate 通过后，才调用 class save/detail。
-4. 保存后按 ID 读回源码并比较 SHA-256；一致才报告 `published_and_verified`。
+3. 新建时使用 setup-svc 新版自定义类版本 `3`；更新时先读 `POST /api/ccfag/detail`，按线上记录的 `version` 保存；如果线上 version 为空，按旧版 `2` 处理，避免本地旧 `config.json` 把线上版本 3 降回旧值。
+4. 远程 validate 通过后，才调用 class save/detail。
+5. 保存后按 ID 读回源码并比较 SHA-256；一致才报告 `published_and_verified`，并把线上 ID 与版本写回本地 `config.json`。
 
 目标平台内部如何路由到其部署服务不属于开发者依赖。技能不会读取服务源码、启动本地服务、探测本地端口或要求 main-svc binding。
 
@@ -108,7 +109,7 @@ cloudcc publish classes OrderService <projectPath>
 - `publish` 会先本地验证当前源码，再调用目标 setup-svc `POST /api/ccfag/validate`，最后才 save；若使用 `--validation-evidence`，证据中的类名、通过状态和 SHA-256 必须与当前源码一致。
 - `publish` 失败时必须把本地编译诊断、远程 validate 的 `returnInfo`、`data.errors`、`data.warnings` 和原始 `responseBody` 返回给调用方，调用方应优先根据这些信息修正代码。
 - 本地没有 ID 时，`publish` 先按名称精确查找已有类，以便从中断恢复并避免重复创建；歧义时 fail closed。
-- 保存成功后按平台返回的 ID 调用 detail，比较读回源码 SHA-256，并把 ID 写入本地 `config.json`。
+- 保存成功后按平台返回的 ID 调用 detail，比较读回源码 SHA-256，并把 ID 和线上版本写入本地 `config.json`。
 
 此技能的交付边界是本地编译与目标环境发布/读回，不以本地 main-svc 运行测试为前置条件。业务功能验收应在目标租户的正常用户入口、集成测试或客户验收流程中完成。
 

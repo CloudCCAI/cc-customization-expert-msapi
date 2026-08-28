@@ -121,6 +121,16 @@ func triggerSaveSpec(action string, args []string, stdout io.Writer, cwd string)
 	if err != nil {
 		return err
 	}
+	operationEdit := strings.TrimSpace(fmt.Sprint(spec["id"])) != "" && strings.TrimSpace(fmt.Sprint(spec["id"])) != "<nil>"
+	if operationEdit {
+		if detail, detailErr := triggerRequest(cfg, triggerDetailEndpoint, map[string]any{"id": spec["id"]}, "Resolve Trigger Version Failed"); detailErr == nil {
+			if version := highCodeRecordVersion(detail); version != "" {
+				spec["version"] = version
+			}
+		}
+	} else {
+		spec["version"] = highCodeDefaultVersion
+	}
 	res, err := triggerRequest(cfg, triggerSaveEndpoint, spec, "Save Trigger Failed")
 	if err != nil {
 		return err
@@ -154,6 +164,15 @@ func publishTrigger(args []string, stdout io.Writer, stderr io.Writer, cwd strin
 	if err != nil {
 		return err
 	}
+	triggerID := strings.TrimSpace(fmt.Sprint(configID(cfgContent)))
+	operationEdit := triggerID != "" && triggerID != "<nil>"
+	var preSaveDetail map[string]any
+	if operationEdit {
+		if detail, detailErr := triggerRequest(cfg, triggerDetailEndpoint, map[string]any{"id": triggerID}, "Resolve Trigger Version Failed"); detailErr == nil {
+			preSaveDetail = detail
+		}
+	}
+	publishVersion := highCodePublishVersion(cfgContent, preSaveDetail, operationEdit)
 	validateBody := map[string]any{
 		"id":             configID(cfgContent),
 		"apiname":        cfgContent["apiname"],
@@ -163,10 +182,10 @@ func publishTrigger(args []string, stdout io.Writer, stderr io.Writer, cwd strin
 		"triggerTime":    cfgContent["triggerTime"],
 		"remark":         cfgContent["remark"],
 		"name":           firstAny(cfgContent["name"], name),
-		"version":        firstAny(cfgContent["version"], "2"),
 		"triggerSource":  source,
 		"folderid":       firstAny(cfgContent["folderid"], cfgContent["folderId"], "wgd"),
 	}
+	putHighCodeVersion(validateBody, publishVersion)
 	remoteValidation, err := validateRemoteCustomCode(cfg, "trigger", name, triggerValidateEndpoint, validateBody)
 	if err != nil {
 		_ = writeJSON(stdout, map[string]any{"status": "blocked_remote_validation", "resource": "trigger", "name": name, "remoteValidation": remoteValidation})
@@ -185,6 +204,17 @@ func publishTrigger(args []string, stdout io.Writer, stderr io.Writer, cwd strin
 		}
 		if apiName := strings.TrimSpace(fmt.Sprint(firstAny(data["apiname"], data["apiName"]))); apiName != "" && apiName != "<nil>" {
 			cfgContent["apiname"] = apiName
+		}
+		savedVersion := publishVersion
+		if id := strings.TrimSpace(fmt.Sprint(cfgContent["id"])); id != "" && id != "<nil>" {
+			if detail, detailErr := triggerRequest(cfg, triggerDetailEndpoint, map[string]any{"id": id}, "Read Trigger Version Failed"); detailErr == nil {
+				if version := highCodeRecordVersion(detail); version != "" {
+					savedVersion = version
+				}
+			}
+		}
+		if savedVersion != "" {
+			cfgContent["version"] = savedVersion
 		}
 		if writeErr := jsonx.WriteObjectFile(configPath, cfgContent); writeErr != nil {
 			return writeErr

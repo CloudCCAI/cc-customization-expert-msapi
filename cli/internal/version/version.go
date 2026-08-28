@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.37"
+const Version = "2.2.38"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -34,6 +34,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	case "changelog":
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
+		fmt.Fprintln(stderr, "- High-code publish now follows setup-svc custom-code version semantics for classes, triggers, and timer: new resources send version 3, updates first read target detail and preserve the live version so existing version-3 records are not downgraded by stale local config.")
 		fmt.Fprintln(stderr, "- CLI compatibility doctor now validates low-code CLI/MetadataService version gates and reports high-code CLI/setup-svc advisory baselines: 2.2.7 high-code publish recommends setup-svc 19.3.R20+, while 2.2.33 API registrar low-code metadata requires MetadataService 1.1.41+ and runtime/high-code remote invocation recommends setup-svc 19.7.R8+; setup-svc DEV/B/G/customer branches do not block by version string alone.")
 		fmt.Fprintln(stderr, "- Retracted migration-specific classify, physical-preflight, evidence-archive, and direct catalog-output surfaces; existing object/field scan and create fixes remain available through the normal MSAPI contract.")
 		fmt.Fprintln(stderr, "- Object/field database-fidelity closure preserves explicit nested display-thousands values before defaults, preserves object null/explicit remarks, and validates setup-svc physical slot families without comparing mutable SQL column types.")

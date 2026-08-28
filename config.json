@@ -1,6 +1,6 @@
 {
     "packageName":  "cc-customization-expert-msapi",
-    "version":  "2.2.37-msapi",
+    "version":  "2.2.38-msapi",
     "releaseDate":  "2026-08-28",
     "compatCloudccCliVersion":  "2.5.3",
     "runtime":  "go",

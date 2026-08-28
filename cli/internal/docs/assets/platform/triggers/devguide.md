@@ -178,8 +178,10 @@ cloudcc publish trigger <objectApi/TriggerName> [projectPath]
 
 `publish trigger` 的发布顺序固定为：
 
-1. 远程 validate，调用 `POST /api/trigger/validate`。
-2. 保存，调用 `POST /api/triggerSetup/saveTrigger`。
+1. 更新已有触发器时先读 `POST /api/trigger/newobjtrigger`，取得线上 `version`；线上 version 为空时按旧版 `2` 处理；新建时使用 setup-svc 新版触发器版本 `3`。
+2. 远程 validate，调用 `POST /api/trigger/validate`。
+3. 保存，调用 `POST /api/triggerSetup/saveTrigger`。
+4. 保存后再次读取 detail，并把线上 ID、API 名和版本写回本地 `config.json`。
 
 
 远程 validate 失败时，CLI 必须返回 setup-svc 的 `returnInfo`、`data.errors`、`data.warnings` 和原始 `responseBody`，并且不能继续 save。
@@ -193,7 +195,7 @@ cloudcc publish trigger <objectApi/TriggerName> [projectPath]
 | `triggerSource` | 待编译触发器源码 | 必须，不能为空 |
 | `apiname` | 编译时使用的触发器 API 名；为空时服务端默认 `TriggerFunctionImpl` | 建议传，避免类名/诊断上下文退化为默认值 |
 | `triggerTime` | 判断是否 batch trigger：`beforeBatch`、`afterBatch`、`commitBatch` 会按 batch 模板编译 | batch 触发器必须传；普通触发器建议传 |
-| `version` | 传给编译器的触发器版本 | 建议传；CLI 默认 `2` |
+| `version` | 传给编译器和 save 的触发器版本 | CLI 创建默认 `3`；更新优先使用线上 detail 返回的版本，线上为空按 `2` |
 
 CLI 还会随 validate body 带上 `id`、`name`、`isactive`、`targetObjectId`、`remark`、`folderid`、`apiName` 等字段，这是为了和后续 `/api/triggerSetup/saveTrigger` payload 保持一致；这些字段不参与 validate 编译判断。
 

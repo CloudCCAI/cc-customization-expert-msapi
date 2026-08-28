@@ -85,6 +85,8 @@ cloudcc publish staticResource ...
 
 validate 实际读取字段需要按资源区分：classes/timer 的 validate 只编译 `source`；trigger 的 validate 会读取 `triggerSource`、`apiname`、`triggerTime`、`version`，其中 `triggerTime` 决定是否按 batch trigger 编译。CLI 可能额外携带 `id`、`name`、`folderId/folderid`、`isactive`、`targetObjectId`、`remark` 等字段，是为了和后续 save payload 保持一致，不代表这些字段都参与 validate 编译判断。
 
+从 CLI/技能 `2.2.38` 开始，classes、triggers、timer 适配 setup-svc 新版自定义代码版本语义：创建默认发送 `version=3`；更新先读取目标 detail，优先沿用线上记录的 `version`，如果线上 version 为空则按旧版 `2` 处理，保存后再把线上返回的 ID 和版本写回本地 `config.json`。这样旧本地配置里的 `version=2` 不会把已升级到版本 3 的线上自定义类、触发器或定时类降级。
+
 validate 失败时，CLI 会把本地 classes 编译诊断或 setup-svc 的 `returnInfo`、`data.errors`、`data.warnings`、原始 `responseBody` 返回给调用方，并停止后续 save。trigger 需要特别注意编码：`/api/trigger/validate` 直接传原始源码，`/api/triggerSetup/saveTrigger` 才传 URLDecoder-compatible 编码源码；classes/timer 的 validate 和 save 都传编码源码，源码字面量 `+` 会保留为 `%2B`。
 
 具体参数以对应模块 `devguide` 为准。
