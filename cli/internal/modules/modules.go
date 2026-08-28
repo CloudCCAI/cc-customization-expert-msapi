@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 
+	"cloudcc-customization-expert-go/internal/compatibility"
 	"cloudcc-customization-expert-go/internal/config"
 	"cloudcc-customization-expert-go/internal/httpclient"
 	"cloudcc-customization-expert-go/internal/jsonx"
@@ -568,6 +569,7 @@ func handleProject(action string, args []string, stderr io.Writer, cwd string) e
 		return err
 	}
 	fmt.Fprintf(stderr, "Created CloudCC project: %s\n", target)
+	fmt.Fprintln(stderr, "Compatibility check pending: provide CloudCCDev/setupSvc and MetadataService config, then run cloudcc doctor provider <projectPath>.")
 	return nil
 }
 
@@ -579,6 +581,7 @@ func handleConfig(action string, args []string, stdout io.Writer, cwd string) er
 		if err != nil {
 			return err
 		}
+		cfg["compatibility"] = compatibility.CheckAll(projectPath)
 		return printJSON(stdout, cfg)
 	case "use":
 		if len(args) == 0 {

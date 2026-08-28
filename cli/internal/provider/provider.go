@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"cloudcc-customization-expert-go/internal/compatibility"
 	"cloudcc-customization-expert-go/internal/config"
 	"cloudcc-customization-expert-go/internal/edition"
 )
@@ -31,6 +32,7 @@ type Selection struct {
 	Reason        string `json:"reason"`
 	Endpoint      string `json:"metadataServiceEndpoint,omitempty"`
 	SafetyLevel   string `json:"safetyLevel"`
+	Compatibility any    `json:"compatibility,omitempty"`
 }
 
 // ResolveForArgs uses the legacy shortcut convention: the first non-JSON
@@ -109,6 +111,7 @@ func WriteDoctor(projectPath string, stdout io.Writer) error {
 	if err != nil {
 		return err
 	}
+	selection.Compatibility = compatibility.CheckAll(projectPath)
 	return json.NewEncoder(stdout).Encode(selection)
 }
 

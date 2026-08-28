@@ -1,5 +1,7 @@
 # CloudCC 接口注册器开发指南
 
+从 CLI/技能 `2.2.33` 开始，接口注册器元数据 CRUD 要求目标 MetadataService 至少为 `1.1.41`；接口注册器调试、日志和高代码远程调用调整建议目标 setup-svc 至少为 `19.7.R8`。setup-svc 可能存在 `19.7.DEV1`、`19.7.B1`、`19.7.G1` 或客户分支版本，CLI 只在初始化/doctor/config 检查中提醒，不按版本字符串直接阻断；若目标环境实际缺少接口能力，运行态请求会返回 setup-svc 原始错误。
+
 ## 管理与 CLI
 
 低代码配置写入走 MetadataService：

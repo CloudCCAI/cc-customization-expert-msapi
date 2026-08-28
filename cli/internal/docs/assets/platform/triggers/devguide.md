@@ -184,7 +184,7 @@ cloudcc publish trigger <objectApi/TriggerName> [projectPath]
 
 远程 validate 失败时，CLI 必须返回 setup-svc 的 `returnInfo`、`data.errors`、`data.warnings` 和原始 `responseBody`，并且不能继续 save。
 
-从 CLI/技能 `2.2.7` 开始，`publish trigger` 要求目标 setup-svc 至少为 `19.3.R20`，因为旧版本 setup-svc 不提供 `/api/trigger/validate`。
+从 CLI/技能 `2.2.7` 开始，`publish trigger` 要求 CLI 发布能力和目标 setup-svc validate 能力，目标 setup-svc 建议至少为 `19.3.R20`，因为旧版本 setup-svc 不提供 `/api/trigger/validate`。高代码发布本身不要求 MetadataService 版本；setup-svc 分支版本只做初始化/doctor 提醒，不按字符串直接阻断。
 
 `/api/trigger/validate` 的实际入参类型是 `TriggerVo`。服务端实际读取：
 

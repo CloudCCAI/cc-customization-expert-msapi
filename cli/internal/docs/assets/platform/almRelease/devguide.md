@@ -75,7 +75,7 @@ cloudcc publish staticResource ...
 
 类、触发器和定时类不是直接 save：classes 会先做本地 `FagTemplate` 编译验证，再调用目标 setup-svc validate；triggers 和 timer 不做本地包装编译，只调用目标 setup-svc validate。验证通过后才保存。
 
-从 CLI/技能 `2.2.7` 开始，高代码发布依赖 setup-svc validate 接口，目标 setup-svc 最低版本要求为 `19.3.R20`。低于该版本的环境缺少 `/api/ccfag/validate`、`/api/trigger/validate` 或 `/api/ccPeak/validate` 时，不能使用新的 publish 门禁流程。
+从 CLI/技能 `2.2.7` 开始，高代码发布依赖 CLI 发布能力和 setup-svc validate 接口；目标 setup-svc 建议为 `19.3.R20` 或更高版本。高代码发布本身不要求 MetadataService 版本。setup-svc 可能存在 `DEV/B/G` 或客户分支版本，CLI 只在初始化/doctor/config 检查中提醒，不因版本字符串低于基线直接阻断；若实际缺少 `/api/ccfag/validate`、`/api/trigger/validate` 或 `/api/ccPeak/validate`，publish 会在远程 validate 阶段失败并返回原始响应。
 
 | 资源 | 本地验证 | 远程 validate | 保存 |
 | --- | --- | --- | --- |

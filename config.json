@@ -1,6 +1,6 @@
 {
     "packageName":  "cc-customization-expert-msapi",
-    "version":  "2.2.36-msapi",
+    "version":  "2.2.37-msapi",
     "releaseDate":  "2026-08-28",
     "compatCloudccCliVersion":  "2.5.3",
     "runtime":  "go",
@@ -239,6 +239,58 @@
                                                                      }
                                                                  ]
                                      },
+    "setupSvcCompatibility":  {
+                                  "sourceOfTruth":  "cc-customization-expert-go/config.json",
+                                  "policy":  "When a CLI capability has a recommended setup-svc baseline, record the dependency here and warn during project initialization and config/doctor checks. setup-svc branch versions can be customer-specific, so these checks are advisory and must not block execution by version string alone.",
+                                  "versionProbe":  {
+                                                       "env":  "CLOUDCC_SETUP_SVC_VERSION",
+                                                       "projectConfigKeys":  [
+                                                                                 "setupSvc.version",
+                                                                                 "setupSvcVersion",
+                                                                                 "setup_svc_version"
+                                                                             ],
+                                                       "readOnlyEndpoints":  [
+                                                                                 "/ccmonitor/sck"
+                                                                             ]
+                                                   },
+                                  "minimumByCapability":  [
+                                                              {
+                                                                  "capability":  "highcode.publishValidationGate",
+                                                                  "label":  "High-code publish remote validation for classes, triggers, and timers",
+                                                                  "introducedInSkillVersion":  "2.2.7-msapi",
+                                                                  "minimumSetupSvcVersion":  "19.3.R20",
+                                                                  "domains":  [
+                                                                                  "classes",
+                                                                                  "triggers",
+                                                                                  "timer"
+                                                                              ],
+                                                                  "operations":  [
+                                                                                     "publish",
+                                                                                     "validate"
+                                                                                 ],
+                                                                  "reason":  "Recommends confirming setup-svc validate endpoint support for /api/ccfag/validate, /api/trigger/validate, and /api/ccPeak/validate."
+                                                              },
+                                                              {
+                                                                  "capability":  "setupSvc.apiRegistrar.remoteRuntime",
+                                                                  "label":  "API registrar runtime debug/logs and high-code remote invocation adjustments",
+                                                                  "introducedInSkillVersion":  "2.2.33-msapi",
+                                                                  "minimumSetupSvcVersion":  "19.7.R8",
+                                                                  "domains":  [
+                                                                                  "api-registrars",
+                                                                                  "classes",
+                                                                                  "triggers",
+                                                                                  "timer"
+                                                                              ],
+                                                                  "operations":  [
+                                                                                     "debug",
+                                                                                     "logs",
+                                                                                     "logDetail",
+                                                                                     "remote-call"
+                                                                                 ],
+                                                                  "reason":  "Recommends confirming setup-svc support for the adjusted API registrar runtime and high-code remote invocation contracts."
+                                                              }
+                                                          ]
+                              },
     "execution":  {
                       "defaultMode":  "msapi",
                       "strictMode":  "msapi",

@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.36"
+const Version = "2.2.37"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -34,6 +34,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	case "changelog":
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
+		fmt.Fprintln(stderr, "- CLI compatibility doctor now validates low-code CLI/MetadataService version gates and reports high-code CLI/setup-svc advisory baselines: 2.2.7 high-code publish recommends setup-svc 19.3.R20+, while 2.2.33 API registrar low-code metadata requires MetadataService 1.1.41+ and runtime/high-code remote invocation recommends setup-svc 19.7.R8+; setup-svc DEV/B/G/customer branches do not block by version string alone.")
 		fmt.Fprintln(stderr, "- Retracted migration-specific classify, physical-preflight, evidence-archive, and direct catalog-output surfaces; existing object/field scan and create fixes remain available through the normal MSAPI contract.")
 		fmt.Fprintln(stderr, "- Object/field database-fidelity closure preserves explicit nested display-thousands values before defaults, preserves object null/explicit remarks, and validates setup-svc physical slot families without comparing mutable SQL column types.")
 		fmt.Fprintln(stderr, "- Menu/application guidance now clarifies that all IDs must come from CLI/service readback, object references should prefer object API name while still allowing real object ID/prefix, and omitted profile collections default to all runtime profiles.")
@@ -61,8 +62,8 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		fmt.Fprintln(stderr, "- Object create now supports batch MetadataService specs with top-level objects[]; apply allocates unique setup-svc-compatible prefixes and datatable names per object under the target tenant lock, and docs show the plan/apply/readback flow.")
 		fmt.Fprintln(stderr, "- Object create shortcuts now accept CloudCC default access with --accessable 0|1|2, passing accessable to MetadataService plans and the legacy setup-svc create body while preserving the existing default when omitted.")
 		fmt.Fprintln(stderr, "- Global modeling field dictionary governance now treats the dictionary as a metadata disposition decision table: API selection uses explicit final-design APIs, structured API columns, English snake_case normalization, then Chinese pinyin fallback; non-field migration keys, source-code mappings, crosswalk-only rows, system fields, and global select lists must be classified before MSAPI plan generation.")
-		fmt.Fprintln(stderr, "- High-code publish validation gate docs: cloudcc doc platform/classes|triggers|timer|almRelease devguide now documents class local compiler validation, target setup-svc validate (/api/ccfag/validate, /api/trigger/validate, /api/ccPeak/validate), setup-svc minimum version 19.3.R20, encoding rules, and structured validation failure responses.")
-		fmt.Fprintln(stderr, "- High-code publish validation gate: starting with 2.2.7, classes, triggers, and timer require target setup-svc 19.3.R20 or later; classes publish runs local compiler validation then target setup-svc validate, while trigger/timer publish run target setup-svc validate before save.")
+		fmt.Fprintln(stderr, "- High-code publish validation gate docs: cloudcc doc platform/classes|triggers|timer|almRelease devguide now documents class local compiler validation, target setup-svc validate (/api/ccfag/validate, /api/trigger/validate, /api/ccPeak/validate), setup-svc advisory baseline 19.3.R20, encoding rules, and structured validation failure responses.")
+		fmt.Fprintln(stderr, "- High-code publish validation gate: starting with 2.2.7, classes, triggers, and timer require CLI publish support and recommend target setup-svc 19.3.R20+ support; classes publish runs local compiler validation then target setup-svc validate, while trigger/timer publish run target setup-svc validate before save.")
 		fmt.Fprintln(stderr, "- Report create plans now preserve blank datarange values instead of defaulting to cury, matching main-svc saveReport semantics where blank means no quick date range.")
 		fmt.Fprintln(stderr, "- Report filter docs and compiler regression now cover CSV multi-value conditions for contains-style operators, preserving values such as Active,Trial in conditionVals and tp_sys_condition rows.")
 		fmt.Fprintln(stderr, "- Workflow MSAPI phase 1: workflow/workflowRule shortcuts now cover setup-web automation workflow list/detail, create/update/delete, and explicit enable/disable plans through MetadataService workflows.")

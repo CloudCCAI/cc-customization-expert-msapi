@@ -164,7 +164,7 @@ cloudcc publish classes <name> [projectPath] [--validation-evidence <file>]
 3. 保存，调用 `POST /api/ccfag/save`。
 4. 按 ID 读回并校验源码哈希。
 
-从 CLI/技能 `2.2.7` 开始，`publish classes` 要求目标 setup-svc 至少为 `19.3.R20`，因为旧版本 setup-svc 不提供 `/api/ccfag/validate`。
+从 CLI/技能 `2.2.7` 开始，`publish classes` 要求 CLI 本地编译能力和目标 setup-svc validate 能力，目标 setup-svc 建议至少为 `19.3.R20`，因为旧版本 setup-svc 不提供 `/api/ccfag/validate`。高代码发布本身不要求 MetadataService 版本；setup-svc 分支版本只做初始化/doctor 提醒，不按字符串直接阻断。
 
 `/api/ccfag/validate` 的实际入参类型是 `CCfagVo`，服务端实际读取并编译的是 `source`。CLI 发送的 `id`、`name`、`version`、`folderId` 是为了复用后续 save payload 和保留上下文；这些字段不参与 validate 编译判断。`source` 在远程 validate 和 save 中都会使用 URLDecoder-compatible 编码；源码中的字面量 `+` 会编码为 `%2B`，避免 Java URLDecoder 把加号解成空格。
 
