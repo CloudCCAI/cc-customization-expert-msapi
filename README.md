@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.33-msapi
+# cc-customization-expert-msapi v2.2.34-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -26,6 +26,8 @@ Strict MetadataService package: low-code operations require MetadataService.
 批量创建对象、字段和全局选项列表时，plan metadata 会返回 `batchItemResults`、`batchExecutableCount` 和 `batchPrecheckFailedCount`。调用方可以在 apply 前区分 `PLANNED`、`SKIPPED`、`FAILED_PRECHECK` 单项结果；实际 apply 仍保持 SQL 批处理和事务保护。
 
 全局对象字段字典按元数据处置决策表治理：优先采用最终设计明确 API，其次结构化 API 列、英文源字段 snake_case 规范化，再用中文拼音兜底；迁移定位键、源编码映射、仅 crosswalk、系统字段和全局选项集必须先分流，不能进入 MSAPI fields plan。
+
+跨环境对象/字段迁移使用 `cloudcc migrate msapi <projectPath> classify|physical-preflight|archive-evidence @request.json` 建立闭环。分类结果固定区分 `source_invalid`、`target_physical_gap`、`platform_baseline_gap`、`skill_gap`、`service_bug`，并输出守恒计数与重试清单；已验证操作可续跑归档 operation、changes、rollback-plan。全局选项按源迁移列表和目标内置列表双端解析，标准对象缺基线只能平台 seed/upgrade，多语言记录、默认语言及空备注语义必须完整保留。
 
 调用方通过 `cloudcc doc platform/classes|triggers|timer devguide` 或 `cloudcc doc platform/almRelease devguide` 认识高代码发布命令；这些文档说明了 classes 本地编译、setup-svc validate、save 的顺序，以及 triggers/timer 远程 validate 后 save、失败返回和源码编码规则。从技能 `2.2.7` 开始，高代码发布要求目标 setup-svc `19.3.R20` 或更高版本。
 

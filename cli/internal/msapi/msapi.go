@@ -46,6 +46,8 @@ func Handle(action string, resource string, args []string, stdout io.Writer, cwd
 		return c.getJSON(stdout, "/metadata/v1/capabilities")
 	case "scan":
 		return c.scan(stdout, remaining)
+	case "migrate":
+		return c.migrate(stdout, remaining)
 	case "resolve", "references":
 		body, err := readObjectArg(remaining, 0, "cloudcc resolve "+resource+" <encodedReferencesJson>")
 		if err != nil {
@@ -495,6 +497,13 @@ func (c *client) scan(stdout io.Writer, args []string) error {
 	}
 	switch strings.ToLower(mode) {
 	case "standard-catalog", "standard-capability-catalog", "standard-objects", "catalog":
+		if len(args) > 1 {
+			outputPath, err := scanOutputPath(args[1:])
+			if err != nil {
+				return err
+			}
+			return c.getJSONFile(stdout, "/metadata/v1/scans/standard-catalog", outputPath)
+		}
 		return c.getJSON(stdout, "/metadata/v1/scans/standard-catalog")
 	case "highcode", "local", "project-local":
 		result, err := scanHighCodeProject(c.projectPath)
@@ -1066,6 +1075,60 @@ func parseObject(value string, label string) (map[string]any, error) {
 
 func (c *client) getJSON(stdout io.Writer, path string) error {
 	return c.writeJSON(stdout, http.MethodGet, path, nil)
+}
+
+func scanOutputPath(args []string) (string, error) {
+	if len(args) == 1 && strings.HasPrefix(strings.TrimSpace(args[0]), "@") {
+		path := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(args[0]), "@"))
+		if path != "" {
+			return path, nil
+		}
+	}
+	if len(args) == 2 && args[0] == "--output" && strings.TrimSpace(args[1]) != "" {
+		return strings.TrimSpace(args[1]), nil
+	}
+	return "", fmt.Errorf("cloudcc scan msapi [projectPath] standard-catalog [--output <file>|@file]")
+}
+
+func (c *client) getJSONFile(stdout io.Writer, path string, outputPath string) error {
+	data, err := c.requestJSONMap(http.MethodGet, path, nil)
+	if err != nil {
+		return err
+	}
+	body, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		return err
+	}
+	body = append(body, '\n')
+	if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil && filepath.Dir(outputPath) != "." {
+		return fmt.Errorf("cannot create standard-catalog output directory: %w", err)
+	}
+	temp, err := os.CreateTemp(filepath.Dir(outputPath), ".cloudcc-standard-catalog-*.json")
+	if err != nil {
+		return fmt.Errorf("cannot create standard-catalog output file: %w", err)
+	}
+	tempPath := temp.Name()
+	defer os.Remove(tempPath)
+	if _, err := temp.Write(body); err != nil {
+		temp.Close()
+		return fmt.Errorf("cannot write standard-catalog output file: %w", err)
+	}
+	if err := temp.Close(); err != nil {
+		return fmt.Errorf("cannot close standard-catalog output file: %w", err)
+	}
+	if err := os.Remove(outputPath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("cannot replace standard-catalog output file: %w", err)
+	}
+	if err := os.Rename(tempPath, outputPath); err != nil {
+		return fmt.Errorf("cannot finalize standard-catalog output file: %w", err)
+	}
+	result := map[string]any{"outputFile": outputPath, "bytes": len(body), "encoding": "UTF-8", "bom": false}
+	encoded, err := json.Marshal(result)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintln(stdout, string(encoded))
+	return nil
 }
 
 func (c *client) writeJSON(stdout io.Writer, method string, path string, body any) error {

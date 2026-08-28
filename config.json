@@ -1,7 +1,7 @@
 {
     "packageName":  "cc-customization-expert-msapi",
-    "version":  "2.2.33-msapi",
-    "releaseDate":  "2026-08-27",
+    "version":  "2.2.34-msapi",
+    "releaseDate":  "2026-08-28",
     "compatCloudccCliVersion":  "2.5.3",
     "runtime":  "go",
     "projectOutputs":  {
@@ -202,6 +202,24 @@
                                                                                             "query"
                                                                                         ],
                                                                          "reason":  "Requires MetadataService-generated id/apiName, caller-defined or securely generated unique apiCode, DRAFT-on-create/update behavior, logical delete, read-only list/detail endpoints, and rejection of runtime-maintained debug/status fields; debug and log calls remain direct setup-svc runtime operations."
+                                                                     },
+                                                                     {
+                                                                         "capability":  "msapi.objectFieldMigrationReliabilityClosure",
+                                                                         "label":  "Object and field migration classification, target preflight, and semantic preservation",
+                                                                         "introducedInSkillVersion":  "2.2.34-msapi",
+                                                                         "minimumMetadataServiceVersion":  "1.1.42",
+                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.42",
+                                                                         "domains":  [
+                                                                                         "objects",
+                                                                                         "fields",
+                                                                                         "global-select-lists"
+                                                                                     ],
+                                                                         "operations":  [
+                                                                                            "create",
+                                                                                            "upsert",
+                                                                                            "query"
+                                                                                        ],
+                                                                         "reason":  "Requires case-insensitive formula currency result handling, canonical rollup precedence, target built-in global-select resolution, standard-object baseline diagnostics, multilingual default-label readback, and null-remark preservation for classified cross-environment migration."
                                                                      },
                                                                      {
                                                                          "capability":  "msapi.fields.rollupSummaryDerivedCreate",

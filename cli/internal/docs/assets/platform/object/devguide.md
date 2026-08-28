@@ -45,6 +45,8 @@ cloudcc get object <projectPath>
 
 返回 MetadataService `standard-catalog` 扫描结果，其中包含标准对象、自定义对象、字段和能力信号。
 
+跨环境复制需要保留对象的完整多语言簇时，在 MetadataService object spec 中传 `labels`、`translations`、`multiLang` 或 `multiLanguages` 数组；每项使用 `country|locale|language|lang`、`label|labelName|name|value` 和 `isDefault|isdefault`。显式数组存在时，服务逐条保存全部语言及默认标志，不自动缩减为 zh/en。迁移标准对象前必须用 `cloudcc migrate msapi <projectPath> physical-preflight @request.json` 验证目标平台元数据、物理表和运行时能力；缺失时执行平台 seed/upgrade，禁止创建同名自定义替身。
+
 ### 3.2 按类型查询
 
 ```bash

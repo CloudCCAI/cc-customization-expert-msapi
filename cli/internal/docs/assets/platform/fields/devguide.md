@@ -155,6 +155,8 @@ apply 阶段会优先批量执行字段主表行，再按既有顺序执行语�
 
 MetadataService 支持平台开放的全部字段编码。编码区分大小写：`c` 是币种，`C` 是累计汇总；`ENC` / `ENCD` 可作为输入别名，保存时会规范为平台字段编码 `enc` / `encd`。
 
+跨环境迁移时可在字段 spec 中传 `labels`、`translations`、`multiLang` 或 `multiLanguages` 数组；每项使用 `country|locale|language|lang`、`label|labelName|name|value` 和 `isDefault|isdefault`。只要提供显式数组，MetadataService 就逐条保留全部语言和默认标志，不再自动缩减为 zh/en。`remark`/`description` 未提供时保持空值；只有显式设置 `fillRemarkFromLabel=true` 才用标签回填备注。全局选项字段可用稳定 `globalSelectId`，也可用 `codeType` 匹配目标端唯一内置列表；本地选项为空但目标存在全局关联时不会触发本地值必填错误。
+
 | 字段族 | 类型 | 物理槽位与关键展开 |
 | --- | --- | --- |
 | 标量 | `S U P c N T B H E SCORE` | `str_fieldN`；同步长度、精度、默认值、重复/掩码等属性 |
