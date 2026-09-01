@@ -11,49 +11,55 @@ import (
 )
 
 var lowCodeShortcutDomains = map[string]string{
-	"approval":              "approval-processes",
-	"approvalProcess":       "approval-processes",
-	"apiRegistrar":          "api-registrars",
-	"apiRegister":           "api-registrars",
-	"api-registrar":         "api-registrars",
-	"api-register":          "api-registrars",
-	"apiregistrar":          "api-registrars",
-	"apiregister":           "api-registrars",
-	"api-registrars":        "api-registrars",
-	"application":           "applications",
-	"button":                "buttons",
-	"customSetting":         "custom-settings",
-	"dupeCatcher":           "dupe-catchers",
-	"dashboard":             "dashboards",
-	"fields":                "fields",
-	"fiscalYear":            "fiscal-years",
-	"fiscal-year":           "fiscal-years",
-	"fiscal-years":          "fiscal-years",
-	"globalSelectList":      "global-select-lists",
-	"area":                  "areas",
-	"areas":                 "areas",
-	"hierarchicalStructure": "areas",
-	"identityProvider":      "identity-providers",
-	"menu":                  "menus",
-	"object":                "objects",
-	"pagelayout":            "layouts",
-	"permission":            "permissions",
-	"profile":               "profiles",
-	"recordType":            "record-types",
-	"report":                "reports",
-	"reportMatrix":          "reports",
-	"reportRatio":           "reports",
-	"reportSummary":         "reports",
-	"reportTabular":         "reports",
-	"reports":               "reports",
-	"reportFolder":          "reports",
-	"role":                  "roles",
-	"sharingRule":           "sharing-rules",
-	"singleSignOn":          "single-sign-ons",
-	"validationRule":        "validation-rules",
-	"view":                  "object-views",
-	"workflow":              "workflows",
-	"workflowRule":          "workflows",
+	"approval":               "approval-processes",
+	"approvalProcess":        "approval-processes",
+	"apiRegistrar":           "api-registrars",
+	"apiRegister":            "api-registrars",
+	"api-registrar":          "api-registrars",
+	"api-register":           "api-registrars",
+	"apiregistrar":           "api-registrars",
+	"apiregister":            "api-registrars",
+	"api-registrars":         "api-registrars",
+	"application":            "applications",
+	"button":                 "buttons",
+	"customSetting":          "custom-settings",
+	"dupeCatcher":            "dupe-catchers",
+	"dashboard":              "dashboards",
+	"fields":                 "fields",
+	"companyFiscalYear":      "fiscal-years",
+	"company-fiscal-year":    "fiscal-years",
+	"fiscalYear":             "fiscal-years",
+	"fiscal-year":            "fiscal-years",
+	"fiscalYears":            "fiscal-years",
+	"fiscalyears":            "fiscal-years",
+	"fiscal-years":           "fiscal-years",
+	"globalSelectList":       "global-select-lists",
+	"area":                   "areas",
+	"areas":                  "areas",
+	"hierarchicalStructure":  "areas",
+	"hierarchical-structure": "areas",
+	"region":                 "areas",
+	"identityProvider":       "identity-providers",
+	"menu":                   "menus",
+	"object":                 "objects",
+	"pagelayout":             "layouts",
+	"permission":             "permissions",
+	"profile":                "profiles",
+	"recordType":             "record-types",
+	"report":                 "reports",
+	"reportMatrix":           "reports",
+	"reportRatio":            "reports",
+	"reportSummary":          "reports",
+	"reportTabular":          "reports",
+	"reports":                "reports",
+	"reportFolder":           "reports",
+	"role":                   "roles",
+	"sharingRule":            "sharing-rules",
+	"singleSignOn":           "single-sign-ons",
+	"validationRule":         "validation-rules",
+	"view":                   "object-views",
+	"workflow":               "workflows",
+	"workflowRule":           "workflows",
 }
 
 var lowCodeShortcutActions = map[string]bool{
@@ -1579,7 +1585,8 @@ func isShortcutRead(action string) bool {
 
 func isFiscalYearShortcutResource(resource string) bool {
 	switch strings.TrimSpace(resource) {
-	case "fiscalYear", "fiscal-year", "fiscal-years":
+	case "fiscalYear", "fiscal-year", "fiscalYears", "fiscalyears", "fiscal-years",
+		"companyFiscalYear", "company-fiscal-year":
 		return true
 	default:
 		return false
@@ -1588,7 +1595,7 @@ func isFiscalYearShortcutResource(resource string) bool {
 
 func isAreaShortcutResource(resource string) bool {
 	switch strings.TrimSpace(resource) {
-	case "area", "areas", "hierarchicalStructure":
+	case "area", "areas", "hierarchicalStructure", "hierarchical-structure", "region":
 		return true
 	default:
 		return false
