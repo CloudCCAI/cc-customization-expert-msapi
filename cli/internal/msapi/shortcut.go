@@ -191,22 +191,30 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 }
 
 func handleObjectViewReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
+	action = strings.TrimSpace(action)
 	c, _, err := newClient([]string{projectPath}, cwd)
 	if err != nil {
 		return err
 	}
-	if action == "detail" || action == "editInfo" || (action == "get" && len(args) == 1) {
+	if action == "detail" || action == "editInfo" {
 		if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
 			return fmt.Errorf("cloudcc %s view <projectPath> <view-id>", action)
 		}
 		return c.writeJSON(stdout, http.MethodPost, "/metadata/v1/object-views:detail", map[string]any{"id": strings.TrimSpace(args[0])})
 	}
 	if len(args) > 1 {
-		return fmt.Errorf("cloudcc %s view <projectPath> [object-id-or-apiName]", action)
+		return fmt.Errorf("cloudcc %s view <projectPath> [object-id-apiName-or-json-filter]", action)
 	}
 	body := map[string]any{}
 	if len(args) == 1 && strings.TrimSpace(args[0]) != "" {
-		body["objectId"] = strings.TrimSpace(args[0])
+		if looksLikeJSONArg(args[0]) {
+			body, err = parseObject(args[0], "cloudcc "+action+" view")
+			if err != nil {
+				return err
+			}
+		} else {
+			body["objectId"] = strings.TrimSpace(args[0])
+		}
 	}
 	return c.writeJSON(stdout, http.MethodPost, "/metadata/v1/object-views:query", body)
 }

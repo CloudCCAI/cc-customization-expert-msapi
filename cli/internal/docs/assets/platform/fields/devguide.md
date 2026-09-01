@@ -53,7 +53,13 @@ cloudcc delete fields <projectPath> <fieldId> <objid>
 
 字段创建如果会进入页面布局，必须先按 `platform/pagelayout devguide` 的页面布局配置方法论判断落位。能读取对象布局详情时，优先在字段 spec 中显式提供 `layoutPlacements`，或在字段创建后通过 `pagelayout detail` / `pagelayout update` 调整 PC 和 mobile 布局。只有缺少布局上下文时才允许依赖 MetadataService 自动摆放，并在输出中标注为兜底。
 
-#### 2.2.1 批量添加字段
+#### 2.2.1 数字精度上限
+
+MetadataService 与 setup-web 保持同一条字段精度规则：`P`（百分比）、`c`（币种）、`N`（数字）和 `LT`（地理定位）的 `schemefieldLength` / `length` 与 `decimalPlaces` 必须为非负整数，且 `length + decimalPlaces <= 18`。
+
+该规则在 create、update、upsert 以及对象计划内嵌字段展开时都会执行。历史上通过旧版 CLI 或其他链路创建的字段如果不满足该规则，后续 upsert 字段或把字段放入布局时也会被 MetadataService 拦截；CLI 不会自动缩短字段长度或修改小数位数。收到 `invalid_field_precision` 时，请先按目标租户的字段定义治理流程修复该字段精度，再重新生成 plan。
+
+#### 2.2.2 批量添加字段
 
 MetadataService `fields` 计划支持在同一个 spec 中通过 `fields[]` 批量添加字段：
 
