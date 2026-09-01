@@ -1353,6 +1353,8 @@ func normalizeDomain(value string) string {
 		return "fiscal-years"
 	case "area", "areas", "region", "hierarchicalStructure", "hierarchical-structure":
 		return "areas"
+	case "currency", "currencies", "companyCurrency", "company-currency", "companycurrency", "companyCurrencySet", "currencyManage", "currency-management":
+		return "currencies"
 	default:
 		return strings.TrimSpace(value)
 	}

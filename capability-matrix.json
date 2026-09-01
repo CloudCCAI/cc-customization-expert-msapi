@@ -2,8 +2,8 @@
   "schemaVersion": "cloudcc-dual-provider-capability-matrix/v1",
   "releaseBaseline": "2.2.5",
   "msapiBaseline": {
-    "domains": 25,
-    "operations": 109,
+    "domains": 26,
+    "operations": 119,
     "source": "MetadataService capability catalog; live replay evidence coverage remains independently audited"
   },
   "semantics": {
@@ -37,6 +37,7 @@
     {"id":"object-views","uiapiResource":"view","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
     {"id":"api-registrars","uiapiResource":"apiRegistrar","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested","detail":"contract_tested","debug":"contract_tested","logs":"contract_tested","log-detail":"contract_tested"}},
     {"id":"fiscal-years","uiapiResource":"fiscalYear","uiapiState":"unsupported","uiapiOperations":{"create":"unsupported","update":"unsupported","delete":"unsupported","query":"unsupported"}},
-    {"id":"areas","uiapiResource":"area","uiapiState":"unsupported","uiapiOperations":{"create":"unsupported","update":"unsupported","delete":"unsupported","query":"unsupported"}}
+    {"id":"areas","uiapiResource":"area","uiapiState":"unsupported","uiapiOperations":{"create":"unsupported","update":"unsupported","delete":"unsupported","query":"unsupported"}},
+    {"id":"currencies","uiapiResource":"currency","uiapiState":"unsupported","uiapiOperations":{"create":"unsupported","update":"unsupported","delete":"unsupported","query":"unsupported","activate":"unsupported","deactivate":"unsupported","update-rate":"unsupported","dated-rate-create":"unsupported","dated-rate-update":"unsupported","dated-rate-delete":"unsupported","advanced-toggle":"unsupported","change-corporate":"unsupported"}}
   ]
 }

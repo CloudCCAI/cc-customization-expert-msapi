@@ -39,6 +39,13 @@ var lowCodeShortcutDomains = map[string]string{
 	"hierarchicalStructure":  "areas",
 	"hierarchical-structure": "areas",
 	"region":                 "areas",
+	"currency":               "currencies",
+	"currencies":             "currencies",
+	"companyCurrency":        "currencies",
+	"company-currency":       "currencies",
+	"companyCurrencySet":     "currencies",
+	"currencyManage":         "currencies",
+	"currency-management":    "currencies",
 	"identityProvider":       "identity-providers",
 	"menu":                   "menus",
 	"object":                 "objects",
@@ -83,6 +90,22 @@ var lowCodeShortcutActions = map[string]bool{
 	"saveFiscalQuarter":     true,
 	"save-fiscal-quarter":   true,
 	"save":                  true,
+	"updateRate":            true,
+	"update-rate":           true,
+	"updateRates":           true,
+	"update-rates":          true,
+	"createDatedRate":       true,
+	"create-dated-rate":     true,
+	"updateDatedRate":       true,
+	"update-dated-rate":     true,
+	"deleteDatedRate":       true,
+	"delete-dated-rate":     true,
+	"enableAdvanced":        true,
+	"enable-advanced":       true,
+	"disableAdvanced":       true,
+	"disable-advanced":      true,
+	"changeCorporate":       true,
+	"change-corporate":      true,
 	"modify":                true,
 	"editSave":              true,
 	"assign":                true,
@@ -177,6 +200,9 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 	if isAreaShortcutResource(resource) && isShortcutRead(action) {
 		return handleAreaReadShortcut(action, projectPath, rest, stdout, cwd)
 	}
+	if isCurrencyShortcutResource(resource) && isShortcutRead(action) {
+		return handleCurrencyReadShortcut(action, projectPath, rest, stdout, cwd)
+	}
 	if resource == "reportMatrix" || resource == "reportRatio" ||
 		resource == "reportSummary" || resource == "reportTabular" {
 		return handleTypedReportShortcut(action, resource, projectPath, rest, stdout, cwd)
@@ -270,6 +296,52 @@ func handleAreaReadShortcut(action string, projectPath string, args []string, st
 	path := "/metadata/v1/areas/tree"
 	if len(args) == 1 && strings.TrimSpace(args[0]) != "" {
 		path += "?filter=" + url.QueryEscape(strings.TrimSpace(args[0]))
+	}
+	return c.getJSON(stdout, path)
+}
+
+func handleCurrencyReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
+	action = strings.TrimSpace(action)
+	c, _, err := newClient([]string{projectPath}, cwd)
+	if err != nil {
+		return err
+	}
+	if action == "newInfo" {
+		if len(args) != 0 {
+			return fmt.Errorf("cloudcc newInfo currency <projectPath>")
+		}
+		return c.getJSON(stdout, "/metadata/v1/currencies:available")
+	}
+	if action == "detail" || action == "editInfo" || action == "validDelete" || (action == "get" && len(args) == 1 && !looksLikeJSONArg(args[0])) {
+		if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
+			return fmt.Errorf("cloudcc %s currency <projectPath> <currency-code-or-id>", action)
+		}
+		return c.getJSON(stdout, "/metadata/v1/currencies/"+url.PathEscape(strings.TrimSpace(args[0])))
+	}
+	if len(args) > 1 {
+		return fmt.Errorf("cloudcc %s currency <projectPath> [filter-or-json]", action)
+	}
+	values := url.Values{}
+	if len(args) == 1 && strings.TrimSpace(args[0]) != "" {
+		if looksLikeJSONArg(args[0]) {
+			body, err := parseObject(args[0], "cloudcc "+action+" currency")
+			if err != nil {
+				return err
+			}
+			if selectedDate := strings.TrimSpace(stringValue(body["selectedDate"])); selectedDate != "" {
+				values.Set("selectedDate", selectedDate)
+				return c.getJSON(stdout, "/metadata/v1/currencies/dated-rates?"+values.Encode())
+			}
+			if filter := strings.TrimSpace(stringValue(body["filter"])); filter != "" {
+				values.Set("filter", filter)
+			}
+		} else {
+			values.Set("filter", strings.TrimSpace(args[0]))
+		}
+	}
+	path := "/metadata/v1/currencies"
+	if encoded := values.Encode(); encoded != "" {
+		path += "?" + encoded
 	}
 	return c.getJSON(stdout, path)
 }
@@ -1621,6 +1693,16 @@ func isAreaShortcutResource(resource string) bool {
 	}
 }
 
+func isCurrencyShortcutResource(resource string) bool {
+	switch strings.TrimSpace(resource) {
+	case "currency", "currencies", "companyCurrency", "company-currency", "companyCurrencySet",
+		"currencyManage", "currency-management":
+		return true
+	default:
+		return false
+	}
+}
+
 func shortcutProjectPath(args []string, cwd string) (string, []string) {
 	if len(args) == 0 {
 		return cwd, nil
@@ -1677,6 +1759,9 @@ func shortcutPlanSpec(action string, resource string, args []string) (map[string
 	}
 	if isAreaShortcutResource(resource) {
 		return areaShortcutSpec(action, args)
+	}
+	if isCurrencyShortcutResource(resource) {
+		return currencyShortcutSpec(action, args)
 	}
 	if resource == "fields" && strings.TrimSpace(action) == "delete" {
 		if len(args) == 0 || strings.TrimSpace(args[0]) == "" {
@@ -2103,6 +2188,102 @@ func areaShortcutSpec(action string, args []string) (map[string]any, string, err
 		return map[string]any{"areaId": strings.TrimSpace(args[0])}, operation, nil
 	default:
 		return shortcutBodySpec(action, "area", args)
+	}
+}
+
+func currencyShortcutSpec(action string, args []string) (map[string]any, string, error) {
+	operation := shortcutOperation(action, "currency")
+	normalizedAction := strings.TrimSpace(action)
+	switch normalizedAction {
+	case "updateRate", "update-rate", "updateRates", "update-rates":
+		operation = "update-rates"
+	case "createDatedRate", "create-dated-rate":
+		operation = "create-dated-rate"
+	case "updateDatedRate", "update-dated-rate":
+		operation = "update-dated-rate"
+	case "deleteDatedRate", "delete-dated-rate":
+		operation = "delete-dated-rate"
+	case "enableAdvanced", "enable-advanced":
+		operation = "enable-advanced"
+	case "disableAdvanced", "disable-advanced":
+		operation = "disable-advanced"
+	case "changeCorporate", "change-corporate":
+		operation = "change-corporate"
+	}
+	if len(args) > 0 && looksLikeJSONArg(args[0]) {
+		body, err := parseObject(args[0], "cloudcc "+action+" currency")
+		return body, operation, err
+	}
+	switch normalizedAction {
+	case "create":
+		if len(args) < 3 {
+			return nil, "", fmt.Errorf("cloudcc create currency <projectPath> <currencyCode> <rate> <decimalDigits> now creates a MetadataService plan")
+		}
+		return map[string]any{
+			"currencyCode":  strings.TrimSpace(args[0]),
+			"rate":          strings.TrimSpace(args[1]),
+			"decimalDigits": strings.TrimSpace(args[2]),
+		}, operation, nil
+	case "update", "modify", "editSave", "save":
+		if len(args) < 2 {
+			return nil, "", fmt.Errorf("cloudcc %s currency <projectPath> <currencyCode-or-id> <decimalDigits> now creates a MetadataService plan", action)
+		}
+		return map[string]any{
+			"currencyCode":  strings.TrimSpace(args[0]),
+			"decimalDigits": strings.TrimSpace(args[1]),
+		}, operation, nil
+	case "activate", "enable", "deactivate", "disable":
+		if len(args) < 1 || strings.TrimSpace(args[0]) == "" {
+			return nil, "", fmt.Errorf("cloudcc %s currency <projectPath> <currencyCode-or-id> [fallbackCorporateCurrencyCode] now creates a MetadataService plan", action)
+		}
+		body := map[string]any{"currencyCode": strings.TrimSpace(args[0])}
+		if len(args) > 1 && strings.TrimSpace(args[1]) != "" {
+			body["fallbackCurrencyCode"] = strings.TrimSpace(args[1])
+		}
+		return body, operation, nil
+	case "updateRate", "update-rate", "updateRates", "update-rates":
+		if len(args) < 2 {
+			return nil, "", fmt.Errorf("cloudcc %s currency <projectPath> <currencyCode-or-id> <rate> now creates a MetadataService plan", action)
+		}
+		return map[string]any{
+			"currencyCode": strings.TrimSpace(args[0]),
+			"rate":         strings.TrimSpace(args[1]),
+		}, operation, nil
+	case "createDatedRate", "create-dated-rate":
+		if len(args) < 3 {
+			return nil, "", fmt.Errorf("cloudcc %s currency <projectPath> <beginDate> <currencyCode> <rate> now creates a MetadataService dated-rate plan", action)
+		}
+		return map[string]any{
+			"beginDate": strings.TrimSpace(args[0]),
+			"rates": []map[string]any{{
+				"currencyCode": strings.TrimSpace(args[1]),
+				"rate":         strings.TrimSpace(args[2]),
+			}},
+		}, operation, nil
+	case "updateDatedRate", "update-dated-rate":
+		if len(args) < 2 {
+			return nil, "", fmt.Errorf("cloudcc %s currency <projectPath> <dated-rate-id> <rate> now creates a MetadataService dated-rate plan", action)
+		}
+		return map[string]any{
+			"id":   strings.TrimSpace(args[0]),
+			"rate": strings.TrimSpace(args[1]),
+		}, operation, nil
+	case "deleteDatedRate", "delete-dated-rate":
+		if len(args) < 1 || strings.TrimSpace(args[0]) == "" {
+			return nil, "", fmt.Errorf("cloudcc %s currency <projectPath> <dated-rate-id> now creates a MetadataService dated-rate delete plan", action)
+		}
+		return map[string]any{"id": strings.TrimSpace(args[0])}, operation, nil
+	case "enableAdvanced", "enable-advanced":
+		return map[string]any{"enableAdvanceCurrency": "1"}, operation, nil
+	case "disableAdvanced", "disable-advanced":
+		return map[string]any{"enableAdvanceCurrency": "0"}, operation, nil
+	case "changeCorporate", "change-corporate":
+		if len(args) < 1 || strings.TrimSpace(args[0]) == "" {
+			return nil, "", fmt.Errorf("cloudcc %s currency <projectPath> <newCurrencyCode> requires rebased rates in JSON for apply-safe plans", action)
+		}
+		return map[string]any{"currencyCode": strings.TrimSpace(args[0])}, operation, nil
+	default:
+		return shortcutBodySpec(action, "currency", args)
 	}
 }
 

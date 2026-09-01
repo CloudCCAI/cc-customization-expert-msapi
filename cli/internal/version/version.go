@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.42"
+const Version = "2.2.43"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -34,6 +34,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	case "changelog":
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
+		fmt.Fprintln(stderr, "- Currency management is now a MetadataService low-code domain: currency/companyCurrency shortcuts read /metadata/v1/currencies, create/update/activate/deactivate/updateRate/createDatedRate/updateDatedRate/deleteDatedRate/enableAdvanced/disableAdvanced/changeCorporate create reviewed currencies plans, and changeCorporate fails closed without explicit rebased rates for rollback-safe apply.")
 		fmt.Fprintln(stderr, "- Page layout creation now documents and supports record-type layout assignment: create pagelayout can include --profile/--record-type under MSAPI, assign pagelayout creates assignment-only plans, and layouts.create assignments[] writes tp_sys_profile_layout without changing default behavior when omitted.")
 		fmt.Fprintln(stderr, "- Object-view reads now keep get/getList as list query semantics with optional object selector or JSON filter, reserve detail/editInfo for view-ID detail, and field docs clarify create/update/upsert precision enforcement for length + decimalPlaces <= 18.")
 		fmt.Fprintln(stderr, "- CloudCC accessToken refresh failures now surface the /api/cauth/token failure reason immediately and remind callers to inspect the active cloudcc-cli.config.json credentials, instead of continuing until MetadataService reports a generic missing accessToken.")
@@ -292,6 +293,13 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc detail area <projectPath> <areaId|name>")
 	fmt.Fprintln(stdout, "  cloudcc create area <projectPath> <name> [parentAreaId] [areaId]")
 	fmt.Fprintln(stdout, "  cloudcc delete area <projectPath> <areaId>")
+	fmt.Fprintln(stdout, "  cloudcc get currency <projectPath> [filterJson|currencyCode]")
+	fmt.Fprintln(stdout, "  cloudcc detail currency <projectPath> <currencyCode|id>")
+	fmt.Fprintln(stdout, "  cloudcc newInfo currency <projectPath>")
+	fmt.Fprintln(stdout, "  cloudcc create currency <projectPath> <currencyCode> <rate> <decimalDigits>")
+	fmt.Fprintln(stdout, "  cloudcc updateRate currency <projectPath> <currencyCode|id> <rate>")
+	fmt.Fprintln(stdout, "  cloudcc createDatedRate currency <projectPath> <beginDate> <currencyCode> <rate>")
+	fmt.Fprintln(stdout, "  cloudcc <activate|deactivate|enable|disable> currency <projectPath> <currencyCode|id> [fallbackCorporateCurrencyCode]")
 	fmt.Fprintln(stdout, "  cloudcc <get|detail|create|update|delete> user <projectPath> ...  # setup-svc /api/usermange/*")
 	fmt.Fprintln(stdout, "  cloudcc get report <projectPath> [folderId] [searchKeyWord] [page] [pageSize] [orderField] [orderType]")
 	fmt.Fprintln(stdout, "  cloudcc detail report <projectPath> <reportId|encodedBodyJson>")

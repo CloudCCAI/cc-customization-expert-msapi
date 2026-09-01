@@ -1,6 +1,6 @@
 {
     "packageName":  "cc-customization-expert-msapi",
-    "version":  "2.2.42-msapi",
+    "version":  "2.2.43-msapi",
     "releaseDate":  "2026-09-01",
     "compatCloudccCliVersion":  "2.5.3",
     "runtime":  "go",
@@ -185,6 +185,30 @@
                                                                                             "assign"
                                                                                         ],
                                                                          "reason":  "Requires MetadataService layouts.create assignments[] and layouts.assign to write tp_sys_profile_layout for explicit profile/record-type bindings while preserving setup-svc layout create/clone behavior when assignments are omitted."
+                                                                     },
+                                                                     {
+                                                                         "capability":  "msapi.companyCurrencyDomain",
+                                                                         "label":  "Company currency and dated exchange-rate low-code domain",
+                                                                         "introducedInSkillVersion":  "2.2.43-msapi",
+                                                                         "minimumMetadataServiceVersion":  "1.1.49",
+                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.49",
+                                                                         "domains":  [
+                                                                                         "currencies"
+                                                                                     ],
+                                                                         "operations":  [
+                                                                                            "create",
+                                                                                            "update",
+                                                                                            "activate",
+                                                                                            "deactivate",
+                                                                                            "update-rate",
+                                                                                            "dated-rate-create",
+                                                                                            "dated-rate-update",
+                                                                                            "dated-rate-delete",
+                                                                                            "advanced-toggle",
+                                                                                            "change-corporate",
+                                                                                            "query"
+                                                                                        ],
+                                                                         "reason":  "Requires MetadataService currency readback, fixed currency compiler, advanced dated-rate compiler, corporate-currency explicit rebase guard, and setup-web/setup-service parity for /api/currency/* company currency management."
                                                                      },
                                                                      {
                                                                          "capability":  "msapi.menuApplicationReferenceProfiles",
