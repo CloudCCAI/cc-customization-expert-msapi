@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.41"
+const Version = "2.2.42"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -34,6 +34,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	case "changelog":
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
+		fmt.Fprintln(stderr, "- Page layout creation now documents and supports record-type layout assignment: create pagelayout can include --profile/--record-type under MSAPI, assign pagelayout creates assignment-only plans, and layouts.create assignments[] writes tp_sys_profile_layout without changing default behavior when omitted.")
 		fmt.Fprintln(stderr, "- Object-view reads now keep get/getList as list query semantics with optional object selector or JSON filter, reserve detail/editInfo for view-ID detail, and field docs clarify create/update/upsert precision enforcement for length + decimalPlaces <= 18.")
 		fmt.Fprintln(stderr, "- CloudCC accessToken refresh failures now surface the /api/cauth/token failure reason immediately and remind callers to inspect the active cloudcc-cli.config.json credentials, instead of continuing until MetadataService reports a generic missing accessToken.")
 		fmt.Fprintln(stderr, "- Fiscal-year low-code domain now includes child fiscal quarters: fiscal-years reads return fiscalQuarters on detail, nested quarters[] plans write tp_sys_fiscalquarter, createQuarter/deleteQuarter shortcuts map to setup-svc saveFiscalQuarter/delFiscalQuarter semantics, and quarterly ranges are guarded inside their parent fiscal year.")
@@ -279,6 +280,8 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc get profile <projectPath> [filter]")
 	fmt.Fprintln(stdout, "  cloudcc detail profile <projectPath> <id|name|apiName>")
 	fmt.Fprintln(stdout, "  cloudcc delete profile <projectPath> <id|name|apiName>  # resolves uniquely and creates a guarded MetadataService plan")
+	fmt.Fprintln(stdout, "  cloudcc create pagelayout <projectPath> <object> <layoutName> [sourceLayoutId] [isCloneDynamic] [--profile <profileId> --record-type <recordTypeId>]")
+	fmt.Fprintln(stdout, "  cloudcc assign pagelayout <projectPath> <object> <layoutId> --profile <profileId> [--record-type <recordTypeId>]")
 	fmt.Fprintln(stdout, "  cloudcc get fiscalYear <projectPath> [filterJson|year]")
 	fmt.Fprintln(stdout, "  cloudcc detail fiscalYear <projectPath> <id|year>")
 	fmt.Fprintln(stdout, "  cloudcc create fiscalYear <projectPath> <year> <startDate> <endDate> [description]")

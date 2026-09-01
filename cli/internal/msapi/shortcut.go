@@ -157,6 +157,17 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 	if resource == "pagelayout" && isShortcutRead(action) {
 		return handlePageLayoutReadShortcut(action, projectPath, rest, stdout, cwd)
 	}
+	if resource == "pagelayout" && strings.TrimSpace(action) == "assign" {
+		spec, operation, err := pageLayoutShortcutSpec(action, rest)
+		if err != nil {
+			return err
+		}
+		body, err := json.Marshal(spec)
+		if err != nil {
+			return err
+		}
+		return Handle("plan", "msapi", []string{projectPath, domain, string(body), operation}, stdout, cwd)
+	}
 	if resource == "view" && isShortcutRead(action) {
 		return handleObjectViewReadShortcut(action, projectPath, rest, stdout, cwd)
 	}
@@ -1677,11 +1688,135 @@ func shortcutPlanSpec(action string, resource string, args []string) (map[string
 		}
 		return map[string]any{"fields": []any{field}}, operation, nil
 	}
+	if resource == "pagelayout" {
+		return pageLayoutShortcutSpec(action, args)
+	}
 	body, _, err := shortcutBodySpec(action, resource, args)
 	if err != nil {
 		return nil, "", err
 	}
 	return body, operation, nil
+}
+
+func pageLayoutShortcutSpec(action string, args []string) (map[string]any, string, error) {
+	operation := shortcutOperation(action, "pagelayout")
+	if strings.TrimSpace(action) == "assign" {
+		operation = "assign"
+	}
+	if len(args) > 0 && looksLikeJSONArg(args[0]) {
+		body, err := parseObject(args[0], "cloudcc "+action+" pagelayout")
+		return body, operation, err
+	}
+	if len(args) > 1 && looksLikeJSONArg(args[1]) {
+		body, err := parseObject(args[1], "cloudcc "+action+" pagelayout")
+		if err != nil {
+			return nil, "", err
+		}
+		if _, ok := body["objectId"]; !ok && strings.TrimSpace(args[0]) != "" {
+			body["objectId"] = args[0]
+		}
+		return body, operation, nil
+	}
+
+	filtered, assignment, err := extractPageLayoutAssignmentFlags(args)
+	if err != nil {
+		return nil, "", err
+	}
+	switch strings.TrimSpace(action) {
+	case "create":
+		if len(filtered) < 2 || strings.TrimSpace(filtered[0]) == "" || strings.TrimSpace(filtered[1]) == "" {
+			return nil, "", fmt.Errorf("cloudcc create pagelayout <projectPath> <object-id-apiName-or-prefix> <layoutName> [sourceLayoutId] [isCloneDynamic] [--profile <profileId> --record-type <recordTypeId>]")
+		}
+		spec := map[string]any{
+			"objectId":   strings.TrimSpace(filtered[0]),
+			"layoutName": strings.TrimSpace(filtered[1]),
+		}
+		if len(filtered) > 2 && strings.TrimSpace(filtered[2]) != "" {
+			spec["sourceLayoutId"] = strings.TrimSpace(filtered[2])
+		}
+		if len(filtered) > 3 && strings.TrimSpace(filtered[3]) != "" {
+			spec["isCloneDynamic"] = strings.TrimSpace(filtered[3])
+		}
+		if len(filtered) > 4 {
+			return nil, "", fmt.Errorf("cloudcc create pagelayout received too many positional arguments; use JSON for advanced layout specs")
+		}
+		if len(assignment) > 0 {
+			spec["assignments"] = assignment
+		}
+		return spec, "create", nil
+	case "assign":
+		if len(filtered) < 2 || strings.TrimSpace(filtered[0]) == "" || strings.TrimSpace(filtered[1]) == "" {
+			return nil, "", fmt.Errorf("cloudcc assign pagelayout <projectPath> <object-id-apiName-or-prefix> <layout-id-apiName-or-name> --profile <profileId> [--record-type <recordTypeId>]")
+		}
+		if len(assignment) == 0 {
+			return nil, "", fmt.Errorf("cloudcc assign pagelayout requires at least one --profile <profileId>")
+		}
+		objectId := strings.TrimSpace(filtered[0])
+		layoutId := strings.TrimSpace(filtered[1])
+		for _, item := range assignment {
+			item["objectId"] = objectId
+			item["layoutId"] = layoutId
+		}
+		return map[string]any{
+			"objectId":    objectId,
+			"layoutId":    layoutId,
+			"assignments": assignment,
+		}, "assign", nil
+	default:
+		return shortcutBodySpec(action, "pagelayout", args)
+	}
+}
+
+func extractPageLayoutAssignmentFlags(args []string) ([]string, []map[string]any, error) {
+	filtered := make([]string, 0, len(args))
+	profiles := []string{}
+	recordTypeId := ""
+	for i := 0; i < len(args); i++ {
+		arg := strings.TrimSpace(args[i])
+		switch {
+		case arg == "--profile" || arg == "--profile-id" || arg == "--profileId":
+			if i+1 >= len(args) || strings.TrimSpace(args[i+1]) == "" {
+				return nil, nil, fmt.Errorf("%s requires a profile id", arg)
+			}
+			i++
+			profiles = append(profiles, strings.TrimSpace(args[i]))
+		case strings.HasPrefix(arg, "--profile="):
+			profiles = append(profiles, strings.TrimSpace(strings.TrimPrefix(arg, "--profile=")))
+		case strings.HasPrefix(arg, "--profile-id="):
+			profiles = append(profiles, strings.TrimSpace(strings.TrimPrefix(arg, "--profile-id=")))
+		case strings.HasPrefix(arg, "--profileId="):
+			profiles = append(profiles, strings.TrimSpace(strings.TrimPrefix(arg, "--profileId=")))
+		case arg == "--record-type" || arg == "--recordtype" || arg == "--recordTypeId":
+			if i+1 >= len(args) || strings.TrimSpace(args[i+1]) == "" {
+				return nil, nil, fmt.Errorf("%s requires a record type id", arg)
+			}
+			i++
+			recordTypeId = strings.TrimSpace(args[i])
+		case strings.HasPrefix(arg, "--record-type="):
+			recordTypeId = strings.TrimSpace(strings.TrimPrefix(arg, "--record-type="))
+		case strings.HasPrefix(arg, "--recordtype="):
+			recordTypeId = strings.TrimSpace(strings.TrimPrefix(arg, "--recordtype="))
+		case strings.HasPrefix(arg, "--recordTypeId="):
+			recordTypeId = strings.TrimSpace(strings.TrimPrefix(arg, "--recordTypeId="))
+		default:
+			filtered = append(filtered, args[i])
+		}
+	}
+	assignments := make([]map[string]any, 0, len(profiles))
+	for _, profile := range profiles {
+		if profile == "" {
+			continue
+		}
+		assignment := map[string]any{"profileId": profile}
+		if recordTypeId != "" {
+			assignment["recordTypeId"] = recordTypeId
+		}
+		assignments = append(assignments, assignment)
+	}
+	if recordTypeId != "" && len(assignments) == 0 {
+		return nil, nil, fmt.Errorf("--record-type requires at least one --profile")
+	}
+	return filtered, assignments, nil
 }
 
 func objectShortcutSpec(action string, args []string) map[string]any {

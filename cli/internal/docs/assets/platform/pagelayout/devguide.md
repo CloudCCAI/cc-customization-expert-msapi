@@ -41,6 +41,8 @@ cloudcc get pagelayout . 001
 cloudcc create pagelayout <projectPath> <objId> <layoutName> [sourceLayoutId] [isCloneDynamic]
 ```
 
+`create pagelayout` 默认只创建或复制页面布局，不会自动改变任何简档或记录类型的默认页面布局。要让新布局在某个记录类型下生效，必须同时提供 `assignments[]`，或创建后执行 `assign pagelayout`。
+
 **参数说明：**
 
 | 参数 | 必填 | 说明 |
@@ -62,7 +64,71 @@ cloudcc create pagelayout . 20267D1465464C5OB6m5 "课程表2" add20261DA7347CZPA
 
 # 不复制动态布局规则
 cloudcc create pagelayout . 20267D1465464C5OB6m5 "课程表2" add20261DA7347CZPAUz false
+
+# 创建页面布局并同步分配给某个简档和记录类型
+cloudcc create pagelayout . 20267D1465464C5OB6m5 "课程表2" add20261DA7347CZPAUz false --profile aaa000001 --record-type rt_course_domestic
 ```
+
+使用 MetadataService JSON 时，可以在创建布局的同一个 plan 中写 `assignments[]`：
+
+```json
+{
+  "id": "layout_course_sales",
+  "objectId": "20267D1465464C5OB6m5",
+  "layoutName": "课程销售布局",
+  "sourceLayoutId": "add20261DA7347CZPAUz",
+  "assignments": [
+    {
+      "profileId": "aaa000001",
+      "recordTypeId": "rt_course_domestic"
+    }
+  ]
+}
+```
+
+`assignments[].layoutId` 在创建布局时不要传；MetadataService 会使用本次创建的布局 ID。`recordTypeId` 不传表示对象默认布局分配，传入记录类型 ID 表示记录类型页面布局分配。
+
+### 页面布局分配
+
+已有页面布局需要补做或调整记录类型分配时，使用 `assign pagelayout`：
+
+```bash
+cloudcc assign pagelayout <projectPath> <objectId|apiName|prefix> <layoutId> --profile <profileId> [--record-type <recordTypeId>]
+```
+
+示例：
+
+```bash
+cloudcc assign pagelayout . 20267D1465464C5OB6m5 layout_course_sales --profile aaa000001 --record-type rt_course_domestic
+```
+
+批量或复杂分配建议使用 MetadataService JSON：
+
+```json
+{
+  "objectId": "20267D1465464C5OB6m5",
+  "layoutId": "layout_course_sales",
+  "assignments": [
+    {
+      "profileId": "aaa000001",
+      "recordTypeId": "rt_course_domestic"
+    },
+    {
+      "profileId": "aaa000002",
+      "recordTypeId": "rt_course_domestic"
+    }
+  ]
+}
+```
+
+执行：
+
+```bash
+cloudcc plan msapi . layouts @layout-assignments.json assign
+cloudcc apply msapi . <planId>
+```
+
+验收时回读 `tp_sys_profile_layout`，确认同一行中 `PROFILE_ID`、`OBJ_ID`、`RECORDTYPE_ID`、`LAYOUT_ID` 分别对应目标简档、对象、记录类型和页面布局。不要只看页面布局是否创建成功。
 
 ### 批量创建页面布局
 

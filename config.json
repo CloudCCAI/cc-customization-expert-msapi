@@ -1,6 +1,6 @@
 {
     "packageName":  "cc-customization-expert-msapi",
-    "version":  "2.2.41-msapi",
+    "version":  "2.2.42-msapi",
     "releaseDate":  "2026-09-01",
     "compatCloudccCliVersion":  "2.5.3",
     "runtime":  "go",
@@ -170,6 +170,21 @@
                                                                                             "query"
                                                                                         ],
                                                                          "reason":  "Requires MetadataService low-code availability closure gates for in-plan default layout placement, record type profile/default/layout fallback, application tab reference validation, search layout enrichment, and profile/application readback evidence."
+                                                                     },
+                                                                     {
+                                                                         "capability":  "msapi.layouts.recordTypeAssignment",
+                                                                         "label":  "Page layout record-type assignment during create and assignment-only plans",
+                                                                         "introducedInSkillVersion":  "2.2.42-msapi",
+                                                                         "minimumMetadataServiceVersion":  "1.1.48",
+                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.48",
+                                                                         "domains":  [
+                                                                                         "layouts"
+                                                                                     ],
+                                                                         "operations":  [
+                                                                                            "create",
+                                                                                            "assign"
+                                                                                        ],
+                                                                         "reason":  "Requires MetadataService layouts.create assignments[] and layouts.assign to write tp_sys_profile_layout for explicit profile/record-type bindings while preserving setup-svc layout create/clone behavior when assignments are omitted."
                                                                      },
                                                                      {
                                                                          "capability":  "msapi.menuApplicationReferenceProfiles",
