@@ -1,7 +1,7 @@
 {
     "packageName":  "cc-customization-expert-msapi",
-    "version":  "2.2.38-msapi",
-    "releaseDate":  "2026-08-28",
+    "version":  "2.2.39-msapi",
+    "releaseDate":  "2026-08-31",
     "compatCloudccCliVersion":  "2.5.3",
     "runtime":  "go",
     "projectOutputs":  {
@@ -202,6 +202,26 @@
                                                                                             "query"
                                                                                         ],
                                                                          "reason":  "Requires MetadataService-generated id/apiName, caller-defined or securely generated unique apiCode, DRAFT-on-create/update behavior, logical delete, read-only list/detail endpoints, and rejection of runtime-maintained debug/status fields; debug and log calls remain direct setup-svc runtime operations."
+                                                                     },
+                                                                     {
+                                                                         "capability":  "msapi.companyFiscalYearAreaDomains",
+                                                                         "label":  "Fiscal year, fiscal quarter, and area hierarchy low-code domains",
+                                                                         "introducedInSkillVersion":  "2.2.39-msapi",
+                                                                         "minimumMetadataServiceVersion":  "1.1.45",
+                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.45",
+                                                                         "domains":  [
+                                                                                         "fiscal-years",
+                                                                                         "areas"
+                                                                                     ],
+                                                                         "operations":  [
+                                                                                            "create",
+                                                                                            "update",
+                                                                                            "delete",
+                                                                                            "query",
+                                                                                            "quarter-create",
+                                                                                            "quarter-delete"
+                                                                                        ],
+                                                                         "reason":  "Requires fiscal year plus child fiscal quarter MetadataService compiler/readback aligned to /api/fiscalYear/queryFiscalYearList, fiscalYearDetail, saveFiscalYear, delFiscalYear, saveFiscalQuarter, and delFiscalQuarter, plus area hierarchy compiler/readback aligned only to /api/area/queryTree, saveArea, and DeleteArea."
                                                                      },
                                                                      {
                                                                          "capability":  "msapi.fields.rollupSummaryDerivedCreate",

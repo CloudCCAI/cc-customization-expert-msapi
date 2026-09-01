@@ -11,67 +11,89 @@ import (
 )
 
 var lowCodeShortcutDomains = map[string]string{
-	"approval":         "approval-processes",
-	"approvalProcess":  "approval-processes",
-	"apiRegistrar":     "api-registrars",
-	"apiRegister":      "api-registrars",
-	"api-registrar":    "api-registrars",
-	"api-register":     "api-registrars",
-	"apiregistrar":     "api-registrars",
-	"apiregister":      "api-registrars",
-	"api-registrars":   "api-registrars",
-	"application":      "applications",
-	"button":           "buttons",
-	"customSetting":    "custom-settings",
-	"dupeCatcher":      "dupe-catchers",
-	"dashboard":        "dashboards",
-	"fields":           "fields",
-	"globalSelectList": "global-select-lists",
-	"identityProvider": "identity-providers",
-	"menu":             "menus",
-	"object":           "objects",
-	"pagelayout":       "layouts",
-	"permission":       "permissions",
-	"profile":          "profiles",
-	"recordType":       "record-types",
-	"report":           "reports",
-	"reportMatrix":     "reports",
-	"reportRatio":      "reports",
-	"reportSummary":    "reports",
-	"reportTabular":    "reports",
-	"reports":          "reports",
-	"reportFolder":     "reports",
-	"role":             "roles",
-	"sharingRule":      "sharing-rules",
-	"singleSignOn":     "single-sign-ons",
-	"validationRule":   "validation-rules",
-	"view":             "object-views",
-	"workflow":         "workflows",
-	"workflowRule":     "workflows",
+	"approval":              "approval-processes",
+	"approvalProcess":       "approval-processes",
+	"apiRegistrar":          "api-registrars",
+	"apiRegister":           "api-registrars",
+	"api-registrar":         "api-registrars",
+	"api-register":          "api-registrars",
+	"apiregistrar":          "api-registrars",
+	"apiregister":           "api-registrars",
+	"api-registrars":        "api-registrars",
+	"application":           "applications",
+	"button":                "buttons",
+	"customSetting":         "custom-settings",
+	"dupeCatcher":           "dupe-catchers",
+	"dashboard":             "dashboards",
+	"fields":                "fields",
+	"fiscalYear":            "fiscal-years",
+	"fiscal-year":           "fiscal-years",
+	"fiscal-years":          "fiscal-years",
+	"globalSelectList":      "global-select-lists",
+	"area":                  "areas",
+	"areas":                 "areas",
+	"hierarchicalStructure": "areas",
+	"identityProvider":      "identity-providers",
+	"menu":                  "menus",
+	"object":                "objects",
+	"pagelayout":            "layouts",
+	"permission":            "permissions",
+	"profile":               "profiles",
+	"recordType":            "record-types",
+	"report":                "reports",
+	"reportMatrix":          "reports",
+	"reportRatio":           "reports",
+	"reportSummary":         "reports",
+	"reportTabular":         "reports",
+	"reports":               "reports",
+	"reportFolder":          "reports",
+	"role":                  "roles",
+	"sharingRule":           "sharing-rules",
+	"singleSignOn":          "single-sign-ons",
+	"validationRule":        "validation-rules",
+	"view":                  "object-views",
+	"workflow":              "workflows",
+	"workflowRule":          "workflows",
 }
 
 var lowCodeShortcutActions = map[string]bool{
-	"get":         true,
-	"detail":      true,
-	"getList":     true,
-	"newInfo":     true,
-	"editInfo":    true,
-	"validDelete": true,
-	"create":      true,
-	"register":    true,
-	"update":      true,
-	"save":        true,
-	"modify":      true,
-	"editSave":    true,
-	"assign":      true,
-	"add":         true,
-	"remove":      true,
-	"delete":      true,
-	"enable":      true,
-	"disable":     true,
-	"activate":    true,
-	"deactivate":  true,
-	"purge":       true,
+	"get":                   true,
+	"detail":                true,
+	"getList":               true,
+	"newInfo":               true,
+	"editInfo":              true,
+	"validDelete":           true,
+	"create":                true,
+	"createQuarter":         true,
+	"create-quarter":        true,
+	"createFiscalQuarter":   true,
+	"create-fiscal-quarter": true,
+	"register":              true,
+	"update":                true,
+	"updateQuarter":         true,
+	"update-quarter":        true,
+	"updateFiscalQuarter":   true,
+	"update-fiscal-quarter": true,
+	"saveFiscalQuarter":     true,
+	"save-fiscal-quarter":   true,
+	"save":                  true,
+	"modify":                true,
+	"editSave":              true,
+	"assign":                true,
+	"add":                   true,
+	"remove":                true,
+	"delete":                true,
+	"deleteQuarter":         true,
+	"delete-quarter":        true,
+	"deleteFiscalQuarter":   true,
+	"delete-fiscal-quarter": true,
+	"delFiscalQuarter":      true,
+	"del-fiscal-quarter":    true,
+	"enable":                true,
+	"disable":               true,
+	"activate":              true,
+	"deactivate":            true,
+	"purge":                 true,
 }
 
 // IsLowCodeShortcut returns true for legacy low-code metadata CLI shortcuts that
@@ -132,6 +154,12 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 	if resource == "view" && isShortcutRead(action) {
 		return handleObjectViewReadShortcut(action, projectPath, rest, stdout, cwd)
 	}
+	if isFiscalYearShortcutResource(resource) && isShortcutRead(action) {
+		return handleFiscalYearReadShortcut(action, projectPath, rest, stdout, cwd)
+	}
+	if isAreaShortcutResource(resource) && isShortcutRead(action) {
+		return handleAreaReadShortcut(action, projectPath, rest, stdout, cwd)
+	}
 	if resource == "reportMatrix" || resource == "reportRatio" ||
 		resource == "reportSummary" || resource == "reportTabular" {
 		return handleTypedReportShortcut(action, resource, projectPath, rest, stdout, cwd)
@@ -175,6 +203,50 @@ func handleObjectViewReadShortcut(action string, projectPath string, args []stri
 		body["objectId"] = strings.TrimSpace(args[0])
 	}
 	return c.writeJSON(stdout, http.MethodPost, "/metadata/v1/object-views:query", body)
+}
+
+func handleFiscalYearReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
+	action = strings.TrimSpace(action)
+	c, _, err := newClient([]string{projectPath}, cwd)
+	if err != nil {
+		return err
+	}
+	if action == "detail" || action == "editInfo" || action == "validDelete" || (action == "get" && len(args) == 1) {
+		if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
+			return fmt.Errorf("cloudcc %s fiscalYear <projectPath> <id-or-year-name>", action)
+		}
+		return c.getJSON(stdout, "/metadata/v1/fiscal-years/"+url.PathEscape(strings.TrimSpace(args[0])))
+	}
+	if len(args) > 1 {
+		return fmt.Errorf("cloudcc %s fiscalYear <projectPath> [filter]", action)
+	}
+	path := "/metadata/v1/fiscal-years"
+	if len(args) == 1 && strings.TrimSpace(args[0]) != "" {
+		path += "?filter=" + url.QueryEscape(strings.TrimSpace(args[0]))
+	}
+	return c.getJSON(stdout, path)
+}
+
+func handleAreaReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
+	action = strings.TrimSpace(action)
+	c, _, err := newClient([]string{projectPath}, cwd)
+	if err != nil {
+		return err
+	}
+	if action == "detail" || action == "editInfo" || action == "validDelete" || (action == "get" && len(args) == 1) {
+		if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
+			return fmt.Errorf("cloudcc %s area <projectPath> <area-id-or-name>", action)
+		}
+		return c.getJSON(stdout, "/metadata/v1/areas/"+url.PathEscape(strings.TrimSpace(args[0])))
+	}
+	if len(args) > 1 {
+		return fmt.Errorf("cloudcc %s area <projectPath> [filter]", action)
+	}
+	path := "/metadata/v1/areas/tree"
+	if len(args) == 1 && strings.TrimSpace(args[0]) != "" {
+		path += "?filter=" + url.QueryEscape(strings.TrimSpace(args[0]))
+	}
+	return c.getJSON(stdout, path)
 }
 
 func handleApiRegistrarReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
@@ -1505,6 +1577,24 @@ func isShortcutRead(action string) bool {
 	}
 }
 
+func isFiscalYearShortcutResource(resource string) bool {
+	switch strings.TrimSpace(resource) {
+	case "fiscalYear", "fiscal-year", "fiscal-years":
+		return true
+	default:
+		return false
+	}
+}
+
+func isAreaShortcutResource(resource string) bool {
+	switch strings.TrimSpace(resource) {
+	case "area", "areas", "hierarchicalStructure":
+		return true
+	default:
+		return false
+	}
+}
+
 func shortcutProjectPath(args []string, cwd string) (string, []string) {
 	if len(args) == 0 {
 		return cwd, nil
@@ -1555,6 +1645,12 @@ func shortcutPlanSpec(action string, resource string, args []string) (map[string
 	}
 	if resource == "workflow" || resource == "workflowRule" {
 		return workflowShortcutSpec(action, args)
+	}
+	if isFiscalYearShortcutResource(resource) {
+		return fiscalYearShortcutSpec(action, args)
+	}
+	if isAreaShortcutResource(resource) {
+		return areaShortcutSpec(action, args)
 	}
 	if resource == "fields" && strings.TrimSpace(action) == "delete" {
 		if len(args) == 0 || strings.TrimSpace(args[0]) == "" {
@@ -1762,6 +1858,101 @@ func validationRuleShortcutSpec(action string, args []string) (map[string]any, s
 		return map[string]any{"validationRules": []any{map[string]any{"id": args[0]}}}, operation, nil
 	default:
 		return shortcutBodySpec(action, "validationRule", args)
+	}
+}
+
+func fiscalYearShortcutSpec(action string, args []string) (map[string]any, string, error) {
+	operation := shortcutOperation(action, "fiscalYear")
+	normalizedAction := strings.TrimSpace(action)
+	switch normalizedAction {
+	case "createQuarter", "create-quarter", "createFiscalQuarter", "create-fiscal-quarter",
+		"saveFiscalQuarter", "save-fiscal-quarter":
+		operation = "saveFiscalQuarter"
+	case "updateQuarter", "update-quarter", "updateFiscalQuarter", "update-fiscal-quarter":
+		operation = "updateFiscalQuarter"
+	case "deleteQuarter", "delete-quarter", "deleteFiscalQuarter", "delete-fiscal-quarter",
+		"delFiscalQuarter", "del-fiscal-quarter":
+		operation = "delete-quarter"
+	}
+	if len(args) > 0 && looksLikeJSONArg(args[0]) {
+		body, err := parseObject(args[0], "cloudcc "+action+" fiscalYear")
+		return body, operation, err
+	}
+	switch normalizedAction {
+	case "create":
+		if len(args) < 3 {
+			return nil, "", fmt.Errorf("cloudcc create fiscalYear <projectPath> <year-name> <startDate> <endDate> [description] now creates a MetadataService plan")
+		}
+		body := map[string]any{
+			"name":      args[0],
+			"startDate": args[1],
+			"endDate":   args[2],
+		}
+		if len(args) > 3 && strings.TrimSpace(args[3]) != "" {
+			body["description"] = args[3]
+		}
+		return body, operation, nil
+	case "createQuarter", "create-quarter", "createFiscalQuarter", "create-fiscal-quarter",
+		"saveFiscalQuarter", "save-fiscal-quarter", "updateQuarter", "update-quarter",
+		"updateFiscalQuarter", "update-fiscal-quarter":
+		if len(args) < 4 {
+			return nil, "", fmt.Errorf("cloudcc %s fiscalYear <projectPath> <fiscal-year-id> <quarter-name> <startDate> <endDate> [description] [quarter-id] now creates a MetadataService quarter plan", action)
+		}
+		body := map[string]any{
+			"fiscalYearId": args[0],
+			"name":         args[1],
+			"startDate":    args[2],
+			"endDate":      args[3],
+		}
+		if len(args) > 4 && strings.TrimSpace(args[4]) != "" {
+			body["description"] = args[4]
+		}
+		if len(args) > 5 && strings.TrimSpace(args[5]) != "" {
+			body["id"] = strings.TrimSpace(args[5])
+		}
+		return body, operation, nil
+	case "delete":
+		if len(args) == 0 || strings.TrimSpace(args[0]) == "" {
+			return nil, "", fmt.Errorf("cloudcc delete fiscalYear <projectPath> <fiscal-year-id> now creates a MetadataService delete plan")
+		}
+		return map[string]any{"id": strings.TrimSpace(args[0])}, operation, nil
+	case "deleteQuarter", "delete-quarter", "deleteFiscalQuarter", "delete-fiscal-quarter",
+		"delFiscalQuarter", "del-fiscal-quarter":
+		if len(args) == 0 || strings.TrimSpace(args[0]) == "" {
+			return nil, "", fmt.Errorf("cloudcc %s fiscalYear <projectPath> <quarter-id> now creates a MetadataService quarter delete plan", action)
+		}
+		return map[string]any{"quarterId": strings.TrimSpace(args[0])}, operation, nil
+	default:
+		return shortcutBodySpec(action, "fiscalYear", args)
+	}
+}
+
+func areaShortcutSpec(action string, args []string) (map[string]any, string, error) {
+	operation := shortcutOperation(action, "area")
+	if len(args) > 0 && looksLikeJSONArg(args[0]) {
+		body, err := parseObject(args[0], "cloudcc "+action+" area")
+		return body, operation, err
+	}
+	switch strings.TrimSpace(action) {
+	case "create":
+		if len(args) < 1 {
+			return nil, "", fmt.Errorf("cloudcc create area <projectPath> <name> [parentAreaId] [areaId] now creates a MetadataService plan")
+		}
+		body := map[string]any{"name": args[0]}
+		if len(args) > 1 && strings.TrimSpace(args[1]) != "" {
+			body["parentId"] = strings.TrimSpace(args[1])
+		}
+		if len(args) > 2 && strings.TrimSpace(args[2]) != "" {
+			body["areaId"] = strings.TrimSpace(args[2])
+		}
+		return body, operation, nil
+	case "delete":
+		if len(args) == 0 || strings.TrimSpace(args[0]) == "" {
+			return nil, "", fmt.Errorf("cloudcc delete area <projectPath> <area-id> now creates a MetadataService delete plan")
+		}
+		return map[string]any{"areaId": strings.TrimSpace(args[0])}, operation, nil
+	default:
+		return shortcutBodySpec(action, "area", args)
 	}
 }
 

@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.38"
+const Version = "2.2.39"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -34,6 +34,8 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	case "changelog":
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
+		fmt.Fprintln(stderr, "- Fiscal-year low-code domain now includes child fiscal quarters: fiscal-years reads return fiscalQuarters on detail, nested quarters[] plans write tp_sys_fiscalquarter, createQuarter/deleteQuarter shortcuts map to setup-svc saveFiscalQuarter/delFiscalQuarter semantics, and quarterly ranges are guarded inside their parent fiscal year.")
+		fmt.Fprintln(stderr, "- Company low-code domain closure adds fiscal-year and area hierarchy MetadataService domains: fiscal-years supports query/create/update/delete plus fiscal-quarter save/delete, areas follows setup-web queryTree/saveArea/DeleteArea semantics, and user CLI commands now use setup-svc /api/usermange/* contracts with deactivate-on-delete behavior.")
 		fmt.Fprintln(stderr, "- High-code publish now follows setup-svc custom-code version semantics for classes, triggers, and timer: new resources send version 3, updates first read target detail and preserve the live version so existing version-3 records are not downgraded by stale local config.")
 		fmt.Fprintln(stderr, "- CLI compatibility doctor now validates low-code CLI/MetadataService version gates and reports high-code CLI/setup-svc advisory baselines: 2.2.7 high-code publish recommends setup-svc 19.3.R20+, while 2.2.33 API registrar low-code metadata requires MetadataService 1.1.41+ and runtime/high-code remote invocation recommends setup-svc 19.7.R8+; setup-svc DEV/B/G/customer branches do not block by version string alone.")
 		fmt.Fprintln(stderr, "- Retracted migration-specific classify, physical-preflight, evidence-archive, and direct catalog-output surfaces; existing object/field scan and create fixes remain available through the normal MSAPI contract.")
@@ -275,6 +277,17 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc get profile <projectPath> [filter]")
 	fmt.Fprintln(stdout, "  cloudcc detail profile <projectPath> <id|name|apiName>")
 	fmt.Fprintln(stdout, "  cloudcc delete profile <projectPath> <id|name|apiName>  # resolves uniquely and creates a guarded MetadataService plan")
+	fmt.Fprintln(stdout, "  cloudcc get fiscalYear <projectPath> [filterJson|year]")
+	fmt.Fprintln(stdout, "  cloudcc detail fiscalYear <projectPath> <id|year>")
+	fmt.Fprintln(stdout, "  cloudcc create fiscalYear <projectPath> <year> <startDate> <endDate> [description]")
+	fmt.Fprintln(stdout, "  cloudcc createQuarter fiscalYear <projectPath> <fiscalYearId> <quarterName> <startDate> <endDate> [description] [quarterId]")
+	fmt.Fprintln(stdout, "  cloudcc deleteQuarter fiscalYear <projectPath> <quarterId>")
+	fmt.Fprintln(stdout, "  cloudcc delete fiscalYear <projectPath> <id|year>")
+	fmt.Fprintln(stdout, "  cloudcc get area <projectPath> [filterJson|name]")
+	fmt.Fprintln(stdout, "  cloudcc detail area <projectPath> <areaId|name>")
+	fmt.Fprintln(stdout, "  cloudcc create area <projectPath> <name> [parentAreaId] [areaId]")
+	fmt.Fprintln(stdout, "  cloudcc delete area <projectPath> <areaId>")
+	fmt.Fprintln(stdout, "  cloudcc <get|detail|create|update|delete> user <projectPath> ...  # setup-svc /api/usermange/*")
 	fmt.Fprintln(stdout, "  cloudcc get report <projectPath> [folderId] [searchKeyWord] [page] [pageSize] [orderField] [orderType]")
 	fmt.Fprintln(stdout, "  cloudcc detail report <projectPath> <reportId|encodedBodyJson>")
 	fmt.Fprintln(stdout, "  cloudcc create report <projectPath> <encodedReportJson>")

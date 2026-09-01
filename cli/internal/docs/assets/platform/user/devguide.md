@@ -1,122 +1,173 @@
-# CloudCC 用户 CLI 命令说明
+# 用户 CLI 用户级与开发说明
 
-## 支持的命令
+用户管理走 setup-svc 直连，不纳入 MetadataService plan/apply/rollback。原因是用户账号属于运行态安全主体，创建、停用、重置密码、MFA 和登录历史会触发账号、安全、通知等运行态逻辑，不能简单按元数据表回滚。
 
-| 操作 | 说明 |
-|------|------|
-| `create` | 创建新用户 |
-| `get` | 查询用户列表 |
-| `view` | 查看单个用户详情 |
-| `update` | 编辑/禁用用户 |
-| `delete` | 删除用户 |
+## 主命令映射
 
-## CLI 命令详解
+| CLI | setup-service |
+|-----|---------------|
+| `cloudcc get user` / `query` / `getList` | `/api/usermange/queryUserList` |
+| `cloudcc views user` / `queryViews` | `/api/usermange/queryUser` |
+| `cloudcc newInfo user` / `addUserQuery` | `/api/usermange/addUserQuery` |
+| `cloudcc view user` / `detail` | `/api/usermange/viewUser` |
+| `cloudcc editInfo user` | `/api/usermange/editUserQuery` |
+| `cloudcc create user` / `save` | `/api/usermange/saveUser` |
+| `cloudcc update user` / `editSave` | `/api/usermange/editandsave` |
+| `cloudcc delete user` / `deactivate` / `disable` | `/api/usermange/editandsave` with `isusing=false` |
+| `cloudcc resetpw user` | `/api/usermange/resetpw` |
+| `cloudcc unlock user` / `unlocked` | `/api/usermange/unlocked` |
+| `cloudcc unBindMfa user` / `mfa-unbind` | `/api/usermange/unBindMfa` |
+| `cloudcc choseemail user` | `/api/usermange/choseemail` |
+| `cloudcc setSendFrom user` | `/api/usermange/setSendFrom` |
+| `cloudcc sendemail user` | `/api/usermange/sendemail` |
 
-### 创建用户
+## 查询用户列表
 
 ```bash
-cloudcc create user <path> <userName> <profileId> [email]
+cloudcc get user <projectPath> [encodedJson]
 ```
 
-**参数说明：**
-
-| 参数 | 必填 | 说明 |
-|------|------|------|
-| `path` | 是 | 项目路径，`.` 表示当前目录 |
-| `userName` | 是 | 用户名称 |
-| `profileId` | 是 | 关联简档 ID |
-| `email` | 否 | 用户邮箱 |
-
-**示例：**
+示例：
 
 ```bash
-# 创建用户
-cloudcc create user . "张三" a0I9D000000XXXXUAI
-
-# 创建带邮箱的用户
-cloudcc create user . "李四" a0I9D000000XXXXUAI "lisi@example.com"
-```
-
-### 查询用户列表
-
-```bash
-cloudcc get user <projectPath> [encodedCondJson]
-```
-
-**参数说明：**
-
-| 参数 | 必填 | 说明 |
-|------|------|------|
-| `projectPath` | 否 | 项目路径，默认当前目录 |
-| `encodedCondJson` | 否 | URI 编码后的查询条件 JSON |
-
-**查询条件参数：**
-
-| 参数名 | 类型 | 说明 |
-|--------|------|------|
-| `start` | number | 起始位置，默认 0 |
-| `limit` | number | 每页条数，默认 30 |
-| `keyword` | string | 搜索关键词 |
-
-**示例：**
-
-```bash
-# 获取所有用户
 cloudcc get user .
-
-# 带查询条件（搜索关键词）
-cloudcc get user . '%7B%22keyword%22%3A%22张三%22%2C%22limit%22%3A50%7D'
+cloudcc get user . '{"start":0,"limit":50,"viewId":"view-user-default","keyword":"张"}'
 ```
 
-### 查看单个用户详情
+常用字段：
+
+| 字段 | 说明 |
+|------|------|
+| `start` | 起始位置，setup-web 默认从 `0` 开始 |
+| `limit` | 返回条数 |
+| `viewId` | 用户列表视图 ID |
+| `keyword` | 搜索关键字 |
+| `sort` / `dir` | 排序字段和方向 |
+
+## 查询用户视图
+
+```bash
+cloudcc views user <projectPath> [encodedJson]
+cloudcc queryViews user <projectPath> [encodedJson]
+```
+
+该命令调用 `/api/usermange/queryUser`，用于获取用户页面的视图列表。列表页通常先取视图，再用选中的 `viewId` 调 `/api/usermange/queryUserList`。
+
+## 查看用户详情
 
 ```bash
 cloudcc view user <projectPath> <userId>
+cloudcc detail user <projectPath> '{"userId":"005..."}'
 ```
 
-**示例：**
+普通 ID 参数会自动组装为：
+
+```json
+{"userId":"005...","id":"005..."}
+```
+
+## 新增用户
+
+推荐传 setup-web 表单同形 JSON：
 
 ```bash
-cloudcc view user . 00520260C00C6FEfsMnT
+cloudcc create user <projectPath> '{"loginName":"new.user@example.com","lastName":"张","firstName":"三","email":"new.user@example.com","profileId":"aaa000001","role":"role-sales","isusing":"true","isSendEmail":"false"}'
 ```
 
-### 编辑/禁用用户
+CLI 会自动包装为 setup-web 保存形状：
+
+```json
+{
+  "dataJson": "{\"loginName\":\"new.user@example.com\",\"lastName\":\"张\",\"profileId\":\"aaa000001\",\"role\":\"role-sales\",\"isusing\":\"true\"}",
+  "sendemail": false
+}
+```
+
+如果调用方已经传入 `dataJson`，CLI 会原样发送：
 
 ```bash
-cloudcc update user <projectPath> <userDataJson>
+cloudcc create user . '{"dataJson":"{\"loginName\":\"new.user@example.com\",\"profileId\":\"aaa000001\"}","sendemail":true}'
 ```
 
-**userDataJson 关键字段：**
-
-| 字段名 | 说明 |
-|--------|------|
-| `id` | 用户 ID（必填）|
-| `loginName` | 登录名（必填）|
-| `isusing` | 是否启用：`true`/`false` |
-| `lastName` | 姓 |
-| `email` | 邮箱 |
-| `mobile` | 手机 |
-| `profileId` | 简档 ID |
-| `role` | 角色 ID |
-
-**示例：**
+兼容简写：
 
 ```bash
-# 禁用用户
-cloudcc update user . '%7B%22id%22%3A%22xxx%22%2C%22loginName%22%3A%22test%40cloudcc.com%22%2C%22isusing%22%3A%22false%22%7D'
-
-# 启用用户
-cloudcc update user . '%7B%22id%22%3A%22xxx%22%2C%22loginName%22%3A%22test%40cloudcc.com%22%2C%22isusing%22%3A%22true%22%7D'
+cloudcc create user <projectPath> <name> <profileId> [email]
 ```
 
-### 删除用户
+简写只适合最小化试运行；生产建议使用 JSON 显式传 `loginName`、`profileId`、`role`、邮箱、语言、时区、启用状态等字段。
+
+## 编辑用户
+
+```bash
+cloudcc update user <projectPath> '{"id":"005...","lastName":"张三","email":"zhangsan@example.com","profileId":"aaa000001","role":"role-sales","isusing":"true"}'
+```
+
+CLI 会包装为：
+
+```json
+{"dataJson":"{\"id\":\"005...\",\"lastName\":\"张三\",\"isusing\":\"true\"}"}
+```
+
+如果要完全复刻 setup-web 编辑页，先执行：
+
+```bash
+cloudcc editInfo user . <userId>
+```
+
+基于返回表单补齐字段后再 `update user`。
+
+## 停用用户
 
 ```bash
 cloudcc delete user <projectPath> <userId>
+cloudcc deactivate user <projectPath> <userId>
+cloudcc disable user <projectPath> <userId>
 ```
 
-**示例：**
+这些命令都调用 `/api/usermange/editandsave`，发送：
+
+```json
+{"dataJson":"{\"id\":\"005...\",\"isusing\":\"false\"}"}
+```
+
+不要把用户停用理解为物理删除。若目标租户要求保留登录名、邮箱或审计信息，停用符合 setup-web 行为。
+
+## 密码、锁定和 MFA
 
 ```bash
-cloudcc delete user . 00520260C00C6FEfsMnT
+cloudcc resetpw user <projectPath> <userId>
+cloudcc unlock user <projectPath> <userId>
+cloudcc unBindMfa user <projectPath> <userId>
 ```
+
+普通 ID 参数会自动携带 `userId`、`id`、`checkedid`，以兼容不同 setup-service 方法读取字段的习惯。需要页面同形参数时也可以传 JSON。
+
+## 邮件发送流程
+
+```bash
+cloudcc choseemail user <projectPath> '{"checkedid":"005..."}'
+cloudcc setSendFrom user <projectPath> '{"checkedid":"005...","emailid":"template-id"}'
+cloudcc sendemail user <projectPath> '{"checkedid":"005...","biaoti":"标题","zhengwen":"正文","emailid":"template-id"}'
+```
+
+邮件流程属于 setup-svc 运行态操作，不进入 MetadataService。
+
+## 页面辅助接口
+
+setup-web 用户页还会调用这些接口，CLI 主命令不会把它们伪装成用户元数据 domain：
+
+| 用途 | 接口 |
+|------|------|
+| 角色弹窗 | `/api/role/popup` |
+| 简档弹窗 | `/api/profile/popup` |
+| lookup 字段信息 | `/api/lookup/getLookupInfo` |
+| lookup 数据 | `/api/lookup/getLookupData` |
+| lookup 关联字段值 | `/api/lookup/getLookupRelatedFieldValue` |
+| 登录历史 | `/api/log/getLoginHistory` |
+| 当前用户信息 | `/api/user/getUserInfo` |
+| 用户视图列表 | `/api/view/list/getViewList` |
+| 访问权限用户列表 | `/api/access/permission/getUserList` |
+| 访问权限 token | `/api/access/permission/getAccessToken` |
+
+需要这些页面辅助接口时，优先使用相应已有 CLI domain；没有专用命令时按 setup-service JSON 契约调用。

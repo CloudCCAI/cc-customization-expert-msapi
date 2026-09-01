@@ -235,11 +235,31 @@ var genericEndpoints = map[string]map[string]endpoint{
 		"delete": {"setup", "/api/spconfig/delete"},
 	},
 	"user": {
-		"get":    {"setup", "/api/user/list"},
-		"view":   {"setup", "/api/user/view"},
-		"create": {"setup", "/api/user/save"},
-		"update": {"setup", "/api/user/save"},
-		"delete": {"setup", "/api/user/delete"},
+		"get":          {"setup", "/api/usermange/queryUserList"},
+		"query":        {"setup", "/api/usermange/queryUserList"},
+		"getList":      {"setup", "/api/usermange/queryUserList"},
+		"views":        {"setup", "/api/usermange/queryUser"},
+		"queryViews":   {"setup", "/api/usermange/queryUser"},
+		"newInfo":      {"setup", "/api/usermange/addUserQuery"},
+		"addUserQuery": {"setup", "/api/usermange/addUserQuery"},
+		"detail":       {"setup", "/api/usermange/viewUser"},
+		"view":         {"setup", "/api/usermange/viewUser"},
+		"create":       {"setup", "/api/usermange/saveUser"},
+		"save":         {"setup", "/api/usermange/saveUser"},
+		"editInfo":     {"setup", "/api/usermange/editUserQuery"},
+		"update":       {"setup", "/api/usermange/editandsave"},
+		"editSave":     {"setup", "/api/usermange/editandsave"},
+		"delete":       {"setup", "/api/usermange/editandsave"},
+		"deactivate":   {"setup", "/api/usermange/editandsave"},
+		"disable":      {"setup", "/api/usermange/editandsave"},
+		"resetpw":      {"setup", "/api/usermange/resetpw"},
+		"unlock":       {"setup", "/api/usermange/unlocked"},
+		"unlocked":     {"setup", "/api/usermange/unlocked"},
+		"unBindMfa":    {"setup", "/api/usermange/unBindMfa"},
+		"mfa-unbind":   {"setup", "/api/usermange/unBindMfa"},
+		"choseemail":   {"setup", "/api/usermange/choseemail"},
+		"setSendFrom":  {"setup", "/api/usermange/setSendFrom"},
+		"sendemail":    {"setup", "/api/usermange/sendemail"},
 	},
 	"validationRule": {
 		"get":    {"setup", "/api/validateRule/queryByPrefix"},
@@ -312,6 +332,8 @@ func Handle(action string, resource string, args []string, stdout io.Writer, std
 		return handlePageLayout(action, args, stdout, stderr, cwd)
 	case "menu":
 		return handleMenu(action, args, stdout, cwd)
+	case "user":
+		return handleUser(action, args, stdout, cwd)
 	case "jsp", "site", "skill":
 		return fmt.Errorf("%s %s is deferred to P4 or a later task in the Go rewrite", action, resource)
 	}
@@ -390,6 +412,117 @@ func handleScheduleJob(action string, args []string, stdout io.Writer, cwd strin
 		return err
 	}
 	return postClass(stdout, cfg, ep.base, ep.path, body)
+}
+
+func handleUser(action string, args []string, stdout io.Writer, cwd string) error {
+	ep, ok := genericEndpoints["user"][action]
+	if !ok {
+		return fmt.Errorf("unsupported user action: %s", action)
+	}
+	projectPath := firstArg(args, cwd)
+	rest := argsAfterProject(args)
+	body, err := userRequestBody(action, rest)
+	if err != nil {
+		return err
+	}
+	cfg, err := config.Load(projectPath)
+	if err != nil {
+		return err
+	}
+	return postClass(stdout, cfg, ep.base, ep.path, body)
+}
+
+func userRequestBody(action string, args []string) (map[string]any, error) {
+	if len(args) == 0 || strings.TrimSpace(args[0]) == "" {
+		switch action {
+		case "get", "query", "getList", "views", "queryViews", "newInfo", "addUserQuery":
+			return map[string]any{}, nil
+		default:
+			return nil, fmt.Errorf("cloudcc %s user <projectPath> <encodedJson-or-userId>", action)
+		}
+	}
+	if body, err := jsonx.ParseEncodedObject(args[0], "cloudcc "+action+" user"); err == nil {
+		return normalizeUserRequestBody(action, body)
+	}
+	if action == "create" && len(args) >= 2 {
+		form := map[string]any{
+			"name":      strings.TrimSpace(args[0]),
+			"profileId": strings.TrimSpace(args[1]),
+		}
+		if len(args) >= 3 && strings.TrimSpace(args[2]) != "" {
+			form["email"] = strings.TrimSpace(args[2])
+		}
+		return userDataJsonBody(form, true)
+	}
+	id := strings.TrimSpace(args[0])
+	switch action {
+	case "detail", "view", "editInfo":
+		return map[string]any{"userId": id, "id": id}, nil
+	case "resetpw", "unlock", "unlocked", "unBindMfa", "mfa-unbind":
+		return map[string]any{"userId": id, "id": id, "checkedid": id}, nil
+	case "delete", "deactivate", "disable":
+		return userDataJsonBody(map[string]any{"id": id, "isusing": "false"}, false)
+	default:
+		return nil, fmt.Errorf("cloudcc %s user expects an encoded JSON body", action)
+	}
+}
+
+func normalizeUserRequestBody(action string, body map[string]any) (map[string]any, error) {
+	switch action {
+	case "create", "save":
+		return normalizeUserSaveBody(body, true)
+	case "update", "editSave":
+		return normalizeUserSaveBody(body, false)
+	case "delete", "deactivate", "disable":
+		form := copyStringAnyMap(body)
+		form["isusing"] = "false"
+		return userDataJsonBody(form, false)
+	default:
+		return body, nil
+	}
+}
+
+func normalizeUserSaveBody(body map[string]any, allowSendEmail bool) (map[string]any, error) {
+	if _, exists := body["dataJson"]; exists {
+		return body, nil
+	}
+	return userDataJsonBody(body, allowSendEmail)
+}
+
+func userDataJsonBody(form map[string]any, allowSendEmail bool) (map[string]any, error) {
+	payload := copyStringAnyMap(form)
+	sendEmail := false
+	if allowSendEmail {
+		sendEmail = truthy(payload["sendemail"]) || truthy(payload["sendEmail"]) || truthy(payload["isSendEmail"])
+	}
+	delete(payload, "sendemail")
+	delete(payload, "sendEmail")
+	bodyBytes, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+	body := map[string]any{"dataJson": string(bodyBytes)}
+	if allowSendEmail {
+		body["sendemail"] = sendEmail
+	}
+	return body, nil
+}
+
+func truthy(value any) bool {
+	switch typed := value.(type) {
+	case bool:
+		return typed
+	case string:
+		switch strings.ToLower(strings.TrimSpace(typed)) {
+		case "true", "1", "yes", "y":
+			return true
+		}
+	case float64:
+		return typed != 0
+	case int:
+		return typed != 0
+	}
+	return false
 }
 
 func handlePageLayout(action string, args []string, stdout io.Writer, _ io.Writer, cwd string) error {
