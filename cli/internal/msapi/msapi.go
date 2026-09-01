@@ -185,10 +185,18 @@ func newClient(args []string, cwd string) (*client, []string, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	token, err := accessToken(projectPath)
+	if err != nil {
+		return nil, nil, err
+	}
+	userToken, err := cloudccUserToken(projectPath)
+	if err != nil {
+		return nil, nil, err
+	}
 	return &client{
 		baseURL:          strings.TrimRight(baseURL, "/"),
-		token:            accessToken(projectPath),
-		cloudccUserToken: cloudccUserToken(projectPath),
+		token:            token,
+		cloudccUserToken: userToken,
 		projectPath:      projectPath,
 		http:             &http.Client{Timeout: 180 * time.Second},
 	}, remaining, nil
@@ -292,44 +300,50 @@ func validateMetadataServiceURL(value string) error {
 	return nil
 }
 
-func accessToken(projectPath string) string {
+func accessToken(projectPath string) (string, error) {
 	if value := strings.TrimSpace(os.Getenv("CLOUDCC_METADATA_SERVICE_ACCESS_TOKEN")); value != "" {
-		return trimBearer(value)
+		return trimBearer(value), nil
 	}
-	if root, err := config.Root(projectPath); err == nil {
+	root, rootErr := config.Root(projectPath)
+	if rootErr == nil {
 		use, _ := root["use"].(string)
 		active, _ := root[use].(map[string]any)
 		if value := tokenFromMap(active); value != "" {
-			return trimBearer(value)
+			return trimBearer(value), nil
 		}
+	} else if os.IsNotExist(rootErr) {
+		return "", nil
 	}
 	cfg, err := config.Load(projectPath)
 	if err != nil {
-		return ""
+		return "", err
 	}
 	return trimBearer(firstString(
 		config.String(cfg, "metadataServiceAccessToken"),
 		config.String(cfg, "accessToken"),
 		config.String(cfg, "token"),
-	))
+	)), nil
 }
 
-func cloudccUserToken(projectPath string) string {
-	if root, err := config.Root(projectPath); err == nil {
+func cloudccUserToken(projectPath string) (string, error) {
+	root, rootErr := config.Root(projectPath)
+	if rootErr == nil {
 		use, _ := root["use"].(string)
 		active, _ := root[use].(map[string]any)
 		if value := firstString(stringValue(active["accessToken"]), stringValue(active["token"])); value != "" {
-			return trimBearer(value)
+			return trimBearer(value), nil
 		}
+	} else if os.IsNotExist(rootErr) {
+		return "", nil
 	}
 	cfg, err := config.Load(projectPath)
 	if err != nil {
-		return ""
+		return "", err
 	}
 	return trimBearer(firstString(
 		config.String(cfg, "accessToken"),
 		config.String(cfg, "token"),
-	))
+	)), nil
 }
 
 func tokenFromMap(active map[string]any) string {
@@ -1082,7 +1096,9 @@ func (c *client) writeJSON(stdout io.Writer, method string, path string, body an
 		return err
 	}
 	if statusCode < 200 || statusCode >= 300 {
-		if c.refreshTokenAfterInvalidToken(statusCode, resBody) {
+		if refreshed, refreshErr := c.refreshTokenAfterInvalidToken(statusCode, resBody); refreshErr != nil {
+			return refreshErr
+		} else if refreshed {
 			resBody, statusCode, err = c.doJSON(method, path, payload)
 			if err != nil {
 				return err
@@ -1120,7 +1136,9 @@ func (c *client) requestJSONMap(method string, path string, body any) (map[strin
 		return nil, err
 	}
 	if statusCode < 200 || statusCode >= 300 {
-		if c.refreshTokenAfterInvalidToken(statusCode, resBody) {
+		if refreshed, refreshErr := c.refreshTokenAfterInvalidToken(statusCode, resBody); refreshErr != nil {
+			return nil, refreshErr
+		} else if refreshed {
 			resBody, statusCode, err = c.doJSON(method, path, payload)
 			if err != nil {
 				return nil, err
@@ -1179,19 +1197,19 @@ func (c *client) doJSON(method string, path string, payload []byte) ([]byte, int
 	return resBody, res.StatusCode, nil
 }
 
-func (c *client) refreshTokenAfterInvalidToken(statusCode int, resBody []byte) bool {
+func (c *client) refreshTokenAfterInvalidToken(statusCode int, resBody []byte) (bool, error) {
 	if statusCode != http.StatusUnauthorized || !isInvalidTokenResponse(resBody) {
-		return false
+		return false, nil
 	}
 	if strings.TrimSpace(os.Getenv("CLOUDCC_METADATA_SERVICE_ACCESS_TOKEN")) != "" {
-		return false
+		return false, nil
 	}
 	if err := config.ClearCacheEntry(c.projectPath); err != nil {
-		return false
+		return false, nil
 	}
 	cfg, err := config.Load(c.projectPath)
 	if err != nil {
-		return false
+		return false, fmt.Errorf("metadata service rejected the cached accessToken, and CloudCC accessToken refresh failed: %w", err)
 	}
 	token := trimBearer(firstString(
 		config.String(cfg, "metadataServiceAccessToken"),
@@ -1199,10 +1217,10 @@ func (c *client) refreshTokenAfterInvalidToken(statusCode int, resBody []byte) b
 		config.String(cfg, "token"),
 	))
 	if token == "" {
-		return false
+		return false, nil
 	}
 	c.token = token
-	return true
+	return true, nil
 }
 
 func (c *client) clearCacheIfInvalidToken(statusCode int, resBody []byte) {

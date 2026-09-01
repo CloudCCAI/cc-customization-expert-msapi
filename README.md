@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.39-msapi
+# cc-customization-expert-msapi v2.2.40-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -32,6 +32,8 @@ Strict MetadataService package: low-code operations require MetadataService.
 从技能 `2.2.38` 开始，classes/triggers/timer 创建默认按 setup-svc 新版自定义代码语义发送 `version=3`；更新会先读取目标 detail，优先沿用线上记录的 version，线上 version 为空按旧版 `2` 处理，保存后再把线上 ID/version 写回本地 `config.json`。
 
 从技能 `2.2.39` 开始，会计年度和区域层级进入 MetadataService 低代码域：`fiscal-years` 管理年度及下级会计季度，详情返回 `fiscalQuarters[]`，年度 spec 可嵌套 `quarters[]`，并提供 `createQuarter/deleteQuarter fiscalYear` 快捷命令；`areas` 仅按 setup-web `/api/area/queryTree`、`/api/area/saveArea`、`/api/area/DeleteArea` 建模。用户管理 CLI 改用 setup-svc `/api/usermange/*`，删除/disable/deactivate 统一为停用用户。
+
+从技能 `2.2.40` 开始，CloudCC `accessToken` 自动刷新如果在 `/api/cauth/token` 失败，会立即返回接口失败原因并提示检查当前环境的 `cloudcc-cli.config.json` 配置，不再继续请求到只剩通用缺 token 错误。
 
 CloudCC 高代码主动调用外部 HTTP 服务时，先读取 `cloudcc doc platform/apiRegistrar devguide`。接口注册器的配置 CRUD 属于 MetadataService 域，调试和日志属于 setup-svc 实时运行态；业务源码只引用调试成功且为 `ACTIVE` 的 `apiCode`。从技能 `2.2.33` 开始，接口注册器运行态调试/日志和高代码远程调用调整要求 MetadataService `1.1.41` 或更高版本，并建议 setup-svc `19.7.R8` 或更高版本。
 

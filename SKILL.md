@@ -1,12 +1,12 @@
 ---
 name: cc-customization-expert-msapi
-version: 2.2.39-msapi
+version: 2.2.40-msapi
 description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService."
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.2.39-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.2.40-msapi
 
-当前技能版本：`2.2.39-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.2.40-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
 
@@ -30,6 +30,7 @@ description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict Metad
 - 高代码写入（classes、triggers、timer、script、html、staticResource、pagecomponent、customPage 等）不进入 MetadataService 元数据写域，继续走 CloudCC 原资源 API。
 - 接口注册器属于低代码配置元数据：create/update/delete/query 走 MetadataService，debug/logs/logDetail 保持 setup-svc 实时运行态通道。高代码调用外部 HTTP 前读取 `platform/apiRegistrar devguide`，源码只使用已调试且为 `ACTIVE` 的 `apiCode`，不得硬编码 URL 或误用软件包标识 `apiName`。从技能 `2.2.33` 开始，接口注册器运行态调试/日志和高代码远程调用调整要求 MetadataService `1.1.41` 或更高版本，并建议 setup-svc `19.7.R8` 或更高版本；setup-svc 分支版本只做提醒，不按字符串直接阻断。
 - 从技能 `2.2.39` 开始，会计年度 `fiscal-years` 纳入年度和下级会计季度：年度详情返回 `fiscalQuarters[]`，年度 spec 可嵌套 `quarters[]`，也可用 `createQuarter/deleteQuarter fiscalYear` 快捷命令；区域层级 `areas` 仅对齐 setup-web 使用的 `/api/area/queryTree`、`/api/area/saveArea`、`/api/area/DeleteArea`。用户管理 CLI 改用 setup-svc `/api/usermange/*`，删除语义为停用用户。
+- 从技能 `2.2.40` 开始，CloudCC `accessToken` 自动刷新如果在 `/api/cauth/token` 失败，会立即返回接口失败原因并提示检查当前环境的 `cloudcc-cli.config.json` 配置，不再继续请求到只剩通用缺 token 错误。
 - 高代码发布前先读 `cloudcc doc platform/classes|triggers|timer devguide` 或 `platform/almRelease devguide`；从技能 `2.2.7` 开始，classes/triggers/timer 的 publish 建议 setup-svc `19.3.R20` 或更高版本，不要求 MetadataService 版本门槛。classes 固定执行本地编译、目标 setup-svc validate、最后 save；triggers/timer 执行目标 setup-svc validate、最后 save；并把 validate 失败详情返回调用方。
 - 从技能 `2.2.38` 开始，classes/triggers/timer 创建时默认发送 setup-svc 自定义代码 `version=3`；更新时先读取目标 detail，优先沿用线上记录的 version，线上 version 为空按旧版 `2` 处理，再 validate/save，并在保存后把线上 ID/version 写回本地 `config.json`，避免旧本地配置把线上版本 3 降级。
 - 能力矩阵在 `capability-matrix.json`。`adapter` 表示已有 UIAPI 适配通道；`requires_adapter` 表示该 UIAPI 操作当前必须失败关闭，不能改走 MetadataService。

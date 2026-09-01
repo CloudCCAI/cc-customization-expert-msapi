@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.39"
+const Version = "2.2.40"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -34,6 +34,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	case "changelog":
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
+		fmt.Fprintln(stderr, "- CloudCC accessToken refresh failures now surface the /api/cauth/token failure reason immediately and remind callers to inspect the active cloudcc-cli.config.json credentials, instead of continuing until MetadataService reports a generic missing accessToken.")
 		fmt.Fprintln(stderr, "- Fiscal-year low-code domain now includes child fiscal quarters: fiscal-years reads return fiscalQuarters on detail, nested quarters[] plans write tp_sys_fiscalquarter, createQuarter/deleteQuarter shortcuts map to setup-svc saveFiscalQuarter/delFiscalQuarter semantics, and quarterly ranges are guarded inside their parent fiscal year.")
 		fmt.Fprintln(stderr, "- Company low-code domain closure adds fiscal-year and area hierarchy MetadataService domains: fiscal-years supports query/create/update/delete plus fiscal-quarter save/delete, areas follows setup-web queryTree/saveArea/DeleteArea semantics, and user CLI commands now use setup-svc /api/usermange/* contracts with deactivate-on-delete behavior.")
 		fmt.Fprintln(stderr, "- High-code publish now follows setup-svc custom-code version semantics for classes, triggers, and timer: new resources send version 3, updates first read target detail and preserve the live version so existing version-3 records are not downgraded by stale local config.")

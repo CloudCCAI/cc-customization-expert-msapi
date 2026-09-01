@@ -225,6 +225,10 @@ func addBusToken(client *httpclient.Client, cfg Config) error {
 	if stringValue(cfg["username"]) == "" || stringValue(cfg["safetyMark"]) == "" || stringValue(cfg["clientId"]) == "" || stringValue(cfg["openSecretKey"]) == "" || stringValue(cfg["orgId"]) == "" {
 		return nil
 	}
+	apiSvc := strings.TrimRight(stringValue(cfg["apiSvc"]), "/")
+	if apiSvc == "" {
+		return fmt.Errorf("CloudCC accessToken refresh failed before /api/cauth/token: apiSvc is missing; check cloudcc-cli.config.json active env for CloudCCDev/baseUrl/orgId/apiSvc configuration")
+	}
 	body := map[string]any{
 		"username":   cfg["username"],
 		"safetyMark": cfg["safetyMark"],
@@ -233,15 +237,18 @@ func addBusToken(client *httpclient.Client, cfg Config) error {
 		"orgId":      cfg["orgId"],
 	}
 	var res map[string]any
-	if err := client.PostRaw(strings.TrimRight(stringValue(cfg["apiSvc"]), "/")+"/api/cauth/token", body, nil, &res); err != nil {
-		return err
+	if err := client.PostRaw(apiSvc+"/api/cauth/token", body, nil, &res); err != nil {
+		return fmt.Errorf("CloudCC accessToken refresh failed at /api/cauth/token: %w; check cloudcc-cli.config.json active env for username/safetyMark/clientId/openSecretKey/orgId/apiSvc")
 	}
-	if ok, _ := res["result"].(bool); ok {
+	if ok, _ := res["result"].(bool); ok || numberOrString(res["returnCode"], "") == "1" {
 		if data, _ := res["data"].(map[string]any); data != nil {
-			cfg["accessToken"] = data["accessToken"]
+			if token := stringValue(data["accessToken"]); token != "" {
+				cfg["accessToken"] = token
+				return nil
+			}
 		}
 	}
-	return nil
+	return fmt.Errorf("CloudCC accessToken refresh failed at /api/cauth/token: %s; check cloudcc-cli.config.json active env for username/safetyMark/clientId/openSecretKey/orgId/apiSvc", cloudccResponseMessage(res))
 }
 
 func addSecretKey(_ *httpclient.Client, cfg Config) error {
@@ -375,4 +382,30 @@ func stringValue(v any) string {
 
 func String(cfg Config, key string) string {
 	return stringValue(cfg[key])
+}
+
+func cloudccResponseMessage(res map[string]any) string {
+	for _, key := range []string{"returnInfo", "message", "msg", "error", "returnMsg"} {
+		if value := stringValue(res[key]); strings.TrimSpace(value) != "" && value != "<nil>" {
+			return strings.TrimSpace(value)
+		}
+	}
+	code := strings.TrimSpace(numberOrString(res["returnCode"], ""))
+	if code != "" && code != "<nil>" {
+		return "returnCode=" + code
+	}
+	return "response did not include data.accessToken"
+}
+
+func numberOrString(v any, fallback string) string {
+	switch x := v.(type) {
+	case nil:
+		return fallback
+	case string:
+		return x
+	case float64:
+		return fmt.Sprintf("%.0f", x)
+	default:
+		return fmt.Sprint(x)
+	}
 }
