@@ -124,17 +124,16 @@ cloudcc doc platform/fields devguide
 官方文档，平台层面支持丰富的字段体系，包括文本、URL、百分比、币种、数字、文本区、长文本、富文本、电话、电子邮件、日期、日期/时间、评分、选项列表、图片、查找关系、主详信息关系、公式、自动编号、累计汇总、查找多选、复选框等类型。
 
 当前 `cloudcc-cli` 的 `fields`
-模块已经覆盖了其中一部分常用字段类型，用于自动化创建和管理字段。
+模块通过 MetadataService spec 覆盖平台开放字段编码，用于自动化创建和管理字段。旧版位置参数快捷命令仍可用于部分基础字段，但不作为完整字段能力的说明来源。
 
 字段元数据中的 `dataFieldRef` 不是业务 API 名，而是当前对象底层数据表中的物理存储槽位（例如 `str_field1`）。同一对象内，一个非 `none` 的物理槽位只能属于一个字段。通过 MetadataService 创建字段时，服务会读取 `tp_sys_schemetable` 的现有映射，并按字段类型分配首个可用空槽；调用方通常不应自行复制或硬编码该值。
 
-因此在实际使用时，需要区分两层：
+因此在实际使用时，需要区分两种 CLI 入口：
 
-- CloudCC 平台支持的完整字段能力
-- 当前 CLI 已实现的字段创建能力
+- MetadataService spec：推荐入口，覆盖基础字段、关系字段、公式、自动编号、累计汇总、地址、地理定位、权限、布局落位等完整元数据配置。
+- 位置参数快捷命令：兼容入口，只适合少量基础字段模板，不适合表达高级字段元数据。
 
-命令开发与自动化脚本，应以 `cloudcc doc platform/fields devguide` 中列出的“当前 CLI
-支持字段类型”为准。
+命令开发与自动化脚本，应优先参考 `cloudcc doc platform/fields devguide` 中的 MetadataService spec 示例和参数说明。
 
 ---
 
@@ -201,7 +200,7 @@ cloudcc doc platform/fields devguide
 
 平台层面还支持但通常更偏高级配置的字段类型包括：
 
-1. 公式
+1. 公式（`Z`）：创建时准备 `formulaText` 和公式返回类型 `formulaType`；`formulaText` 使用字段 API 名，内部执行表达式由 MetadataService 生成。普通公式字段语法以目标环境字段公式校验结果为准；可用运算符、完整函数清单和 `HYPERLINK(...)`、`IMAGE(...)`、`DOMAIN` 等表达式说明见 `platform/fields devguide`。
 2. 自动编号
 3. 累计汇总（`C`）
 

@@ -2,7 +2,7 @@
 
 ## 1. 模块定位
 
-`fields` 模块用于管理 CloudCC 对象字段，当前提供字段列表查询、字段详情、创建、更新、删除能力。
+`fields` 模块用于管理 CloudCC 对象字段，当前提供字段列表查询、创建、更新、upsert、删除能力。创建、更新、upsert 字段推荐使用 MetadataService spec；旧版位置参数命令只作为基础字段的兼容快捷入口。
 
 可通过以下命令读取文档：
 
@@ -16,28 +16,24 @@ cloudcc doc platform/fields devguide
 ## 2. 当前支持的命令
 
 ```bash
-cloudcc get fields <projectPath> <objPrefix>
-cloudcc detail fields <projectPath> <fieldId> <fdtype> <objid>
-cloudcc create fields <projectPath> <fieldType> <objid> <fieldLabel> <remark> [extraArg]
-cloudcc update fields <projectPath> <fieldId> <fieldType> <objid> <fieldLabel> <remark> [extraArg]
-cloudcc delete fields <projectPath> <fieldId> <objid>
+cloudcc get fields <projectPath> <object-id-apiName-or-prefix>
+cloudcc plan msapi <projectPath> fields @field.json create
+cloudcc plan msapi <projectPath> fields @field.json update
+cloudcc plan msapi <projectPath> fields @field.json upsert
+cloudcc plan msapi <projectPath> fields @field.json delete
+cloudcc apply msapi <projectPath> <planId> ['{"async":true}']
+cloudcc operation msapi <projectPath> <operationId>
 ```
 
 说明：
 
-- `projectPath`：本地项目路径，用于读取 `cloudcc-cli.config.js`
-- `objPrefix`：对象前缀，用于查询字段
-- `fieldType`：字段类型编码（例如 `S`、`N`、`D` 等）
-- `objid`：对象 ID
-- `fieldLabel`：字段显示名称
-- `extraArg`：部分字段类型需要的额外参数，如 `ptext` 或 `lookupObj`
-- `remark`：用于描述字段的业务功能（写入字段模板的 `obj.remark`，位置固定为 `argvs[6]`）
-- `fieldId`：字段 ID（`update` / `delete` 必填；可通过 `get fields` 返回的 `id` 获取）
+- `projectPath`：本地项目路径，用于读取 `cloudcc-cli.config.json`。
+- `get fields`：按对象 ID、对象 API 名或对象前缀查询对象字段，返回标准字段和自定义字段。
+- `plan msapi ... fields`：生成字段元数据计划，不直接写库；复核 plan 后再执行 `apply`。
+- `apply msapi`：执行已生成的计划。批量字段、包含布局/权限/相关列表等展开步骤的计划推荐使用 `{"async":true}`。
+- `operation msapi`：查询异步 apply 的执行状态和验证结果。
 
-说明：
-
-- 当前 CLI 参数以 `src/fields/buildFieldData.js`、`src/fields/create.js`、`src/fields/update.js`、`src/fields/get.js`、`src/fields/delete.js` 的实际实现为准
-- 字段 API 名称在当前创建逻辑中默认由 CLI 自动生成，不要求单独传入
+MetadataService spec 是当前字段创建的主入口。调用方应在 JSON 中显式声明稳定的 `apiName`、`label`、`type` 和所属对象；不要依赖 CLI 自动生成字段 API 名。位置参数版 `cloudcc create fields ...` 属于兼容旧通道的基础字段快捷写法，见 [5. 兼容位置参数入口](#5-兼容位置参数入口)。
 
 ### 2.1 MetadataService 物理槽位规则
 
@@ -49,13 +45,60 @@ cloudcc delete fields <projectPath> <fieldId> <objid>
 
 ### 2.2 MetadataService 完整字段元数据
 
-`cloudcc plan msapi <projectPath> fields @field.json create` 会按平台元数据保存规则展开字段元数据；对象计划中的 `fields[]` 也使用同一条展开链路。普通 CLI `create fields` 的位置参数只覆盖基础字段模板，自动编号、查找筛选和相关列表等高级配置应使用 MetadataService spec。
+`cloudcc plan msapi <projectPath> fields @field.json create` 会按平台元数据保存规则展开字段元数据；对象计划中的 `fields[]` 也使用同一条展开链路。自动编号、查找筛选、相关列表、公式、累计汇总、地址、地理定位、字段权限和布局落位等完整字段能力都应使用 MetadataService spec。
 
 字段创建如果会进入页面布局，必须先按 `platform/pagelayout devguide` 的页面布局配置方法论判断落位。能读取对象布局详情时，优先在字段 spec 中显式提供 `layoutPlacements`，或在字段创建后通过 `pagelayout detail` / `pagelayout update` 调整 PC 和 mobile 布局。只有缺少布局上下文时才允许依赖 MetadataService 自动摆放，并在输出中标注为兜底。
 
+单字段创建示例：
+
+```json
+{
+  "objectApiName": "account",
+  "apiName": "approval_status",
+  "label": "审批状态",
+  "type": "L",
+  "remark": "记录客户审批状态",
+  "options": [
+    {"value": "待审批"},
+    {"value": "已通过"},
+    {"value": "已驳回"}
+  ],
+  "profileFieldJson": [
+    {"profileId": "aaa000001", "visible": "true", "readonly": "false"}
+  ],
+  "layoutPlacements": [
+    {"layoutId": "<layoutId>", "sectionId": "<sectionId>", "rowIndex": 1, "colIndex": 1}
+  ]
+}
+```
+
+常用字段：
+
+| 字段 | 必填 | 说明 |
+| --- | --- | --- |
+| `objectId` / `objectApiName` / `object` / `prefix` | 是 | 字段所属对象。推荐传 `objectApiName` 或真实回读的 `objectId`；同传时必须指向同一对象。 |
+| `apiName` / `apiname` | 创建和 upsert 推荐必填 | 字段 API 名。用于自然键匹配、公式引用、自动化脚本和后续治理，应由调用方显式定义。 |
+| `label` / `fieldLabel` / `nameLabel` | 是 | 字段显示名称。 |
+| `type` / `fieldType` / `fdtype` / `schemefieldType` | 是 | 字段类型编码，区分大小写；`c` 是币种，`C` 是累计汇总。 |
+| `remark` / `description` | 否 | 字段业务说明；未传时保持空值。 |
+| `helps` / `helpText` | 否 | 字段帮助说明。 |
+| `length` / `schemefieldLength` | 否 | 长度或整数位数，含义随字段类型变化。 |
+| `decimalPlaces` | 否 | 小数位数；`P`、`c`、`N`、`LT` 受 `length + decimalPlaces <= 18` 约束。 |
+| `defaultValue` | 否 | 默认值；图片/文件字段中也用于上传数量。 |
+| `dataFieldRef` | 通常不要传 | 物理存储槽位。普通创建由 MetadataService 分配；只有迁移或精确回放时才显式传。 |
+| `options` / `ptext` | 选项字段需要 | 本地选项值。`options[]` 是推荐结构；`ptext` 是兼容换行字符串。 |
+| `globalSelectId` / `useGlobalSelect` | 全局选项字段需要 | 目标环境真实回读的全局选项列表 ID。 |
+| `lookupObjectId` / `lookupObj` | 关系字段需要 | 被关联对象的真实 `tp_sys_object.ID`，不是对象 API 名或显示名称。 |
+| `conditionVals` | 否 | 查找筛选或累计汇总筛选的条件行。 |
+| `formulaText` / `formulaType` | 公式字段需要 | 用户级公式表达式和返回类型；不要手写 `executeExpression`。 |
+| `showFormat` / `beginIndex` | 自动编号字段需要 | 自动编号显示格式和起始序号。 |
+| `summarizedObj` / `childtype` / `aggregateField` | 累计汇总需要 | 子对象、汇总方式和被汇总字段。 |
+| `profileFieldJson` | 否 | 字段级简档权限，必须使用真实回读的简档 ID。 |
+| `layoutPlacements` | 否 | 字段落位到页面布局的显式配置。 |
+
 #### 2.2.1 数字精度上限
 
-MetadataService 与 setup-web 保持同一条字段精度规则：`P`（百分比）、`c`（币种）、`N`（数字）和 `LT`（地理定位）的 `schemefieldLength` / `length` 与 `decimalPlaces` 必须为非负整数，且 `length + decimalPlaces <= 18`。
+MetadataService 与平台字段编辑页保持同一条字段精度规则：`P`（百分比）、`c`（币种）、`N`（数字）和 `LT`（地理定位）的 `schemefieldLength` / `length` 与 `decimalPlaces` 必须为非负整数，且 `length + decimalPlaces <= 18`。
 
 该规则在 create、update、upsert 以及对象计划内嵌字段展开时都会执行。历史上通过旧版 CLI 或其他链路创建的字段如果不满足该规则，后续 upsert 字段或把字段放入布局时也会被 MetadataService 拦截；CLI 不会自动缩短字段长度或修改小数位数。收到 `invalid_field_precision` 时，请先按目标租户的字段定义治理流程修复该字段精度，再重新生成 plan。
 
@@ -176,7 +219,9 @@ MetadataService 支持平台开放的全部字段编码。编码区分大小写�
 | 生成/加密 | `V enc encd` | `V` 展开 `tp_sys_autonum`；加密字段同步掩码和简档加密可见性 |
 | 复合 | `AD LT` | 父字段为 `none`；分别展开 6 个地址子字段、2 个经纬度子字段及其语言/权限关系 |
 
-公式字段不能只传展示公式。MetadataService 不会把未经审核的表达式自动拼成 SQL，因此 `formulaText`、`formulaType` 和 `executeExpression` 必须配套提供：
+公式字段创建时，调用方只传用户级公式定义：`formulaText` 使用字段 API 名或公式编辑器插入的字段引用，`formulaType` 表示公式返回类型。`executeExpression` 是平台内部执行表达式，由 MetadataService 根据目标环境元数据生成并写入；普通 CLI 调用不要提供这个参数，也不要把 API 名公式或物理列名手写进去。
+
+从 MetadataService `1.1.51` 开始，公式字段计划会在入库前解析 `formulaText` 并生成执行表达式；如果表达式引用的对象、字段或关联目标不存在，plan 阶段会失败并返回可定位的原因，例如缺少对象、缺少对象上的某个字段，或某个关系字段没有配置 lookup 目标对象。
 
 ```json
 {
@@ -185,14 +230,88 @@ MetadataService 支持平台开放的全部字段编码。编码区分大小写�
   "label": "净额",
   "type": "Z",
   "formulaType": "N",
-  "formulaText": "amount-discount",
-  "executeExpression": "t0.str_field1-t0.str_field2",
+  "formulaText": "amount__c-discount__c",
   "formulaReferences": [
     {"relationId":"<amountFieldId>","relationType":"field"},
     {"relationId":"<discountFieldId>","relationType":"field"}
   ]
 }
 ```
+
+#### 公式字段表达式、运算符和函数
+
+公式字段（`type: "Z"`）创建只看字段公式自己的能力边界。CLI 写入前应使用目标环境的字段公式校验能力确认表达式可编译；保存后的实际计算还会受目标环境的数据类型、数据库函数和字段引用解析约束，因此目标环境校验通过才是最终准入标准。
+
+字段创建时三个公式相关字段要分工明确：
+
+- `formulaText`：用户级公式表达式，使用字段 API 名或公式编辑器插入的字段引用，例如 `amount__c-discount__c`。
+- `formulaType`：公式字段返回类型，常用编码包括文本 `S`、币种 `c`、日期 `D`、日期时间 `F`、数字 `N`、百分比 `P`、URL `U`、选项列表 `L`。
+- `executeExpression`：平台内部执行表达式。创建普通公式字段时不要传；MetadataService 会根据 `formulaText`、`formulaType` 和目标对象字段元数据自动生成。只有迁移已有字段且没有 `formulaText` 的高级场景，才可使用已有字段回读到的执行表达式作为兜底输入。
+- `formulaReferences`：普通字段引用关系，写入 `tp_sys_field_reference`；不要把它当成跨对象公式依赖。
+- `formulaRelevances` / `relevances`：跨对象公式依赖，写入 `tp_sys_relevance`。MetadataService 会从 `formulaText` 中的跨对象引用自动派生；只有需要补充已有历史依赖或特殊依赖时才显式提供，每项至少包含被引用对象 `relobjid` 和被引用字段 `relfieldid`。同对象公式通常不需要提供。
+
+字段引用写法：
+
+- 同对象字段使用 API 名，例如 `amount__c`。
+- 关联对象字段使用关系 API 名加目标字段 API 名，例如 `account__r.amount__c`。
+- 当前用户字段可使用 `$User.<field>`；如果目标环境没有对应用户字段，plan 会返回 `formula_user_field_not_found`。
+
+常见失败原因：
+
+| 错误码 | 说明 |
+| --- | --- |
+| `formula_object_not_found` | 公式所属对象或被引用对象不存在。 |
+| `formula_field_not_found` | 公式引用了某对象上不存在的字段，错误信息会包含公式字段、缺失字段和对象。 |
+| `formula_lookup_object_missing` | 公式使用了关系引用，但关系字段没有 lookup 目标对象。 |
+| `formula_user_field_not_found` | `$User.<field>` 引用了当前环境不存在的用户字段。 |
+| `formula_field_type_unsupported` | 公式引用了不支持参与普通公式计算的长文本或富文本字段。 |
+
+公式编辑器提供的运算符如下；是否能通过保存，以目标环境字段公式校验结果为准：
+
+| 运算符 | 说明 |
+| --- | --- |
+| `+` | 加法；字符串场景需以目标环境校验结果为准。 |
+| `-` | 减法。 |
+| `*` | 乘法。 |
+| `/` | 除法。 |
+| `(` / `)` | 分组。 |
+| `==` | 等于；字段公式保存时会按平台执行表达式转换为目标环境可识别的等值判断。 |
+| `!=` | 不等于。 |
+| `<` / `>` | 小于 / 大于。 |
+| `<=` / `>=` | 小于等于 / 大于等于。 |
+| `&&` | 逻辑与。 |
+| `||` | 逻辑或。 |
+| `&` | 公式编辑器展示为串联；不同目标环境可能按不同表达式引擎处理，必须以目标字段公式校验通过为准。 |
+| `^` | 公式编辑器展示为乘方；不同目标环境可能按不同表达式引擎处理，必须以目标字段公式校验通过为准，不要默认等同于数据库 `POWER`。 |
+
+公式字段可用函数和表达式项如下；参数个数和返回类型必须同时满足目标字段的 `formulaType`：
+
+| 函数 / 表达式 | 说明 |
+| --- | --- |
+| `IF(logical, value_if_true, value_if_false)` | 条件分支；第一个参数为布尔表达式，返回第二或第三个参数。 |
+| `CASE(value, compare1, result1, ..., else_result)` | 多分支匹配；从第一组匹配值开始比较，未命中时返回最后一个默认结果。 |
+| `DATE(year, month, day)` | 根据年、月、日生成日期值。 |
+| `TODAY()` | 返回当前日期。 |
+| `NOW()` | 返回当前日期时间。 |
+| `ADDDAYS(date, n)` | 在日期上增加 `n` 天。 |
+| `DAYS(date1, date2)` | 返回两个日期之间的天数差。 |
+| `YEAR(date)` | 返回日期的年份。 |
+| `MONTH(date)` | 返回日期的月份。 |
+| `DAY(date)` | 返回日期的日。 |
+| `AND(logical1, logical2, ...)` | 多个布尔表达式全部为真时返回真。 |
+| `OR(logical1, logical2, ...)` | 任一布尔表达式为真时返回真。 |
+| `ISNULL(expression)` | 表达式为空字符串或空值时返回真。 |
+| `ISPICKVAL(picklist_value, text_literal)` | 判断选项字段值是否等于指定文本。 |
+| `LEN(text)` | 返回文本长度；空值返回 `0`。 |
+| `LEFT(text, num_chars)` | 返回文本左侧指定长度。 |
+| `RIGHT(text, num_chars)` | 返回文本右侧指定长度。 |
+| `ROUND(number, num_digits)` | 按指定小数位数四舍五入数字。 |
+| `VALUE(text)` | 将文本解析为数字。 |
+| `HYPERLINK(url, friendly_name, target)` | URL 公式字段常用的超链接表达式；至少传 URL 和显示文本，`target` 可选。 |
+| `IMAGE(image_url, alternate_name, height, width)` | 图片表达式；至少传图片地址和替代文本，高度、宽度可选。 |
+| `DOMAIN` | 当前租户域名占位表达式。 |
+
+图片公式字段属于独立图片表达式能力；创建普通公式字段时，不要把图片表达式的参数形态直接当成普通文本、数字、日期等返回类型的通用公式。
 
 累计汇总字段必须使用 MetadataService spec 创建，不要使用位置参数版 `cloudcc create fields ...`。CLI/MetadataService 会按平台元数据规则补齐保存所需数据：`datafieldRef=none`、`decimalPlaces`、`summaryfieldtype`、`displayThousands`、`isReplicable` 和 `executeExpression` 会根据汇总方法、子对象和汇总字段自动派生；调用方通常不需要也不应该自己拼 `executeExpression`。
 
@@ -331,7 +450,7 @@ cloudcc operation msapi <projectPath> <applyId>
 
 ## 3. 查询字段详情（detail）
 
-用于拉取与平台「字段编辑」页一致的数据（简档列表、对象列表、`fieldObj` 等），对应接口 **`POST /api/fieldSetup/editField`**。
+`cloudcc get fields` 是当前 MSAPI 字段读取主入口。旧 provider 下仍保留 `detail fields`，用于拉取与平台「字段编辑」页一致的数据（简档列表、对象列表、`fieldObj` 等）；在严格 MSAPI 模式下，如果需要字段详情，应先通过 `get fields` 按对象读取字段，再从返回内容中定位字段 ID、API 名、类型、权限和布局相关信息。
 
 ### 3.1 基本命令
 
@@ -362,10 +481,10 @@ cloudcc detail fields <projectPath> <fieldId> <fdtype> <objid>
 ### 4.1 基本命令
 
 ```bash
-cloudcc get fields <projectPath> <objPrefix>
+cloudcc get fields <projectPath> <object-id-apiName-or-prefix>
 ```
 入参：
-- `objPrefix`：对象前缀
+- `object-id-apiName-or-prefix`：对象 ID、对象 API 名或对象前缀。
 
 返回结果包含：
 
@@ -382,9 +501,11 @@ cloudcc get fields <projectPath> <objPrefix>
 
 ---
 
-## 5. 创建字段
+## 5. 兼容位置参数入口
 
-### 5.1 基本命令
+本节描述旧 provider/基础字段快捷写法。严格 MSAPI 模式下，低代码字段写入优先使用 [2.2 MetadataService 完整字段元数据](#22-metadataservice-完整字段元数据) 的 JSON spec；如果使用 `cloudcc create fields <projectPath> @field.json` 或 `cloudcc update fields <projectPath> @field.json`，CLI 会把 JSON 转成 MetadataService plan。不要用位置参数创建公式、自动编号、累计汇总、查找筛选、相关列表、地址/地理定位子字段、字段权限或布局落位等高级配置。
+
+### 5.1 基础字段快捷命令
 
 ```bash
 cloudcc create fields <projectPath> <fieldType> <objid> <fieldLabel> <remark> [extraArg]
@@ -392,7 +513,7 @@ cloudcc create fields <projectPath> <fieldType> <objid> <fieldLabel> <remark> [e
 
 #### 公用参数（所有字段类型通用）
 
-- `projectPath`：本地项目路径
+- `projectPath`：本地项目路径，用于读取 `cloudcc-cli.config.json`
 - `fieldType`：字段类型编码（例如 `S`、`U`、`L`、`Y` 等）
 - `objid`：对象 ID
 - `fieldLabel`：字段显示名称
@@ -401,9 +522,9 @@ cloudcc create fields <projectPath> <fieldType> <objid> <fieldLabel> <remark> [e
 - `defaultValue`：默认值，固定`argvs[8]`
 - `extraArg`：仅部分字段类型需要的额外入参；其含义与参数位置随 `fieldType` 变化（通常从 `argvs[9]` 开始）
 
-#### 字段特殊入参（按 `fieldType`）
+#### 兼容字段特殊入参（按 `fieldType`）
 
-以下均假定 **`create fields`** 的 argv 下标（**`update fields`** 因多一个 `fieldId`，`remark` 及之后的参数整体 **`+1`**，见 [5.2](#52-更新字段)）。
+以下均假定 **`create fields`** 的 argv 下标（**`update fields`** 因多一个 `fieldId`，`remark` 及之后的参数整体 **`+1`**，见 [5.2](#52-兼容更新字段)）。
 
 **约定**：**`helps`**、**`defaultValue`** 见上文公用参数（**`argvs[7]`**、**`argvs[8]`**）；本节只写各类型在 **`argvs[9]`** 起的**专属参数**。若不需要默认值，**`argvs[8]`** 仍请传 **`''`** 占位，避免与专属参数错位。
 
@@ -422,7 +543,7 @@ cloudcc create fields <projectPath> <fieldType> <objid> <fieldLabel> <remark> [e
 - `c`（币种）
   - 专属参数与 **`P`** 相同（**`argvs[9]`**、**`argvs[10]`**），约束相同
 - `C`（累计汇总）
-  - 大写 **`C`** 是累计汇总字段类型，不是币种；累计汇总通常由平台高级配置维护，不应和小写 **`c`** 混用
+  - 大写 **`C`** 是累计汇总字段类型，不是币种；累计汇总应使用 MetadataService spec，不应和小写 **`c`** 混用
 - `N`（数字）
   - `schemefieldLength`（可选）：小数点**左侧**（整数部分）位数；**`argvs[9]`**；不传默认 `10`
   - `decimalPlaces`（可选）：小数点**右侧**位数；**`argvs[10]`**；不传默认 `0`
@@ -479,9 +600,9 @@ cloudcc create fields <projectPath> <fieldType> <objid> <fieldLabel> <remark> [e
 - `M`（主详信息关系）
   - `lookupObj`（必填）：被关联对象的 `tp_sys_object.ID`；**`argvs[9]`**
 
-### 5.2 更新字段
+### 5.2 兼容更新字段
 
-更新时必须在请求体中设置 **`obj.id`** 为平台上的字段 ID，且 **不会** 自动绑定页面布局（不写入 `layoutIds`）。
+旧 provider 更新时必须在请求体中设置 **`obj.id`** 为平台上的字段 ID，且 **不会** 自动绑定页面布局（不写入 `layoutIds`）。当前 MSAPI 写入请使用 `cloudcc plan msapi <projectPath> fields @field.json update` 或 `upsert`。
 
 ```bash
 cloudcc update fields <projectPath> <fieldId> <fieldType> <objid> <fieldLabel> <remark> [extraArg]
@@ -490,13 +611,13 @@ cloudcc update fields <projectPath> <fieldId> <fieldType> <objid> <fieldLabel> <
 - `fieldId`：平台字段 ID（`argvs[3]`），对应保存时的 `fieldData.obj.id`
 - 其余参数与 `create fields` 含义相同，但整体下标相对 **create** 后移一位：`fieldType` 为 `argvs[4]`，`objid` 为 `argvs[5]`，`fieldLabel` 为 `argvs[6]`，`remark` 为 `argvs[7]`；**`helps`** 为 **`argvs[8]`**、**`defaultValue`** 为 **`argvs[9]`**；各类型专属参数在 **create** 中为 **`argvs[9]`** 起，在 **update** 中为 **`argvs[10]`** 起（相对 **create** 一律 **`+1`**）
 
-### 5.3 支持的字段类型说明
+### 5.3 兼容基础字段类型说明
 
 根据 CloudCC 官方关于“对象-字段”的说明，平台层面支持文本、URL、百分比、币种、数字、文本区、长文本、富文本、电话、电子邮件、日期、日期/时间、评分、选项列表、图片、查找关系、主详信息关系、公式、自动编号、累计汇总、查找多选、复选框等类型。
 
-当前 `src/fields/fields` 中已实现的 CLI 字段类型如下。
+位置参数快捷入口只适合下列基础字段类型；完整字段编码和高级元数据能力以 [2.3 MetadataService 字段类型矩阵](#23-metadataservice-字段类型矩阵) 为准。
 
-**说明**：字段类型编码大小写有语义差异，必须原样保留：小写 **`c`** 是币种，大写 **`C`** 是累计汇总。下列类型在模板 **`obj`** 中带有固定的 **`schemefieldLength`** 默认值（与平台「最大长度」类属性对齐；未通过 CLI 覆盖时使用）：**`U`** `2000`，**`D`** / **`T`** `20`，**`F`** `30`，**`B`** `10`，**`H`** `15`，**`E`** `254`，**`IMG`** `255`，**`AD`** `500`；**`S`**、**`N`**、**`P`**、**`c`**、**`X`**、**`J`**、**`SCORE`** 等仍由各自字段逻辑或上文「字段特殊入参」定义。
+**说明**：字段类型编码大小写有语义差异，必须原样保留：小写 **`c`** 是币种，大写 **`C`** 是累计汇总。下列类型在兼容请求的 **`obj`** 中带有固定的 **`schemefieldLength`** 默认值（与平台「最大长度」类属性对齐；未通过 CLI 覆盖时使用）：**`U`** `2000`，**`D`** / **`T`** `20`，**`F`** `30`，**`B`** `10`，**`H`** `15`，**`E`** `254`，**`IMG`** `255`，**`AD`** `500`；**`S`**、**`N`**、**`P`**、**`c`**、**`X`**、**`J`**、**`SCORE`** 等仍由各自字段逻辑或上文「兼容字段特殊入参」定义。
 
 #### 基础输入类
 
@@ -591,19 +712,18 @@ cloudcc create fields <projectPath> M <objid> <fieldLabel> <remark> [helps] [def
 说明：
 
 - CLI 中使用的类型编码是 `ENC`、`ENCD`
-- 模板内部提交到接口时，对应的 `fdtype` 分别是 `enc`、`encd`
+- 最终保存到平台时，对应的 `fdtype` 分别是 `enc`、`encd`
 - 字段类型大小写不可归一化：小写 `c` 是币种，大写 `C` 是累计汇总
 - 这两类字段更适合身份证号、银行卡号、敏感联系方式等场景
 
-### 5.4 当前 CLI 未覆盖但平台支持的字段能力
+### 5.4 高级字段使用 MetadataService spec
 
-根据官方文档，平台层面还支持以下字段能力，但当前 `src/fields/fields` 目录下尚未看到对应 CLI 创建模板：
+公式（`Z`）、自动编号（`V`）、累计汇总（`C`）、查找筛选、相关列表、复合地址（`AD`）和地理定位（`LT`）都属于当前 CLI 可通过 MetadataService spec 创建的能力。调用方不要按位置参数猜测这些字段的展开参数，应直接编写 JSON spec 并执行：
 
-- 公式
-- 自动编号
-- 累计汇总（`C`，当前不作为普通币种字段创建）
-
-如果后续希望通过 CLI 直接创建这些字段类型，需要继续补充对应的模板实现。
+```bash
+cloudcc plan msapi <projectPath> fields @field.json create
+cloudcc apply msapi <projectPath> <planId> '{"async":true}'
+```
 
 ---
 
@@ -626,9 +746,9 @@ cloudcc delete fields <projectPath> <fieldId> <objid>
 ## 7. 开发前检查
 
 - 已完成 `cloudcc doc platform/project devguide` 中的环境准备
-- 项目根目录存在可用的 `cloudcc-cli.config.js`
+- 项目根目录存在可用的 `cloudcc-cli.config.json`
 - 当前环境密钥配置正确
-- 已确认对象 API 名称、字段类型和命名规则
+- 已确认对象 API 名称、字段 API 名称、字段类型和命名规则
 
 ---
 

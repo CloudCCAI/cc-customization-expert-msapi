@@ -1,6 +1,6 @@
 {
     "packageName":  "cc-customization-expert-msapi",
-    "version":  "2.2.44-msapi",
+    "version":  "2.2.48-msapi",
     "releaseDate":  "2026-09-02",
     "compatCloudccCliVersion":  "2.5.3",
     "runtime":  "go",
@@ -209,6 +209,21 @@
                                                                                             "query"
                                                                                         ],
                                                                          "reason":  "Requires MetadataService currency readback, fixed currency compiler, advanced dated-rate compiler, corporate-currency explicit rebase guard, and setup-web/setup-service parity for /api/currency/* company currency management."
+                                                                     },
+                                                                     {
+                                                                         "capability":  "msapi.fields.formulaCompiledCreate",
+                                                                         "label":  "Formula field create persistence with server-side formula compilation",
+                                                                         "introducedInSkillVersion":  "2.2.47-msapi",
+                                                                         "minimumMetadataServiceVersion":  "1.1.51",
+                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.51",
+                                                                         "domains":  [
+                                                                                         "fields"
+                                                                                     ],
+                                                                         "operations":  [
+                                                                                            "create",
+                                                                                            "upsert"
+                                                                                        ],
+                                                                         "reason":  "Requires MetadataService to persist formula fields with platform-compatible non-storage metadata, lowercase formula schemefieldName defaults, server-side formulaText to executeExpression compilation, automatic cross-object formula relevance rows in tp_sys_relevance, and specific plan failures for missing object, field, user field, or lookup target metadata."
                                                                      },
                                                                      {
                                                                          "capability":  "msapi.menuApplicationReferenceProfiles",
