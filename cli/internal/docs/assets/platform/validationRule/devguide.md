@@ -31,6 +31,67 @@ Go 版 CLI 不实现交互式录入。若需要更完整的请求体，使用 ra
 
 > 后端接口以 setup 前端包确认为准：查询使用 `{setupSvc}/api/validateRule/queryByPrefix`，公式校验使用 `{setupSvc}/api/validateRule/validateFunction`，创建/更新使用 `{setupSvc}/api/validateRule/save`，删除使用 `{setupSvc}/api/validateRule/delete`。若租户或版本接口有差异，先用只读查询和公式校验确认端点，再进入受控写入窗口。
 
+### 公式表达式说明
+
+`ruleContent` / `functionCode` 是验证规则公式。CLI 写入前必须使用 setup-service 的 `{setupSvc}/api/validateRule/validateFunction` 或等价平台校验确认公式可编译通过；`save` 接口本身不等价于公式校验。下面清单按 setup-service 当前 `validateFunction` 注入的实际函数整理，不能把未通过 `validateFunction` 的表达式当作可用能力。
+
+字段引用通常使用字段 API 名，如 `Amount__c`、`End_Date__c`。部分函数会由 setup-service 在校验时把字段参数改写为字段 API 字符串，例如 `ISCHANGED(Stage__c)`、`PRIORVALUE(Stage__c)`、`BEGINS(Name__c, "A")`。
+
+**运算符：**
+
+| 运算符 | 说明 |
+|--------|------|
+| `+` | 加法；在服务端表达式编译语义下也可用于字符串拼接。 |
+| `-` | 减法。 |
+| `*` | 乘法。 |
+| `/` | 除法。 |
+| `(` `)` | 分组，控制表达式优先级。 |
+| `==` | 等于比较。 |
+| `!=` | 不等于比较。 |
+| `<` | 小于比较。 |
+| `>` | 大于比较。 |
+| `<=` | 小于等于比较。 |
+| `>=` | 大于等于比较。 |
+| `&&` | 逻辑与。 |
+| `||` | 逻辑或。 |
+| `&` | setup-web 面板展示为连接符；服务端最终按 `validateFunction` 编译结果为准，建议优先使用 `+` 做字符串拼接。 |
+
+**函数：**
+
+| 函数 | 说明 |
+|------|------|
+| `PRIORVALUE(field)` / `priorValue(field)` | 返回更新前记录中指定字段的旧值；创建场景旧记录为空时返回 `null`。 |
+| `ISCHANGED(field)` / `isChanged(field)` | 判断指定字段新旧值是否不同；新旧记录缺失时返回 `false`。 |
+| `ISNEW()` / `isNew()` | 判断当前记录是否为新建；旧记录为空时返回 `true`。 |
+| `BEGINS(field, compare_text)` | 判断指定字段当前值是否以 `compare_text` 开头；字段值或比较值为空时当前实现返回 `true`。 |
+| `CONTAINS(field, compare_text)` | 判断指定字段当前值是否包含 `compare_text`；字段值或比较值为空时当前实现返回 `true`。 |
+| `LEFT(field, num_chars)` | 返回指定字段当前值左侧 `num_chars` 个字符；长度小于 0 返回空字符串，长度超过原值时按原值长度截取。 |
+| `RIGHT(field, num_chars)` | 返回指定字段当前值右侧 `num_chars` 个字符；长度小于 0 返回空字符串，长度超过原值时按原值长度截取。 |
+| `SUBSTITUTE(field, old_text, new_text)` | 将指定字段当前值中的 `old_text` 替换为 `new_text`。 |
+| `DATE(year, month, day)` | 返回日期值；参数直接传给服务端 `Calendar.set(year, month, day)`。 |
+| `NOW()` / `now()` | 返回当前日期时间。 |
+| `TODAY()` / `today()` | 返回当前日期零点。 |
+| `DAY(date)` | 返回日期中的日。 |
+| `MONTH(date)` | 返回日期中的月份，范围为 1 到 12。 |
+| `YEAR(date)` | 返回日期中的年份。 |
+| `HOUR(date)` | 返回日期中的小时；当前服务端实现使用 `Calendar.HOUR`。 |
+| `MINUTE(date)` | 返回日期中的分钟。 |
+| `SECOND(date)` | 返回日期中的秒。 |
+| `MILLISECOND(date)` | 返回日期中的毫秒。 |
+| `ADDMONTHS(date, months)` | 在指定日期上增加 `months` 个月并返回日期。 |
+| `DATETIMEVALUE(date)` | 将日期格式化为 `yyyy-MM-dd HH:mm:ss` 字符串。 |
+| `DATEVALUE(date)` | 将日期格式化为 `yyyy-MM-dd` 字符串。 |
+| `TIMENOW()` | 返回当前时间字符串，格式为 `HH:mm:ss`。 |
+| `TIMEVALUE(date)` | 将日期格式化为 `HH:mm:ss` 字符串。 |
+| `WEEKDAY(date)` | 当前服务端实现返回 `Calendar.HOUR`，不是单独的星期值；使用前必须以目标环境 `validateFunction` 结果为准。 |
+| `AND(logical1, logical2, ...)` | 所有布尔参数均为 `true` 时返回 `true`，否则返回 `false`。 |
+| `OR(logical1, logical2, ...)` | 任一布尔参数为 `true` 时返回 `true`，否则返回 `false`。 |
+| `IF(logical_test, value_if_true, value_if_false)` | 条件为 `true` 时返回第二个参数，否则返回第三个参数。 |
+| `ISNULL(expression)` | 判断字符串表达式是否为 `null` 或空字符串。 |
+| `NOT(logical)` | 当前服务端实现返回传入布尔值本身；使用前必须以目标环境 `validateFunction` 结果为准。 |
+
+> 注意：当前 setup-service 验证规则函数中未看到 `ISBLANK`、`PRECISEADD`、`PRECISESUBTRACT`、`PRECISEMULTIPLY`、`PRECISEDIVIDE` 的实现，不应在 CLI 文档或示例中作为验证规则可用函数承诺。setup-web 面板中 `BEGIN` 的函数名应按服务端实际能力使用 `BEGINS`。
+
 ### 受控写入要求
 
 - 写入前必须先确认目标对象前缀、候选公式、错误提示和是否启用。
@@ -61,7 +122,7 @@ cloudcc create validationRule . @validation-rule.json
     {
       "id": "val_contract_amount_required",
       "name": "合同金额必填",
-      "ruleContent": "ISBLANK(Amount__c)",
+      "ruleContent": "ISNULL(Amount__c)",
       "errorMessage": "合同金额不能为空",
       "isActive": "true"
     },

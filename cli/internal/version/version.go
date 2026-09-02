@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.43"
+const Version = "2.2.44"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -34,6 +34,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	case "changelog":
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
+		fmt.Fprintln(stderr, "- Validation rule CLI docs now list setup-service validateFunction-backed operators and functions, replace the misleading ISBLANK example with ISNULL, and mark frontend-only or ambiguous formula entries as requiring target validateFunction confirmation.")
 		fmt.Fprintln(stderr, "- Currency management is now a MetadataService low-code domain: currency/companyCurrency shortcuts read /metadata/v1/currencies, create/update/activate/deactivate/updateRate/createDatedRate/updateDatedRate/deleteDatedRate/enableAdvanced/disableAdvanced/changeCorporate create reviewed currencies plans, and changeCorporate fails closed without explicit rebased rates for rollback-safe apply.")
 		fmt.Fprintln(stderr, "- Page layout creation now documents and supports record-type layout assignment: create pagelayout can include --profile/--record-type under MSAPI, assign pagelayout creates assignment-only plans, and layouts.create assignments[] writes tp_sys_profile_layout without changing default behavior when omitted.")
 		fmt.Fprintln(stderr, "- Object-view reads now keep get/getList as list query semantics with optional object selector or JSON filter, reserve detail/editInfo for view-ID detail, and field docs clarify create/update/upsert precision enforcement for length + decimalPlaces <= 18.")

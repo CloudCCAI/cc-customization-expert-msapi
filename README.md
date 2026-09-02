@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.43-msapi
+# cc-customization-expert-msapi v2.2.44-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -40,6 +40,8 @@ Strict MetadataService package: low-code operations require MetadataService.
 从技能 `2.2.42` 开始，页面布局创建可显式携带 `assignments[]` 或 `--profile/--record-type` 同步写入 `tp_sys_profile_layout`，也可用 `cloudcc assign pagelayout` 单独分配布局；未传分配参数时仍保持 setup-svc 的“只创建/复制布局，不自动分配记录类型布局”语义。
 
 从技能 `2.2.43` 开始，币种管理进入 MetadataService 低代码域：`currencies` 支持币种列表、详情、可新增币种、高级汇率读取，固定币种新增/修改/启停/汇率维护，高级多币种开关，dated rate 新增/修改/删除，以及要求显式重算 `rates[]` 的公司本位币变更计划。
+
+从技能 `2.2.44` 开始，验证规则 CLI 用户级文档按 setup-service `validateFunction` 实际函数补充运算符和函数说明，示例使用服务端实际存在的 `ISNULL`，不把 `ISBLANK` 或前端面板中未确认的 `PRECISE*` 函数作为验证规则能力承诺。
 
 CloudCC 高代码主动调用外部 HTTP 服务时，先读取 `cloudcc doc platform/apiRegistrar devguide`。接口注册器的配置 CRUD 属于 MetadataService 域，调试和日志属于 setup-svc 实时运行态；业务源码只引用调试成功且为 `ACTIVE` 的 `apiCode`。从技能 `2.2.33` 开始，接口注册器运行态调试/日志和高代码远程调用调整要求 MetadataService `1.1.41` 或更高版本，并建议 setup-svc `19.7.R8` 或更高版本。
 
