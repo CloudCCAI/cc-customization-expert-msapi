@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.48-msapi
+# cc-customization-expert-msapi v2.2.49-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
