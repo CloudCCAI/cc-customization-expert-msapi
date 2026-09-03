@@ -346,6 +346,9 @@ func Handle(action string, resource string, args []string, stdout io.Writer, std
 	}
 	if byAction, ok := genericEndpoints[resource]; ok {
 		if ep, ok := byAction[action]; ok {
+			if resource == "apiRegistrar" && isApiRegistrarRuntimeAction(action) {
+				return callGenericRedacted(ep, action, resource, args, stdout, cwd)
+			}
 			return callGeneric(ep, action, resource, args, stdout, cwd)
 		}
 	}
@@ -731,6 +734,14 @@ func handleConfig(action string, args []string, stdout io.Writer, cwd string) er
 }
 
 func callGeneric(ep endpoint, action string, resource string, args []string, stdout io.Writer, cwd string) error {
+	return callGenericWithPrinter(ep, action, resource, args, stdout, cwd, postClass)
+}
+
+func callGenericRedacted(ep endpoint, action string, resource string, args []string, stdout io.Writer, cwd string) error {
+	return callGenericWithPrinter(ep, action, resource, args, stdout, cwd, postClassRedacted)
+}
+
+func callGenericWithPrinter(ep endpoint, action string, resource string, args []string, stdout io.Writer, cwd string, printer func(io.Writer, config.Config, string, string, map[string]any) error) error {
 	projectPath := firstArg(args, cwd)
 	body := map[string]any{}
 	if len(args) > 1 && args[1] != "" {
@@ -749,7 +760,16 @@ func callGeneric(ep endpoint, action string, resource string, args []string, std
 	if err != nil {
 		return err
 	}
-	return postClass(stdout, cfg, ep.base, ep.path, body)
+	return printer(stdout, cfg, ep.base, ep.path, body)
+}
+
+func isApiRegistrarRuntimeAction(action string) bool {
+	switch action {
+	case "debug", "test", "logs", "logDetail", "log-detail":
+		return true
+	default:
+		return false
+	}
 }
 
 func handleBrief(action string, args []string, stdout io.Writer, cwd string) error {
@@ -1657,6 +1677,14 @@ func postClass(stdout io.Writer, cfg config.Config, base string, apiPath string,
 	return printJSON(stdout, res)
 }
 
+func postClassRedacted(stdout io.Writer, cfg config.Config, base string, apiPath string, body map[string]any) error {
+	var res map[string]any
+	if err := postClassResponse(cfg, base, apiPath, body, &res); err != nil {
+		return err
+	}
+	return printJSONNoHTMLEscape(stdout, redactApiRegistrarLogValue(res))
+}
+
 func postClassResponse(cfg config.Config, base string, apiPath string, body map[string]any, res *map[string]any) error {
 	var svc string
 	if base == "api" {
@@ -1821,6 +1849,12 @@ func printJSON(w io.Writer, v any) error {
 	}
 	_, err = fmt.Fprintln(w, string(b))
 	return err
+}
+
+func printJSONNoHTMLEscape(w io.Writer, v any) error {
+	encoder := json.NewEncoder(w)
+	encoder.SetEscapeHTML(false)
+	return encoder.Encode(v)
 }
 
 func firstArg(args []string, fallback string) string {

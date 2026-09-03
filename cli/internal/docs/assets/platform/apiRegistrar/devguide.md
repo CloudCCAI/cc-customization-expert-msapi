@@ -37,6 +37,8 @@ cloudcc logs apiRegistrar <projectPath> @query.json
 cloudcc logDetail apiRegistrar <projectPath> @detail.json
 ```
 
+CLI 输出 `debug`、`logs` 和 `logDetail` 结果前会递归脱敏常见敏感字段和值，包括 `Authorization`、`Cookie`、`accessToken`、`token`、`secret`、`password`、`apiKey` 等字段，以及字符串中的 `Bearer ...`、`access_token=...`、`token=...` 等片段。脱敏只作用于 CLI 返回给调用方的显示数据，不改变 setup-svc 的实际执行和平台原始日志存储。
+
 真实端点均为 `POST`：
 
 | 操作 | 端点 |
@@ -85,4 +87,4 @@ String traceId = result.getTraceId();
 - 重试只用于明确可重试且具备幂等键的请求；不要在触发器保存事务中无界重试。
 - 触发器只做入口，远程调用封装在自定义类。非强一致集成优先在 commit 后、定时类或外部异步链路执行，避免外部超时阻塞记录保存。
 - 定时同步必须分页、记录业务游标/幂等键，并区分 HTTP 成功、远端业务失败和本地落库失败。
-- 请求头和日志中不得写入长期明文密钥；接口注册器只管理 URL，不代表已经提供凭据保险库。
+- 业务代码可以按外部系统要求传递必要的鉴权 header/body/query 参数，但不得在自定义类、触发器、定时类的业务日志、异常消息或调试输出中主动打印完整 Token、Cookie、Secret、Password、API Key 等敏感值；需要排查时优先记录 `traceId`、业务单号、HTTP 状态和脱敏后的错误摘要。接口注册器只管理 URL 和运行态调用，不等同于凭据保险库。
