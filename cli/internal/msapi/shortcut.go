@@ -70,59 +70,63 @@ var lowCodeShortcutDomains = map[string]string{
 }
 
 var lowCodeShortcutActions = map[string]bool{
-	"get":                   true,
-	"detail":                true,
-	"getList":               true,
-	"newInfo":               true,
-	"editInfo":              true,
-	"validDelete":           true,
-	"create":                true,
-	"createQuarter":         true,
-	"create-quarter":        true,
-	"createFiscalQuarter":   true,
-	"create-fiscal-quarter": true,
-	"register":              true,
-	"update":                true,
-	"updateQuarter":         true,
-	"update-quarter":        true,
-	"updateFiscalQuarter":   true,
-	"update-fiscal-quarter": true,
-	"saveFiscalQuarter":     true,
-	"save-fiscal-quarter":   true,
-	"save":                  true,
-	"updateRate":            true,
-	"update-rate":           true,
-	"updateRates":           true,
-	"update-rates":          true,
-	"createDatedRate":       true,
-	"create-dated-rate":     true,
-	"updateDatedRate":       true,
-	"update-dated-rate":     true,
-	"deleteDatedRate":       true,
-	"delete-dated-rate":     true,
-	"enableAdvanced":        true,
-	"enable-advanced":       true,
-	"disableAdvanced":       true,
-	"disable-advanced":      true,
-	"changeCorporate":       true,
-	"change-corporate":      true,
-	"modify":                true,
-	"editSave":              true,
-	"assign":                true,
-	"add":                   true,
-	"remove":                true,
-	"delete":                true,
-	"deleteQuarter":         true,
-	"delete-quarter":        true,
-	"deleteFiscalQuarter":   true,
-	"delete-fiscal-quarter": true,
-	"delFiscalQuarter":      true,
-	"del-fiscal-quarter":    true,
-	"enable":                true,
-	"disable":               true,
-	"activate":              true,
-	"deactivate":            true,
-	"purge":                 true,
+	"get":                    true,
+	"detail":                 true,
+	"getList":                true,
+	"newInfo":                true,
+	"editInfo":               true,
+	"validDelete":            true,
+	"create":                 true,
+	"createQuarter":          true,
+	"create-quarter":         true,
+	"createFiscalQuarter":    true,
+	"create-fiscal-quarter":  true,
+	"register":               true,
+	"update":                 true,
+	"updateQuarter":          true,
+	"update-quarter":         true,
+	"updateFiscalQuarter":    true,
+	"update-fiscal-quarter":  true,
+	"saveFiscalQuarter":      true,
+	"save-fiscal-quarter":    true,
+	"save":                   true,
+	"updateRate":             true,
+	"update-rate":            true,
+	"updateRates":            true,
+	"update-rates":           true,
+	"createDatedRate":        true,
+	"create-dated-rate":      true,
+	"updateDatedRate":        true,
+	"update-dated-rate":      true,
+	"deleteDatedRate":        true,
+	"delete-dated-rate":      true,
+	"enableAdvanced":         true,
+	"enable-advanced":        true,
+	"disableAdvanced":        true,
+	"disable-advanced":       true,
+	"changeCorporate":        true,
+	"change-corporate":       true,
+	"modify":                 true,
+	"editSave":               true,
+	"saveDependency":         true,
+	"save-dependency":        true,
+	"assignPicklistValues":   true,
+	"assign-picklist-values": true,
+	"assign":                 true,
+	"add":                    true,
+	"remove":                 true,
+	"delete":                 true,
+	"deleteQuarter":          true,
+	"delete-quarter":         true,
+	"deleteFiscalQuarter":    true,
+	"delete-fiscal-quarter":  true,
+	"delFiscalQuarter":       true,
+	"del-fiscal-quarter":     true,
+	"enable":                 true,
+	"disable":                true,
+	"activate":               true,
+	"deactivate":             true,
+	"purge":                  true,
 }
 
 // IsLowCodeShortcut returns true for legacy low-code metadata CLI shortcuts that
@@ -1763,6 +1767,13 @@ func shortcutPlanSpec(action string, resource string, args []string) (map[string
 	if isCurrencyShortcutResource(resource) {
 		return currencyShortcutSpec(action, args)
 	}
+	if resource == "recordType" && isRecordTypeDependencyAction(action) {
+		body, _, err := shortcutBodySpec(action, resource, args)
+		if err != nil {
+			return nil, "", err
+		}
+		return body, "save-dependency", nil
+	}
 	if resource == "fields" && strings.TrimSpace(action) == "delete" {
 		if len(args) == 0 || strings.TrimSpace(args[0]) == "" {
 			return nil, "", fmt.Errorf("cloudcc delete fields <projectPath> <fieldId> [objectId] now creates a MetadataService delete plan")
@@ -1781,6 +1792,15 @@ func shortcutPlanSpec(action string, resource string, args []string) (map[string
 		return nil, "", err
 	}
 	return body, operation, nil
+}
+
+func isRecordTypeDependencyAction(action string) bool {
+	switch strings.TrimSpace(action) {
+	case "saveDependency", "save-dependency", "assignPicklistValues", "assign-picklist-values":
+		return true
+	default:
+		return false
+	}
 }
 
 func pageLayoutShortcutSpec(action string, args []string) (map[string]any, string, error) {

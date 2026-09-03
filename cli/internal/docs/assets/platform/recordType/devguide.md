@@ -172,6 +172,45 @@ cloudcc editSave recordType . <encodedBodyJson>
 # encodedBodyJson: 将 editInfo 返回的 data 对象修改目标字段后提交
 ```
 
+### 4.1 分配记录类型可用的选项列表值
+
+记录类型详情页中的“选项列表值”使用 setup-svc `/api/recordType/saveDependency` 语义：针对某个记录类型和某个选项列表字段，把所选 code 值作为该记录类型下允许出现的值；未包含在 `selectedCodeValues` 的旧值会被移除，`defaultCodeValues` 会作为该字段在此记录类型下的默认值。
+
+```bash
+cloudcc saveDependency recordType . @record-type-picklist-values.json
+cloudcc apply msapi . <planId> '{"async":true}'
+```
+
+示例 `record-type-picklist-values.json`：
+
+```json
+{
+  "objectId": "obj_price",
+  "recordTypeId": "rt_price_domestic",
+  "dependencyFieldId": "field_price_type",
+  "selectedCodeValues": ["code_domestic", "code_partner"],
+  "defaultCodeValues": "code_domestic"
+}
+```
+
+字段说明：
+
+| 字段                 | 说明 |
+|----------------------|------|
+| `objectId`           | 可选但推荐；目标对象 ID，用于计划期归属校验 |
+| `recordTypeId`       | 必填；记录类型 ID，也兼容 `id` / `obj.id` |
+| `dependencyFieldId`  | 必填；选项列表或多选选项列表字段 ID，也兼容 `dFieldId` / `dependField.id` |
+| `selectedCodeValues` | 必填；完整的“所选值”code ID 列表，传空数组表示清空该字段分配 |
+| `defaultCodeValues`  | 可选；默认 code ID，非空时必须属于 `selectedCodeValues` |
+
+验收时必须回读 `tp_sys_field_dependency`：
+
+- `CONTROL_FIELD_TYPE='R'`
+- `CONTROL_FIELD_VALUE_ID=<recordTypeId>`
+- `DEPENDENCY_FIELD_ID=<dependencyFieldId>`
+- `DEPENDENCY_FIELD_VALUE_ID in selectedCodeValues`
+- 只有默认值行 `DEFAULTCODEVALUES='1'`
+
 ---
 
 ## 5. 删除记录类型
@@ -236,5 +275,7 @@ cloudcc doc platform/recordType devguide        # 本操作指南
 | 新建保存     | `POST /api/recordType/saveRecordType` | `objid`, `obj`, `pslist`       |
 | 编辑回显     | `POST /api/recordType/editRecordType` | `id`, `objid`                  |
 | 编辑保存     | `POST /api/recordType/editSave`       | 完整记录类型对象               |
+| 选项值回显   | `POST /api/recordType/editDependencyField` | `id`, `dFieldId`          |
+| 选项值保存   | `POST /api/recordType/saveDependency` | `obj`, `dependField`, `selectedCodeValues`, `defaultCodeValues` |
 | 删除校验     | `POST /api/recordType/validDelete`    | `id`, `objid`                  |
 | 删除         | `POST /api/recordType/deleteObj`      | `id`, `objid`, `replaceId`     |

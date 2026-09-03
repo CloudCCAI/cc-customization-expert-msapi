@@ -1,6 +1,6 @@
 {
     "packageName":  "cc-customization-expert-msapi",
-    "version":  "2.2.49-msapi",
+    "version":  "2.2.50-msapi",
     "releaseDate":  "2026-09-03",
     "compatCloudccCliVersion":  "2.5.3",
     "runtime":  "go",
@@ -56,6 +56,21 @@
                                          "sourceOfTruth":  "cc-customization-expert-go/config.json",
                                          "policy":  "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
                                          "minimumByCapability":  [
+                                                                     {
+                                                                         "capability":  "msapi.recordTypes.picklistValueAssignment",
+                                                                         "label":  "Record type picklist value assignment",
+                                                                         "introducedInSkillVersion":  "2.2.50-msapi",
+                                                                         "minimumMetadataServiceVersion":  "1.1.52",
+                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.52",
+                                                                         "domains":  [
+                                                                                         "record-types"
+                                                                                     ],
+                                                                         "operations":  [
+                                                                                            "save-dependency",
+                                                                                            "assign-picklist-values"
+                                                                                        ],
+                                                                         "reason":  "Requires MetadataService to create setup-svc /api/recordType/saveDependency-compatible tp_sys_field_dependency plans that replace assigned picklist code values and default value for one record type and dependency field."
+                                                                     },
                                                                      {
                                                                          "capability":  "msapi.objects.batchCreate",
                                                                          "label":  "Batch create custom objects with top-level objects[]",
