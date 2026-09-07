@@ -37,6 +37,35 @@ Go 版 CLI 不实现交互式录入。若需要更完整的请求体，使用 ra
 
 字段引用通常使用字段 API 名，如 `Amount__c`、`End_Date__c`。部分函数会由 setup-service 在校验时把字段参数改写为字段 API 字符串，例如 `ISCHANGED(Stage__c)`、`PRIORVALUE(Stage__c)`、`BEGINS(Name__c, "A")`。
 
+**全局变量：**
+
+验证规则公式中已确认可执行的全局变量只有 `$User` 命名空间。setup-service 在 `validateFunction` 校验时会先把下表变量按当前登录用户替换为字符串值，空值替换为空字符串；替换后如果表达式仍包含 `$User`，校验会失败。因此 CLI 文档只承诺下表这些可执行全局变量，目标租户或版本差异仍必须以 `/api/validateRule/validateFunction` 校验结果为准。
+
+| 全局变量 | 说明 |
+|----------|------|
+| `$User.id` | 当前登录用户 ID。 |
+| `$User.name` | 当前登录用户名称。 |
+| `$User.roleId` | 当前登录用户所属角色 ID。 |
+| `$User.roleName` | 当前登录用户所属角色名称。 |
+| `$User.profileId` | 当前登录用户所属简档 ID。 |
+| `$User.profileName` | 当前登录用户所属简档名称。 |
+| `$User.department` | 当前登录用户部门。 |
+| `$User.title` | 当前登录用户职务或头衔。 |
+| `$User.email` | 当前登录用户邮箱。 |
+| `$User.phone` | 当前登录用户办公电话。 |
+| `$User.mobilePhone` | 当前登录用户手机号。 |
+
+setup-web / setup-service 的字段选择器和条件工具中还存在 `$User.<用户对象字段API>` 的动态展示逻辑：后端会把 `user` 对象字段包装为 `$User.<schemefieldName>`，并将 `role`、`profile`、`mobile` 分别映射为 `roleId`、`profileId`、`mobilePhone`，同时补充 `roleName`、`profileName`。这类动态选择项主要服务筛选条件、描述回显和字段选择器；验证规则公式最终能否作为全局变量执行，仍受上表运行时替换清单限制。
+
+源码扫描未发现验证规则公式支持 `$Profile`、`$Organization`、`$Permission` 等其它独立全局变量命名空间；角色和简档信息通过 `$User.roleId`、`$User.roleName`、`$User.profileId`、`$User.profileName` 使用。
+
+示例：
+
+```text
+$User.profileId == "aaa000001"
+$User.mobilePhone != $User.phone
+```
+
 **运算符：**
 
 | 运算符 | 说明 |

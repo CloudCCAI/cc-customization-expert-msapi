@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.52"
+const Version = "2.2.53"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -34,6 +34,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	case "changelog":
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
+		fmt.Fprintln(stderr, "- Validation rule CLI user docs now list every confirmed executable validation-rule global variable with a per-variable note, document the boundary for dynamic $User.<user object field API> picker entries, and note that no $Profile, $Organization, or $Permission namespace was confirmed in the validation-rule formula runtime.")
 		fmt.Fprintln(stderr, "- CloudCC accessToken handling now treats cached or configured cauth tokens rejected by setup-svc/api-svc, customPage/pagecomponent devconsole envelope, high-code helper calls, high-code scan, or MetadataService as refreshable token failures: the CLI clears cache, forces /api/cauth/token, retries once, and reports clear refresh/configuration errors if recovery fails.")
 		fmt.Fprintln(stderr, "- API registrar runtime debug/log outputs are now redacted before CLI display for common Token, Authorization, Cookie, Secret, Password, and API-key values, including sensitive fragments embedded in string-backed request/response bodies.")
 		fmt.Fprintln(stderr, "- Record type picklist value assignment is now available through MetadataService: saveDependency/assignPicklistValues recordType creates record-types save-dependency plans aligned to setup-svc /api/recordType/saveDependency, replacing selected values and default value for one record type and picklist field.")
