@@ -529,6 +529,11 @@ func truthy(value any) bool {
 }
 
 func handlePageLayout(action string, args []string, stdout io.Writer, _ io.Writer, cwd string) error {
+	if len(args) > 1 {
+		if kind := normalizePageLayoutKind(args[1]); kind != "" {
+			return handlePageLayoutKind(action, kind, args, stdout, cwd)
+		}
+	}
 	switch action {
 	case "detail":
 		return pageLayoutDetail(args, stdout, cwd)
@@ -542,6 +547,253 @@ func handlePageLayout(action string, args []string, stdout io.Writer, _ io.Write
 		}
 	}
 	return fmt.Errorf("unsupported pagelayout action: %s", action)
+}
+
+func normalizePageLayoutKind(value string) string {
+	switch strings.TrimSpace(value) {
+	case "pc", "desktop":
+		return "pc"
+	case "mobile", "mobileLayout", "mobile-layout":
+		return "mobile"
+	case "row", "line", "lineLayout", "rowLayout", "multi", "multiLayout", "multi-layout":
+		return "row"
+	case "hover", "mini", "hoverLayout", "miniLayout", "mini-layout":
+		return "hover"
+	case "dynamic", "dynamicLayout", "dynamic-layout":
+		return "dynamic"
+	case "dynamic-main-condition", "dynamicMainCondition", "main-condition":
+		return "dynamic-main-condition"
+	case "dynamic-second-condition", "dynamicSecondCondition", "second-condition":
+		return "dynamic-second-condition"
+	case "dynamic-action", "dynamicAction":
+		return "dynamic-action"
+	default:
+		return ""
+	}
+}
+
+func handlePageLayoutKind(action string, kind string, args []string, stdout io.Writer, cwd string) error {
+	projectPath := firstArg(args, cwd)
+	rest := args[2:]
+	cfg, err := config.Load(projectPath)
+	if err != nil {
+		return err
+	}
+	switch kind {
+	case "pc":
+		return handlePageLayout(action, append([]string{projectPath}, rest...), stdout, nil, cwd)
+	case "mobile":
+		return handlePageLayoutMobile(action, projectPath, rest, stdout, cfg)
+	case "row":
+		return handlePageLayoutRow(action, projectPath, rest, stdout, cfg)
+	case "hover":
+		return handlePageLayoutHover(action, projectPath, rest, stdout, cfg)
+	case "dynamic":
+		return handlePageLayoutDynamic(action, projectPath, rest, stdout, cfg)
+	case "dynamic-main-condition", "dynamic-second-condition", "dynamic-action":
+		return handlePageLayoutDynamicChild(action, kind, projectPath, rest, stdout, cfg)
+	default:
+		return fmt.Errorf("unsupported pagelayout kind: %s", kind)
+	}
+}
+
+func handlePageLayoutMobile(action string, projectPath string, args []string, stdout io.Writer, cfg config.Config) error {
+	switch action {
+	case "detail", "editInfo":
+		if len(args) < 2 {
+			return fmt.Errorf("cloudcc %s pagelayout <projectPath> mobile <objId> <layoutId>", action)
+		}
+		return postClass(stdout, projectPath, cfg, "setup", "/api/modifyLayoutLightning/queryLayout",
+			map[string]any{"objId": args[0], "layoutId": args[1], "type": "mobile"})
+	case "update", "save":
+		if len(args) < 2 {
+			return fmt.Errorf("cloudcc %s pagelayout <projectPath> mobile <layoutId> <encodedLayoutJSON>", action)
+		}
+		layout, err := parsePageLayoutEncodedObject(args[1], "cloudcc "+action+" pagelayout mobile")
+		if err != nil {
+			return err
+		}
+		layoutJSON, err := normalizePageLayoutJSON(layout, args[0])
+		if err != nil {
+			return err
+		}
+		return postClass(stdout, projectPath, cfg, "setup", "/api/modifyLayoutLightning/saveLayout",
+			map[string]any{"layoutId": args[0], "layoutJson": layoutJSON, "type": "mobile"})
+	case "buttons", "queryButtons", "query-buttons":
+		if len(args) < 1 {
+			return fmt.Errorf("cloudcc %s pagelayout <projectPath> mobile <layoutId>", action)
+		}
+		return postClass(stdout, projectPath, cfg, "setup", "/api/modifyLayoutLightning/queryMobileLayoutButton",
+			map[string]any{"layoutId": args[0], "type": "mobile"})
+	default:
+		return fmt.Errorf("unsupported mobile pagelayout action: %s", action)
+	}
+}
+
+func handlePageLayoutRow(action string, projectPath string, args []string, stdout io.Writer, cfg config.Config) error {
+	switch action {
+	case "detail", "get", "query":
+		if len(args) < 2 {
+			return fmt.Errorf("cloudcc %s pagelayout <projectPath> row <prefix> <layoutId>", action)
+		}
+		return postClass(stdout, projectPath, cfg, "setup", "/api/modifyLayoutLightning/queryMultiLayout",
+			map[string]any{"prefix": args[0], "layoutId": args[1]})
+	case "update", "save":
+		if len(args) < 3 {
+			return fmt.Errorf("cloudcc %s pagelayout <projectPath> row <layoutId> <requiredFieldIds> <optionalFieldIds>", action)
+		}
+		return postClass(stdout, projectPath, cfg, "setup", "/api/modifyLayoutLightning/saveMultiLayout",
+			map[string]any{"layoutId": args[0], "selectedrequiredFields": args[1], "selectedFieldIds": args[2]})
+	default:
+		return fmt.Errorf("unsupported row pagelayout action: %s", action)
+	}
+}
+
+func handlePageLayoutHover(action string, projectPath string, args []string, stdout io.Writer, cfg config.Config) error {
+	switch action {
+	case "detail", "get", "query":
+		if len(args) < 1 {
+			return fmt.Errorf("cloudcc %s pagelayout <projectPath> hover <layoutId>", action)
+		}
+		return postClass(stdout, projectPath, cfg, "setup", "/api/modifyLayoutLightning/queryMiniLayout",
+			map[string]any{"layoutId": args[0]})
+	case "update", "save":
+		if len(args) < 2 {
+			return fmt.Errorf("cloudcc %s pagelayout <projectPath> hover <layoutId> <fieldIds> [miniRelationlistJSON]", action)
+		}
+		body := map[string]any{"layoutId": args[0], "selectedFieldIds": args[1]}
+		if len(args) > 2 && strings.TrimSpace(args[2]) != "" {
+			body["miniRelationlistjson"] = args[2]
+		}
+		return postClass(stdout, projectPath, cfg, "setup", "/api/modifyLayoutLightning/saveMiniLayout", body)
+	default:
+		return fmt.Errorf("unsupported hover pagelayout action: %s", action)
+	}
+}
+
+func handlePageLayoutDynamic(action string, projectPath string, args []string, stdout io.Writer, cfg config.Config) error {
+	switch action {
+	case "get", "getList", "list":
+		if len(args) < 1 {
+			return fmt.Errorf("cloudcc %s pagelayout <projectPath> dynamic <layoutId>", action)
+		}
+		return postClass(stdout, projectPath, cfg, "setup", "/api/dynamicPageLayout/getDynamicLayoutList",
+			map[string]any{"layoutId": args[0]})
+	case "detail", "editInfo":
+		if len(args) < 1 {
+			return fmt.Errorf("cloudcc %s pagelayout <projectPath> dynamic <dynamicLayoutId>", action)
+		}
+		return postClass(stdout, projectPath, cfg, "setup", "/api/dynamicPageLayout/queryDynamicPageLayout",
+			map[string]any{"id": args[0]})
+	case "create", "add":
+		body, err := pageLayoutDynamicBody(args, "cloudcc "+action+" pagelayout dynamic")
+		if err != nil {
+			return err
+		}
+		return postClass(stdout, projectPath, cfg, "setup", "/api/dynamicPageLayout/add", body)
+	case "update", "save", "editSave":
+		body, err := pageLayoutDynamicBody(args, "cloudcc "+action+" pagelayout dynamic")
+		if err != nil {
+			return err
+		}
+		return postClass(stdout, projectPath, cfg, "setup", "/api/dynamicPageLayout/editDynamic", body)
+	case "enable", "activate":
+		return pageLayoutDynamicActive(projectPath, args, stdout, cfg, true)
+	case "disable", "deactivate":
+		return pageLayoutDynamicActive(projectPath, args, stdout, cfg, false)
+	case "delete", "remove":
+		if len(args) < 1 {
+			return fmt.Errorf("cloudcc delete pagelayout <projectPath> dynamic <dynamicLayoutId>")
+		}
+		return postClass(stdout, projectPath, cfg, "setup", "/api/dynamicPageLayout/deleteDynamicLayout",
+			map[string]any{"id": args[0]})
+	default:
+		return fmt.Errorf("unsupported dynamic pagelayout action: %s", action)
+	}
+}
+
+func handlePageLayoutDynamicChild(action string, kind string, projectPath string, args []string, stdout io.Writer, cfg config.Config) error {
+	body, err := pageLayoutDynamicBody(args, "cloudcc "+action+" pagelayout "+kind)
+	if err != nil {
+		return err
+	}
+	paths := map[string]map[string]string{
+		"dynamic-main-condition": {
+			"create": "/api/dynamicPageLayout/saveMainCondition",
+			"update": "/api/dynamicPageLayout/saveMainCondition",
+			"save":   "/api/dynamicPageLayout/saveMainCondition",
+			"delete": "/api/dynamicPageLayout/deleteMainCondition",
+		},
+		"dynamic-second-condition": {
+			"create": "/api/dynamicPageLayout/saveSecondCondition",
+			"update": "/api/dynamicPageLayout/saveSecondCondition",
+			"save":   "/api/dynamicPageLayout/saveSecondCondition",
+			"delete": "/api/dynamicPageLayout/deleteSecondCondition",
+		},
+		"dynamic-action": {
+			"create": "/api/dynamicPageLayout/saveAction",
+			"update": "/api/dynamicPageLayout/saveAction",
+			"save":   "/api/dynamicPageLayout/saveAction",
+			"delete": "/api/dynamicPageLayout/deleteAction",
+		},
+	}
+	path := paths[kind][action]
+	if path == "" {
+		return fmt.Errorf("unsupported %s pagelayout action: %s", kind, action)
+	}
+	return postClass(stdout, projectPath, cfg, "setup", path, body)
+}
+
+func pageLayoutDynamicActive(projectPath string, args []string, stdout io.Writer, cfg config.Config, active bool) error {
+	if len(args) < 1 {
+		return fmt.Errorf("cloudcc enable|disable pagelayout <projectPath> dynamic <dynamicLayoutId>")
+	}
+	body := map[string]any{"id": args[0], "isActive": active}
+	if len(args) > 1 && strings.TrimSpace(args[1]) != "" {
+		overrides, err := parsePageLayoutEncodedObject(args[1], "cloudcc enable|disable pagelayout dynamic")
+		if err != nil {
+			return err
+		}
+		for key, value := range overrides {
+			body[key] = value
+		}
+		body["id"] = args[0]
+		body["isActive"] = active
+	}
+	return postClass(stdout, projectPath, cfg, "setup", "/api/dynamicPageLayout/editDynamic", body)
+}
+
+func pageLayoutDynamicBody(args []string, usage string) (map[string]any, error) {
+	if len(args) == 0 || strings.TrimSpace(args[0]) == "" {
+		return nil, fmt.Errorf("%s requires an encoded JSON body", usage)
+	}
+	body, err := parsePageLayoutEncodedObject(args[0], usage)
+	if err == nil {
+		return body, nil
+	}
+	if len(args) > 1 && strings.TrimSpace(args[1]) != "" {
+		body, err = parsePageLayoutEncodedObject(args[1], usage)
+		if err != nil {
+			return nil, err
+		}
+		if _, ok := body["layoutId"]; !ok {
+			body["layoutId"] = args[0]
+		}
+		return body, nil
+	}
+	return nil, err
+}
+
+func parsePageLayoutEncodedObject(value string, usage string) (map[string]any, error) {
+	body, err := jsonx.ParseEncodedObject(value, usage)
+	if err == nil {
+		return body, nil
+	}
+	var raw map[string]any
+	if err2 := json.Unmarshal([]byte(value), &raw); err2 == nil {
+		return raw, nil
+	}
+	return nil, err
 }
 
 func handleMenu(action string, args []string, stdout io.Writer, cwd string) error {
@@ -615,14 +867,9 @@ func pageLayoutSave(args []string, stdout io.Writer, cwd string) error {
 	projectPath := firstArg(args, cwd)
 	layoutId := args[1]
 	layoutArg := args[2]
-	layout, err := jsonx.ParseEncodedObject(layoutArg, "cloudcc update pagelayout")
+	layout, err := parsePageLayoutEncodedObject(layoutArg, "cloudcc update pagelayout")
 	if err != nil {
-		var raw map[string]any
-		if err2 := json.Unmarshal([]byte(layoutArg), &raw); err2 == nil {
-			layout = raw
-		} else {
-			return err
-		}
+		return err
 	}
 	layoutJSON, err := normalizePageLayoutJSON(layout, layoutId)
 	if err != nil {

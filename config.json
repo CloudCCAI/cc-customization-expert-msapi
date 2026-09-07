@@ -1,6 +1,6 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.2.53-msapi",
+  "version": "2.2.54-msapi",
   "releaseDate": "2026-09-07",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
@@ -56,6 +56,25 @@
     "sourceOfTruth": "cc-customization-expert-go/config.json",
     "policy": "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
     "minimumByCapability": [
+      {
+        "capability": "msapi.layouts.completeCapabilities",
+        "label": "Complete page layout detail capabilities",
+        "introducedInSkillVersion": "2.2.54-msapi",
+        "minimumMetadataServiceVersion": "1.1.54",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.54",
+        "domains": [
+          "layouts"
+        ],
+        "operations": [
+          "create",
+          "update",
+          "delete",
+          "activate",
+          "deactivate",
+          "query"
+        ],
+        "reason": "Requires MetadataService to plan setup-web/setup-svc page layout detail capabilities for PC layouts, mobile layouts, row layouts, hover layouts, and dynamic layout rules with main conditions, second conditions, and actions."
+      },
       {
         "capability": "msapi.recordTypes.picklistValueAssignment",
         "label": "Record type picklist value assignment",

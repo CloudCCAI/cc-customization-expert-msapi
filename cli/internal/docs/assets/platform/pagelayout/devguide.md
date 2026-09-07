@@ -9,6 +9,27 @@
 | `delete` | 删除页面布局 |
 | `detail` | 查询页面布局详情（支持 PC / mobile） |
 | `update` | 保存布局编辑结果 |
+| `detail/update pagelayout mobile` | 查询/保存移动页面布局 |
+| `detail/update pagelayout row` | 查询/保存行式布局 |
+| `detail/update pagelayout hover` | 查询/保存悬停布局 |
+| `get/detail/create/update/enable/disable/delete pagelayout dynamic` | 管理动态页面布局规则 |
+| `create/update/delete pagelayout dynamic-main-condition` | 管理动态布局主条件 |
+| `create/update/delete pagelayout dynamic-second-condition` | 管理动态布局二级条件 |
+| `create/update/delete pagelayout dynamic-action` | 管理动态布局触发动作 |
+
+## 页面布局详情能力矩阵
+
+页面布局详情页包含五类布局能力。CLI 按 setup-web/setup-svc 的真实能力边界拆分，不把所有能力混在一个不透明的 `pagelayout update` 中。
+
+| 页面布局详情能力 | CLI kind | setup-svc 入口 | 当前 CLI/MSAPI 支持 |
+|------------------|----------|----------------|---------------------|
+| PC 页面布局 | 默认或 `pc` | `/api/modifyLayoutLightning/queryLayout`、`/saveLayout`、`/saveButtonLayout`、`/saveRelatedList` | 支持列表、详情、创建/复制、删除、sections 更新、布局分配；按钮/相关列表可通过 JSON spec 或 setup-svc 兼容入口处理 |
+| 移动页面布局 | `mobile` | `/api/modifyLayoutLightning/queryLayout`、`/saveLayout`，请求体 `type=mobile` | 支持详情和 sections 保存；保存时传 PC 根布局 ID，服务端定位其 mobile 子布局 |
+| 行式布局 | `row` | `/api/modifyLayoutLightning/queryMultiLayout`、`/saveMultiLayout` | 支持详情和完整替换保存；必填字段排在可选字段前 |
+| 悬停布局 | `hover` | `/api/modifyLayoutLightning/queryMiniLayout`、`/saveMiniLayout` | 支持详情和字段完整替换保存；悬停相关列表 JSON 可传给 setup-svc，MetadataService 表级写入需等待 live parity 完成 |
+| 动态页面布局 | `dynamic` | `/api/dynamicPageLayout/*` | 支持规则列表、详情、新增、编辑、启停、删除，以及主条件、二级条件、动作的计划写入 |
+
+命令中的 `row` 也接受 `line` / `lineLayout` / `multiLayout` 别名；`hover` 也接受 `mini` / `miniLayout`；`dynamic` 也接受 `dynamicLayout`。
 
 ## CLI 命令详解
 
@@ -205,6 +226,9 @@ cloudcc delete pagelayout . add202610BD89F09XyGT
 
 ```bash
 cloudcc detail pagelayout <projectPath> <objId> <layoutId> [type]
+cloudcc detail pagelayout <projectPath> mobile <objId> <layoutId>
+cloudcc detail pagelayout <projectPath> row <prefix> <layoutId>
+cloudcc detail pagelayout <projectPath> hover <layoutId>
 ```
 
 说明：
@@ -218,6 +242,9 @@ cloudcc detail pagelayout <projectPath> <objId> <layoutId> [type]
 ```bash
 cloudcc detail pagelayout . account add100000001328m7xZh
 cloudcc detail pagelayout . account add100000001328m7xZh mobile
+cloudcc detail pagelayout . mobile account add100000001328m7xZh
+cloudcc detail pagelayout . row account add100000001328m7xZh
+cloudcc detail pagelayout . hover add100000001328m7xZh
 ```
 
 ## 常用布局结构
@@ -471,6 +498,9 @@ data
 
 ```bash
 cloudcc update pagelayout <projectPath> <layoutId> <encodedLayoutJSON>
+cloudcc update pagelayout <projectPath> mobile <layoutId> <encodedLayoutJSON>
+cloudcc update pagelayout <projectPath> row <layoutId> <requiredFieldIds> <optionalFieldIds>
+cloudcc update pagelayout <projectPath> hover <layoutId> <fieldIds> [miniRelationlistJSON]
 ```
 
 说明：
@@ -483,4 +513,75 @@ cloudcc update pagelayout <projectPath> <layoutId> <encodedLayoutJSON>
 
 ```bash
 cloudcc update pagelayout . add100000001328m7xZh '%7B%22sections%22%3A%5B%7B%22sectionId%22%3A%22adf201596491538bIl0N%22%2C%22sectionName%22%3A%22%E5%9F%BA%E6%9C%AC%E4%BF%A1%E6%81%AF%22%2C%22labelKey%22%3A%22%E5%9F%BA%E6%9C%AC%E4%BF%A1%E6%81%AF%22%2C%22showDetailHeader%22%3Atrue%2C%22showEditHeader%22%3Atrue%2C%22columns%22%3A%5B%5B%5D%5D%7D%5D%7D'
+cloudcc update pagelayout . mobile add100000001328m7xZh '%7B%22sections%22%3A%5B%5D%7D'
+cloudcc update pagelayout . row add100000001328m7xZh 'name,status' 'phone,email'
+cloudcc update pagelayout . hover add100000001328m7xZh 'name,phone,email'
 ```
+
+### 移动页面布局
+
+移动页面布局保存沿用页面布局 sections 结构，但请求体带 `type=mobile`。命令中的 `<layoutId>` 传 PC 根布局 ID；setup-svc 会按 `parentid=<layoutId>` 定位移动端子布局。MetadataService 计划同样会先解析 mobile 子布局，再对该子布局执行 section/field replacement。
+
+### 行式布局
+
+行式布局是列表行/摘要行中显示的字段集合。setup-svc 保存时会先删除目标布局的既有 `tp_sys_multilayout` 行，再按顺序插入：
+
+| 参数 | 说明 |
+|------|------|
+| `requiredFieldIds` | 逗号分隔的必填字段 ID/API，保存后 `required=1`，顺序排在前面 |
+| `optionalFieldIds` | 逗号分隔的可选字段 ID/API，保存后 `required=0`，顺序排在必填字段后 |
+
+### 悬停布局
+
+悬停布局是 lookup、引用字段或详情悬停卡片中展示的简要字段集合。setup-svc 保存时会替换目标布局的 `tp_sys_minilayout` 字段行：
+
+| 参数 | 说明 |
+|------|------|
+| `fieldIds` | 逗号分隔的悬停字段 ID/API，按传入顺序保存 |
+| `miniRelationlistJSON` | 可选；setup-svc 兼容模式会原样传给 `/saveMiniLayout`，MetadataService 表级写入暂不自动展开相关列表 JSON |
+
+## 动态页面布局
+
+动态页面布局规则决定字段或分组在 PC/mobile 页面中的条件显示行为。规则本体、主条件、二级条件、触发动作是独立能力。
+
+```bash
+cloudcc get pagelayout <projectPath> dynamic <layoutId>
+cloudcc detail pagelayout <projectPath> dynamic <dynamicLayoutId>
+cloudcc create pagelayout <projectPath> dynamic <layoutId> <encodedRuleJSON>
+cloudcc update pagelayout <projectPath> dynamic <encodedRuleJSON>
+cloudcc enable pagelayout <projectPath> dynamic <dynamicLayoutId> [encodedRuleJSON]
+cloudcc disable pagelayout <projectPath> dynamic <dynamicLayoutId> [encodedRuleJSON]
+cloudcc delete pagelayout <projectPath> dynamic <dynamicLayoutId>
+```
+
+规则 JSON 常用字段：`id` / `dynamicLayoutId`、`layoutId`、`name`、`description` / `descreption`、`pcOrMobile` / `pc_or_mobile`、`isActive`、`mainCondition`、`mainConditions[]`、`secondConditions[]`、`actions[]`。
+
+主条件：
+
+```bash
+cloudcc create pagelayout <projectPath> dynamic-main-condition <encodedConditionJSON>
+cloudcc update pagelayout <projectPath> dynamic-main-condition <encodedConditionJSON>
+cloudcc delete pagelayout <projectPath> dynamic-main-condition <conditionId>
+```
+
+主条件 JSON 常用字段：`id`、`dynamicId`、`fieldId`、`operator`、`value`、`seq`。
+
+二级条件：
+
+```bash
+cloudcc create pagelayout <projectPath> dynamic-second-condition <encodedConditionJSON>
+cloudcc update pagelayout <projectPath> dynamic-second-condition <encodedConditionJSON>
+cloudcc delete pagelayout <projectPath> dynamic-second-condition <secondConditionId>
+```
+
+二级条件 JSON 常用字段：`id`、`mainConditionId`、`label`、`seq`、`fields[]`。`fields[]` 中每项使用 `fieldId`、`operator`、`value`、`BoolFilter`、`seq`，保存为二级条件下属 `tp_sys_condition` 行。
+
+触发动作：
+
+```bash
+cloudcc create pagelayout <projectPath> dynamic-action <encodedActionJSON>
+cloudcc update pagelayout <projectPath> dynamic-action <encodedActionJSON>
+cloudcc delete pagelayout <projectPath> dynamic-action <actionId>
+```
+
+动作 JSON 常用字段：`id`、`mainConditionId`、`secondConditionId`、`type`、`fieldId`、`sectionId`、`seq`。`showsection` / `hidesection` 使用 `sectionId`，其它字段类动作使用 `fieldId`。

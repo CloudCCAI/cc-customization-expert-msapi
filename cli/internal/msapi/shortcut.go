@@ -504,18 +504,76 @@ func handlePageLayoutReadShortcut(action string, projectPath string, args []stri
 	if err != nil {
 		return err
 	}
+	if len(args) > 0 {
+		if kind := normalizePageLayoutKind(args[0]); kind != "" {
+			return handlePageLayoutKindReadShortcut(c, action, kind, args[1:], stdout)
+		}
+	}
 	if action == "detail" || action == "editInfo" {
 		if len(args) < 2 || len(args) > 3 || strings.TrimSpace(args[0]) == "" || strings.TrimSpace(args[1]) == "" {
 			return fmt.Errorf("cloudcc %s pagelayout <projectPath> <object-id-apiName-or-prefix> <layout-id-apiName-or-name> [type]", action)
 		}
 		path := "/metadata/v1/layouts/" + url.PathEscape(strings.TrimSpace(args[1])) +
 			"?object=" + url.QueryEscape(strings.TrimSpace(args[0]))
+		if len(args) == 3 && strings.TrimSpace(args[2]) != "" {
+			path += "&type=" + url.QueryEscape(strings.TrimSpace(args[2]))
+		}
 		return c.getJSON(stdout, path)
 	}
 	if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
 		return fmt.Errorf("cloudcc %s pagelayout <projectPath> <object-id-apiName-or-prefix>", action)
 	}
 	return c.getJSON(stdout, "/metadata/v1/layouts?object="+url.QueryEscape(strings.TrimSpace(args[0])))
+}
+
+func normalizePageLayoutKind(value string) string {
+	switch strings.TrimSpace(value) {
+	case "pc", "desktop":
+		return "pc"
+	case "mobile", "mobileLayout", "mobile-layout":
+		return "mobile"
+	case "row", "line", "lineLayout", "rowLayout", "multi", "multiLayout", "multi-layout":
+		return "row"
+	case "hover", "mini", "hoverLayout", "miniLayout", "mini-layout":
+		return "hover"
+	case "dynamic", "dynamicLayout", "dynamic-layout":
+		return "dynamic"
+	case "dynamic-main-condition", "dynamicMainCondition", "main-condition":
+		return "dynamic-main-condition"
+	case "dynamic-second-condition", "dynamicSecondCondition", "second-condition":
+		return "dynamic-second-condition"
+	case "dynamic-action", "dynamicAction":
+		return "dynamic-action"
+	default:
+		return ""
+	}
+}
+
+func handlePageLayoutKindReadShortcut(c *client, action string, kind string, args []string, stdout io.Writer) error {
+	switch kind {
+	case "mobile":
+		if len(args) < 2 || strings.TrimSpace(args[0]) == "" || strings.TrimSpace(args[1]) == "" {
+			return fmt.Errorf("cloudcc %s pagelayout <projectPath> mobile <object-id-apiName-or-prefix> <layout-id-apiName-or-name>", action)
+		}
+		path := "/metadata/v1/layouts/" + url.PathEscape(strings.TrimSpace(args[1])) +
+			"?object=" + url.QueryEscape(strings.TrimSpace(args[0])) + "&type=mobile"
+		return c.getJSON(stdout, path)
+	case "row", "hover", "dynamic":
+		if kind == "dynamic" && (action == "get" || action == "getList") {
+			if len(args) < 1 || strings.TrimSpace(args[0]) == "" {
+				return fmt.Errorf("cloudcc %s pagelayout <projectPath> dynamic <layout-id-apiName-or-name>", action)
+			}
+			return c.getJSON(stdout, "/metadata/v1/layouts/"+url.PathEscape(strings.TrimSpace(args[0]))+"?view=dynamic")
+		}
+		if len(args) < 2 || strings.TrimSpace(args[0]) == "" || strings.TrimSpace(args[1]) == "" {
+			return fmt.Errorf("cloudcc %s pagelayout <projectPath> %s <object-id-apiName-or-prefix> <layout-id-apiName-or-name>", action, kind)
+		}
+		path := "/metadata/v1/layouts/" + url.PathEscape(strings.TrimSpace(args[1])) +
+			"?object=" + url.QueryEscape(strings.TrimSpace(args[0])) + "&view=" + url.QueryEscape(kind)
+		return c.getJSON(stdout, path)
+	default:
+		return fmt.Errorf("cloudcc %s pagelayout <projectPath> %s does not support read shortcuts", action, kind)
+	}
 }
 
 func handleProfileShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
@@ -1808,6 +1866,11 @@ func pageLayoutShortcutSpec(action string, args []string) (map[string]any, strin
 	if strings.TrimSpace(action) == "assign" {
 		operation = "assign"
 	}
+	if len(args) > 0 {
+		if kind := normalizePageLayoutKind(args[0]); kind != "" {
+			return pageLayoutKindShortcutSpec(action, kind, args[1:])
+		}
+	}
 	if len(args) > 0 && looksLikeJSONArg(args[0]) {
 		body, err := parseObject(args[0], "cloudcc "+action+" pagelayout")
 		return body, operation, err
@@ -1869,6 +1932,95 @@ func pageLayoutShortcutSpec(action string, args []string) (map[string]any, strin
 		}, "assign", nil
 	default:
 		return shortcutBodySpec(action, "pagelayout", args)
+	}
+}
+
+func pageLayoutKindShortcutSpec(action string, kind string, args []string) (map[string]any, string, error) {
+	action = strings.TrimSpace(action)
+	switch kind {
+	case "mobile":
+		if action != "update" && action != "save" {
+			return nil, "", fmt.Errorf("cloudcc %s pagelayout mobile only supports update/save in MetadataService plan shortcuts", action)
+		}
+		if len(args) < 2 {
+			return nil, "", fmt.Errorf("cloudcc %s pagelayout <projectPath> mobile <layoutId> <encodedLayoutJSON>", action)
+		}
+		body, err := parseObject(args[1], "cloudcc "+action+" pagelayout mobile")
+		if err != nil {
+			return nil, "", err
+		}
+		body["layoutId"] = strings.TrimSpace(args[0])
+		body["layoutCapability"] = "mobile"
+		body["type"] = "mobile"
+		return body, "update", nil
+	case "row":
+		if action != "update" && action != "save" {
+			return nil, "", fmt.Errorf("cloudcc %s pagelayout row only supports update/save in MetadataService plan shortcuts", action)
+		}
+		if len(args) < 3 {
+			return nil, "", fmt.Errorf("cloudcc %s pagelayout <projectPath> row <layoutId> <requiredFieldIds> <optionalFieldIds>", action)
+		}
+		return map[string]any{
+			"layoutCapability":       "row",
+			"layoutId":               strings.TrimSpace(args[0]),
+			"requiredFieldIds":       strings.TrimSpace(args[1]),
+			"optionalFieldIds":       strings.TrimSpace(args[2]),
+			"selectedFieldIds":       strings.TrimSpace(args[2]),
+			"selectedrequiredFields": strings.TrimSpace(args[1]),
+		}, "update", nil
+	case "hover":
+		if action != "update" && action != "save" {
+			return nil, "", fmt.Errorf("cloudcc %s pagelayout hover only supports update/save in MetadataService plan shortcuts", action)
+		}
+		if len(args) < 2 {
+			return nil, "", fmt.Errorf("cloudcc %s pagelayout <projectPath> hover <layoutId> <fieldIds> [miniRelationlistJSON]", action)
+		}
+		spec := map[string]any{
+			"layoutCapability": "hover",
+			"layoutId":         strings.TrimSpace(args[0]),
+			"fieldIds":         strings.TrimSpace(args[1]),
+			"selectedFieldIds": strings.TrimSpace(args[1]),
+		}
+		if len(args) > 2 && strings.TrimSpace(args[2]) != "" {
+			spec["miniRelationlistjson"] = strings.TrimSpace(args[2])
+		}
+		return spec, "update", nil
+	case "dynamic", "dynamic-main-condition", "dynamic-second-condition", "dynamic-action":
+		if len(args) == 0 {
+			return nil, "", fmt.Errorf("cloudcc %s pagelayout %s requires an id or encoded JSON body", action, kind)
+		}
+		spec := map[string]any{"layoutCapability": kind}
+		if looksLikeJSONArg(args[0]) {
+			body, err := parseObject(args[0], "cloudcc "+action+" pagelayout "+kind)
+			if err != nil {
+				return nil, "", err
+			}
+			for key, value := range body {
+				spec[key] = value
+			}
+		} else if len(args) > 1 && looksLikeJSONArg(args[1]) {
+			body, err := parseObject(args[1], "cloudcc "+action+" pagelayout "+kind)
+			if err != nil {
+				return nil, "", err
+			}
+			for key, value := range body {
+				spec[key] = value
+			}
+			if kind == "dynamic" {
+				spec["layoutId"] = strings.TrimSpace(args[0])
+			}
+		} else {
+			spec["id"] = strings.TrimSpace(args[0])
+		}
+		switch action {
+		case "enable", "activate":
+			spec["isActive"] = true
+		case "disable", "deactivate":
+			spec["isActive"] = false
+		}
+		return spec, shortcutOperation(action, "pagelayout"), nil
+	default:
+		return nil, "", fmt.Errorf("unsupported pagelayout kind: %s", kind)
 	}
 }
 
