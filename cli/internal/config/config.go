@@ -27,20 +27,48 @@ func Load(projectPath string) (Config, error) {
 			return nil, err
 		}
 	}
-	if old, err := loadOldPackage(projectPath); err == nil && old != nil {
-		return old, nil
-	}
-	if cached, err := loadCache(projectPath); err == nil && cached != nil {
-		return cached, nil
-	}
-	cfg, err := loadJSONConfig(projectPath)
-	if err == nil && cfg != nil {
-		return resolveDevConsoleConfig(projectPath, cfg)
+	if _, err := os.Stat(filepath.Join(projectPath, "cloudcc-cli.config.json")); err == nil {
+		if cached, err := loadCache(projectPath); err == nil && cached != nil {
+			return cached, nil
+		}
+		cfg, err := loadJSONConfig(projectPath)
+		if err == nil && cfg != nil {
+			if old, oldErr := loadOldPackage(projectPath); oldErr == nil && old != nil {
+				mergeMissingConfig(cfg, old)
+			}
+			return resolveDevConsoleConfig(projectPath, cfg, false)
+		}
+		if old, oldErr := loadOldPackage(projectPath); oldErr == nil && old != nil {
+			return resolveDevConsoleConfig(projectPath, old, false)
+		}
+	} else if old, err := loadOldPackage(projectPath); err == nil && old != nil {
+		return resolveDevConsoleConfig(projectPath, old, false)
 	}
 	if _, err := os.Stat(filepath.Join(projectPath, "cloudcc-cli.config.js")); err == nil {
 		return nil, fmt.Errorf("cloudcc-cli.config.js is not executable by the Go CLI; migrate to cloudcc-cli.config.json")
 	}
 	return nil, fmt.Errorf("no valid cloudcc-cli config found in %s", projectPath)
+}
+
+func RefreshAccessToken(projectPath string) (Config, error) {
+	if projectPath == "" {
+		var err error
+		projectPath, err = os.Getwd()
+		if err != nil {
+			return nil, err
+		}
+	}
+	_ = ClearCacheEntry(projectPath)
+	if cfg, err := loadJSONConfig(projectPath); err == nil && cfg != nil {
+		if old, oldErr := loadOldPackage(projectPath); oldErr == nil && old != nil {
+			mergeMissingConfig(cfg, old)
+		}
+		return resolveDevConsoleConfig(projectPath, cfg, true)
+	}
+	if old, err := loadOldPackage(projectPath); err == nil && old != nil {
+		return resolveDevConsoleConfig(projectPath, old, true)
+	}
+	return nil, fmt.Errorf("CloudCC accessToken refresh failed before /api/cauth/token: no refreshable CloudCC credentials found; check cloudcc-cli.config.json active env for CloudCCDev or username/safetyMark/clientId/openSecretKey/orgId/apiSvc")
 }
 
 func Use(projectPath string, env string) error {
@@ -97,7 +125,8 @@ func loadJSONConfig(projectPath string) (Config, error) {
 	if cloudDev, _ := out["CloudCCDev"].(string); cloudDev != "" {
 		decoded, err := decodeCloudCCDev(cloudDev)
 		if err != nil {
-			return nil, err
+			out["CloudCCDevDecodeError"] = err.Error()
+			return Config(out), nil
 		}
 		for k, v := range decoded {
 			if _, exists := out[k]; !exists {
@@ -107,6 +136,14 @@ func loadJSONConfig(projectPath string) (Config, error) {
 		out["CloudCCDev"] = ""
 	}
 	return Config(out), nil
+}
+
+func mergeMissingConfig(dst Config, src Config) {
+	for key, value := range src {
+		if stringValue(dst[key]) == "" {
+			dst[key] = value
+		}
+	}
 }
 
 func decodeCloudCCDev(value string) (map[string]any, error) {
@@ -149,22 +186,27 @@ func loadCache(projectPath string) (Config, error) {
 	if entry == nil {
 		return nil, nil
 	}
-	if ts, ok := entry["timestamp"].(float64); ok {
-		if time.Since(time.UnixMilli(int64(ts))) > time.Hour {
-			return nil, nil
-		}
+	ts, ok := entry["timestamp"].(float64)
+	if !ok {
+		return nil, nil
+	}
+	if time.Since(time.UnixMilli(int64(ts))) > time.Hour {
+		return nil, nil
+	}
+	if tokenNearExpiry(stringValue(entry["accessToken"]), 5*time.Minute) {
+		return nil, nil
 	}
 	return Config(entry), nil
 }
 
-func resolveDevConsoleConfig(projectPath string, cfg Config) (Config, error) {
+func resolveDevConsoleConfig(projectPath string, cfg Config, forceAccessTokenRefresh bool) (Config, error) {
 	if cfg["apiSvc"] == nil || cfg["setupSvc"] == nil {
 		if err := addBaseURLs(cfg); err != nil {
 			return nil, err
 		}
 	}
 	client := httpclient.New()
-	if err := addBusToken(client, cfg); err != nil {
+	if err := addBusToken(client, cfg, forceAccessTokenRefresh); err != nil {
 		return nil, err
 	}
 	if err := addSecretKey(client, cfg); err != nil {
@@ -218,11 +260,14 @@ func addBaseURLs(cfg Config) error {
 	return nil
 }
 
-func addBusToken(client *httpclient.Client, cfg Config) error {
-	if stringValue(cfg["accessToken"]) != "" {
+func addBusToken(client *httpclient.Client, cfg Config, force bool) error {
+	if stringValue(cfg["accessToken"]) != "" && !force {
 		return nil
 	}
 	if stringValue(cfg["username"]) == "" || stringValue(cfg["safetyMark"]) == "" || stringValue(cfg["clientId"]) == "" || stringValue(cfg["openSecretKey"]) == "" || stringValue(cfg["orgId"]) == "" {
+		if force {
+			return fmt.Errorf("CloudCC accessToken refresh failed before /api/cauth/token: refreshable credentials are missing; check cloudcc-cli.config.json active env for CloudCCDev or username/safetyMark/clientId/openSecretKey/orgId")
+		}
 		return nil
 	}
 	apiSvc := strings.TrimRight(stringValue(cfg["apiSvc"]), "/")
@@ -238,7 +283,7 @@ func addBusToken(client *httpclient.Client, cfg Config) error {
 	}
 	var res map[string]any
 	if err := client.PostRaw(apiSvc+"/api/cauth/token", body, nil, &res); err != nil {
-		return fmt.Errorf("CloudCC accessToken refresh failed at /api/cauth/token: %w; check cloudcc-cli.config.json active env for username/safetyMark/clientId/openSecretKey/orgId/apiSvc")
+		return fmt.Errorf("CloudCC accessToken refresh failed at /api/cauth/token: %w; check cloudcc-cli.config.json active env for username/safetyMark/clientId/openSecretKey/orgId/apiSvc", err)
 	}
 	if ok, _ := res["result"].(bool); ok || numberOrString(res["returnCode"], "") == "1" {
 		if data, _ := res["data"].(map[string]any); data != nil {
@@ -384,6 +429,10 @@ func String(cfg Config, key string) string {
 	return stringValue(cfg[key])
 }
 
+func AccessTokenErrorMessage(value any) string {
+	return accessTokenErrorMessage(value, 0)
+}
+
 func cloudccResponseMessage(res map[string]any) string {
 	for _, key := range []string{"returnInfo", "message", "msg", "error", "returnMsg"} {
 		if value := stringValue(res[key]); strings.TrimSpace(value) != "" && value != "<nil>" {
@@ -407,5 +456,95 @@ func numberOrString(v any, fallback string) string {
 		return fmt.Sprintf("%.0f", x)
 	default:
 		return fmt.Sprint(x)
+	}
+}
+
+func accessTokenErrorMessage(value any, depth int) string {
+	if value == nil || depth > 6 {
+		return ""
+	}
+	switch v := value.(type) {
+	case error:
+		return accessTokenErrorMessage(v.Error(), depth+1)
+	case string:
+		text := strings.TrimSpace(v)
+		if text == "" || text == "<nil>" {
+			return ""
+		}
+		lower := strings.ToLower(text)
+		if strings.Contains(text, "accessToken无效") ||
+			strings.Contains(text, "token无效") ||
+			strings.Contains(text, "令牌无效") ||
+			strings.Contains(text, "登录过期") ||
+			strings.Contains(text, "认证失败") ||
+			strings.Contains(lower, "invalid_token") ||
+			strings.Contains(lower, "expired_token") ||
+			strings.Contains(lower, "token expired") ||
+			strings.Contains(lower, "access token has expired") ||
+			strings.Contains(lower, "access token validation failed") ||
+			strings.Contains(lower, "accesstoken invalid") ||
+			strings.Contains(lower, "invalid accesstoken") {
+			return text
+		}
+	case map[string]any:
+		for _, key := range []string{"error", "returnInfo", "message", "msg", "returnMsg", "code", "returnCode"} {
+			if msg := accessTokenErrorMessage(v[key], depth+1); msg != "" {
+				return msg
+			}
+		}
+		for _, child := range v {
+			if msg := accessTokenErrorMessage(child, depth+1); msg != "" {
+				return msg
+			}
+		}
+	case []any:
+		for _, child := range v {
+			if msg := accessTokenErrorMessage(child, depth+1); msg != "" {
+				return msg
+			}
+		}
+	}
+	return ""
+}
+
+func tokenNearExpiry(token string, skew time.Duration) bool {
+	parts := strings.Split(strings.TrimSpace(token), ".")
+	if len(parts) != 3 {
+		return false
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return false
+	}
+	var claims map[string]any
+	if err := json.Unmarshal(payload, &claims); err != nil {
+		return false
+	}
+	exp, ok := numericClaim(claims["exp"])
+	if !ok || exp <= 0 {
+		return false
+	}
+	return time.Now().Add(skew).Unix() >= exp
+}
+
+func numericClaim(value any) (int64, bool) {
+	switch v := value.(type) {
+	case float64:
+		return int64(v), true
+	case int64:
+		return v, true
+	case int:
+		return int64(v), true
+	case json.Number:
+		n, err := v.Int64()
+		return n, err == nil
+	case string:
+		var n int64
+		if _, err := fmt.Sscan(strings.TrimSpace(v), &n); err != nil {
+			return 0, false
+		}
+		return n, true
+	default:
+		return 0, false
 	}
 }

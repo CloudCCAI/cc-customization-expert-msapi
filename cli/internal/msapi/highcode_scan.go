@@ -215,7 +215,7 @@ func scanOnlineHighCodeProject(projectPath string) (onlineHighCodeScanResult, er
 		ProjectPath: projectPath,
 	}
 	for _, spec := range specs {
-		result.Domains = append(result.Domains, scanOnlineHighCodeDomain(cfg, spec))
+		result.Domains = append(result.Domains, scanOnlineHighCodeDomain(projectPath, cfg, spec))
 	}
 	result.Domains = append(result.Domains,
 		onlineHighCodeDomain{Domain: "sidecar", Transport: "external", Status: "out_of_scope", Issues: []string{"sidecar is external deployment runtime, not CloudCC platform metadata; verify it with a deployment manifest or runtime monitor outside online-highcode"}},
@@ -237,7 +237,7 @@ func scanOnlineHighCodeProject(projectPath string) (onlineHighCodeScanResult, er
 	return result, nil
 }
 
-func scanOnlineHighCodeDomain(cfg config.Config, spec onlineHighCodeSpec) onlineHighCodeDomain {
+func scanOnlineHighCodeDomain(projectPath string, cfg config.Config, spec onlineHighCodeSpec) onlineHighCodeDomain {
 	candidates := onlineHighCodeCandidates(spec)
 	domain := onlineHighCodeDomain{
 		Domain:    spec.domain,
@@ -249,7 +249,7 @@ func scanOnlineHighCodeDomain(cfg config.Config, spec onlineHighCodeSpec) online
 	var errors []string
 	for _, candidate := range candidates {
 		res = map[string]any{}
-		err := callOnlineHighCodePath(cfg, candidate, &res)
+		err := callOnlineHighCodePath(projectPath, cfg, candidate, &res)
 		if err == nil {
 			if msg := onlineHighCodeResponseError(res); msg != "" {
 				errors = append(errors, candidate.path+": "+msg)
@@ -310,7 +310,37 @@ func onlineHighCodeCandidateTransports(candidates []onlineHighCodeCandidate) str
 	return strings.Join(transports, ",")
 }
 
-func callOnlineHighCodePath(cfg config.Config, candidate onlineHighCodeCandidate, res *map[string]any) error {
+func callOnlineHighCodePath(projectPath string, cfg config.Config, candidate onlineHighCodeCandidate, res *map[string]any) error {
+	err := callOnlineHighCodePathOnce(cfg, candidate, res)
+	if err != nil {
+		if config.AccessTokenErrorMessage(err) == "" || strings.TrimSpace(os.Getenv("CLOUDCC_ACCESS_TOKEN")) != "" {
+			return err
+		}
+		refreshed, refreshErr := config.RefreshAccessToken(projectPath)
+		if refreshErr != nil {
+			return fmt.Errorf("CloudCC accessToken was rejected by high-code scan (%v), and refresh through /api/cauth/token failed: %w", err, refreshErr)
+		}
+		*res = nil
+		return callOnlineHighCodePathOnce(refreshed, candidate, res)
+	}
+	if msg := config.AccessTokenErrorMessage(*res); msg != "" && strings.TrimSpace(os.Getenv("CLOUDCC_ACCESS_TOKEN")) == "" {
+		refreshed, refreshErr := config.RefreshAccessToken(projectPath)
+		if refreshErr != nil {
+			return fmt.Errorf("CloudCC accessToken was rejected by high-code scan (%s), and refresh through /api/cauth/token failed: %w", msg, refreshErr)
+		}
+		*res = nil
+		if retryErr := callOnlineHighCodePathOnce(refreshed, candidate, res); retryErr != nil {
+			return retryErr
+		}
+		if retryMsg := config.AccessTokenErrorMessage(*res); retryMsg != "" {
+			_ = config.ClearCacheEntry(projectPath)
+			return fmt.Errorf("CloudCC accessToken refresh succeeded but high-code scan still rejected the refreshed token: %s", retryMsg)
+		}
+	}
+	return nil
+}
+
+func callOnlineHighCodePathOnce(cfg config.Config, candidate onlineHighCodeCandidate, res *map[string]any) error {
 	switch candidate.transport {
 	case "setup":
 		return httpclient.New().PostClass(strings.TrimRight(config.String(cfg, "setupSvc"), "/")+candidate.path, candidate.body, config.String(cfg, "accessToken"), res)
@@ -318,6 +348,15 @@ func callOnlineHighCodePath(cfg config.Config, candidate onlineHighCodeCandidate
 		header := candidate.header
 		if header == nil {
 			header = map[string]any(cfg)
+		} else {
+			next := make(map[string]any, len(header))
+			for key, value := range header {
+				next[key] = value
+			}
+			if _, exists := next["accessToken"]; exists {
+				next["accessToken"] = firstString(config.String(cfg, "accessToken"), config.String(cfg, "pluginToken"))
+			}
+			header = next
 		}
 		return httpclient.New().PostEnvelope(highCodeBaseURL(cfg)+candidate.path, candidate.body, header, res)
 	case "devconsole-token":

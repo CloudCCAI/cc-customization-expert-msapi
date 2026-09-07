@@ -107,5 +107,5 @@ func postValidationRule(projectPath string, endpoint string, body map[string]any
 	if err != nil {
 		return err
 	}
-	return postClass(stdout, cfg, "setup", endpoint, body)
+	return postClass(stdout, projectPath, cfg, "setup", endpoint, body)
 }

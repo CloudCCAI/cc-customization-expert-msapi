@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"cloudcc-customization-expert-go/internal/config"
-	"cloudcc-customization-expert-go/internal/httpclient"
 	"cloudcc-customization-expert-go/internal/jsonx"
 )
 
@@ -173,11 +172,7 @@ func pageComponentPublish(args []string, stdout io.Writer, stderr io.Writer, cwd
 	if err != nil {
 		return fmt.Errorf("cannot read prebuilt pagecomponent JS %s: %w", jsPath, err)
 	}
-	header := map[string]any{
-		"accessToken": pageComponentAccessToken(cfg),
-		"source":      firstAny(cfg["source"], "cloudcc_cli"),
-	}
-	if header["accessToken"] == "" {
+	if pageComponentAccessToken(cfg) == "" {
 		return fmt.Errorf("pagecomponent publish requires pluginToken or accessToken in config")
 	}
 	body := map[string]any{
@@ -195,8 +190,12 @@ func pageComponentPublish(args []string, stdout io.Writer, stderr io.Writer, cwd
 		"dependencies":   mustJSONString(pub.Dependencies),
 	}
 	var res map[string]any
-	endpoint := strings.TrimRight(baseURL(cfg), "/") + pageComponentDevDispatch(cfg) + "/custom/pc/1.0/post/insertCustomComp"
-	if err := httpclient.New().PostEnvelope(endpoint, body, header, &res); err != nil {
+	if err := postDevconsoleEnvelopeResponse(projectPath, cfg, "/custom/pc/1.0/post/insertCustomComp", body, func(next config.Config) map[string]any {
+		return map[string]any{
+			"accessToken": pageComponentAccessToken(next),
+			"source":      firstAny(next["source"], "cloudcc_cli"),
+		}
+	}, &res); err != nil {
 		return err
 	}
 	if code := fmt.Sprint(res["returnCode"]); code != "200" {
@@ -350,7 +349,7 @@ func pageComponentBind(args []string, stdout io.Writer, cwd string) error {
 		return err
 	}
 	var res map[string]any
-	if err := customPageSavePost(cfg, payload, &res); err != nil {
+	if err := customPageSavePost(projectPath, cfg, payload, &res); err != nil {
 		return err
 	}
 	if err := requireCloudCCSuccess(res, "Bind PageComponent Failed"); err != nil {
@@ -389,7 +388,7 @@ func pageComponentCustomPageReferenceHints(projectPath string, componentName str
 			"pageApi":   "",
 		},
 	}
-	if err := customPagePost(cfg, "/custom/pc/1.0/post/pageCustomPage", body, &listRes); err != nil {
+	if err := customPagePost(projectPath, cfg, "/custom/pc/1.0/post/pageCustomPage", body, &listRes); err != nil {
 		return nil, err
 	}
 	if err := requireCloudCCSuccess(listRes, "Check CustomPage References Failed"); err != nil {
@@ -471,7 +470,7 @@ func pageComponentGet(args []string, stdout io.Writer, cwd string) error {
 		},
 	}
 	var res map[string]any
-	if err := httpclient.New().PostEnvelope(strings.TrimRight(baseURL(cfg), "/")+pageComponentDevDispatch(cfg)+"/custom/pc/1.0/post/pageCustomComp", body, pageComponentQueryHeader(cfg), &res); err != nil {
+	if err := postDevconsoleEnvelopeResponse(projectPath, cfg, "/custom/pc/1.0/post/pageCustomComp", body, pageComponentQueryHeader, &res); err != nil {
 		return err
 	}
 	if code := fmt.Sprint(res["returnCode"]); code != "200" {
@@ -673,7 +672,7 @@ func pageComponentDelete(args []string, stderr io.Writer, cwd string) error {
 	body := map[string]any{"id": pageComponentID}
 	var res map[string]any
 	fmt.Fprintf(stderr, "Deleting pagecomponent (ID: %s), please wait...\n", pageComponentID)
-	if err := httpclient.New().PostEnvelope(strings.TrimRight(baseURL(cfg), "/")+pageComponentDevDispatch(cfg)+"/custom/pc/1.0/post/deleteCustomComp", body, pageComponentQueryHeader(cfg), &res); err != nil {
+	if err := postDevconsoleEnvelopeResponse(projectPath, cfg, "/custom/pc/1.0/post/deleteCustomComp", body, pageComponentQueryHeader, &res); err != nil {
 		return err
 	}
 	if code := fmt.Sprint(res["returnCode"]); code != "200" {
@@ -899,7 +898,7 @@ func pageComponentDetailByID(projectPath string, pageComponentID string) (map[st
 		return nil, err
 	}
 	var res map[string]any
-	if err := httpclient.New().PostEnvelope(strings.TrimRight(baseURL(cfg), "/")+pageComponentDevDispatch(cfg)+"/custom/pc/1.0/post/detailCustomComp", map[string]any{"id": pageComponentID}, pageComponentQueryHeader(cfg), &res); err != nil {
+	if err := postDevconsoleEnvelopeResponse(projectPath, cfg, "/custom/pc/1.0/post/detailCustomComp", map[string]any{"id": pageComponentID}, pageComponentQueryHeader, &res); err != nil {
 		return nil, err
 	}
 	if ok, _ := res["result"].(bool); !ok {
@@ -921,7 +920,7 @@ func pageComponentList(projectPath string, compName string) ([]map[string]any, e
 	}
 	body := map[string]any{"pageNo": 1, "pageSize": 2000, "condition": map[string]any{"compName": compName, "dtBegin": "", "dtEnd": ""}}
 	var res map[string]any
-	if err := httpclient.New().PostEnvelope(strings.TrimRight(baseURL(cfg), "/")+pageComponentDevDispatch(cfg)+"/custom/pc/1.0/post/pageCustomComp", body, pageComponentQueryHeader(cfg), &res); err != nil {
+	if err := postDevconsoleEnvelopeResponse(projectPath, cfg, "/custom/pc/1.0/post/pageCustomComp", body, pageComponentQueryHeader, &res); err != nil {
 		return nil, err
 	}
 	var out []map[string]any

@@ -1207,7 +1207,7 @@ func (c *client) refreshTokenAfterInvalidToken(statusCode int, resBody []byte) (
 	if err := config.ClearCacheEntry(c.projectPath); err != nil {
 		return false, nil
 	}
-	cfg, err := config.Load(c.projectPath)
+	cfg, err := config.RefreshAccessToken(c.projectPath)
 	if err != nil {
 		return false, fmt.Errorf("metadata service rejected the cached accessToken, and CloudCC accessToken refresh failed: %w", err)
 	}
@@ -1236,14 +1236,11 @@ func (c *client) clearCacheIfInvalidToken(statusCode int, resBody []byte) {
 func isInvalidTokenResponse(resBody []byte) bool {
 	var body map[string]any
 	if err := json.Unmarshal(resBody, &body); err == nil {
-		if strings.EqualFold(stringValue(body["error"]), "invalid_token") {
-			return true
-		}
-		if strings.Contains(strings.ToLower(stringValue(body["message"])), "invalid_token") {
+		if config.AccessTokenErrorMessage(body) != "" {
 			return true
 		}
 	}
-	return strings.Contains(strings.ToLower(string(resBody)), "invalid_token")
+	return config.AccessTokenErrorMessage(string(resBody)) != ""
 }
 
 func IsMetadataDomainAction(action string) bool {

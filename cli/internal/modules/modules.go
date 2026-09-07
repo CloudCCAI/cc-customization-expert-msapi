@@ -374,7 +374,7 @@ func handleReportShortcut(ep endpoint, action string, resource string, args []st
 	if err != nil {
 		return err
 	}
-	return postClass(stdout, cfg, ep.base, ep.path, body)
+	return postClass(stdout, projectPath, cfg, ep.base, ep.path, body)
 }
 
 func argsAfterProject(args []string) []string {
@@ -414,7 +414,7 @@ func handleScheduleJob(action string, args []string, stdout io.Writer, cwd strin
 	if err != nil {
 		return err
 	}
-	return postClass(stdout, cfg, ep.base, ep.path, body)
+	return postClass(stdout, projectPath, cfg, ep.base, ep.path, body)
 }
 
 func handleUser(action string, args []string, stdout io.Writer, cwd string) error {
@@ -432,7 +432,7 @@ func handleUser(action string, args []string, stdout io.Writer, cwd string) erro
 	if err != nil {
 		return err
 	}
-	return postClass(stdout, cfg, ep.base, ep.path, body)
+	return postClass(stdout, projectPath, cfg, ep.base, ep.path, body)
 }
 
 func userRequestBody(action string, args []string) (map[string]any, error) {
@@ -569,10 +569,10 @@ func handleMenu(action string, args []string, stdout io.Writer, cwd string) erro
 		return err
 	}
 	var editResponse map[string]any
-	if err := httpclient.New().PostClass(config.String(cfg, "setupSvc")+"/api/customTab/updatetab", map[string]any{"id": menuID}, config.String(cfg, "accessToken"), &editResponse); err != nil {
+	if err := postClassResponse(projectPath, cfg, "setup", "/api/customTab/updatetab", map[string]any{"id": menuID}, &editResponse); err != nil {
 		return err
 	}
-	return postClass(stdout, cfg, "setup", "/api/customTab/updatesavetab", body)
+	return postClass(stdout, projectPath, cfg, "setup", "/api/customTab/updatesavetab", body)
 }
 
 func pageLayoutList(args []string, stdout io.Writer, cwd string) error {
@@ -586,7 +586,7 @@ func pageLayoutList(args []string, stdout io.Writer, cwd string) error {
 	if err != nil {
 		return err
 	}
-	return postClass(stdout, cfg, "setup", "/api/layout/queryPageLayout", body)
+	return postClass(stdout, projectPath, cfg, "setup", "/api/layout/queryPageLayout", body)
 }
 
 func pageLayoutDetail(args []string, stdout io.Writer, cwd string) error {
@@ -605,7 +605,7 @@ func pageLayoutDetail(args []string, stdout io.Writer, cwd string) error {
 	if err != nil {
 		return err
 	}
-	return postClass(stdout, cfg, "setup", "/api/modifyLayoutLightning/queryLayout", body)
+	return postClass(stdout, projectPath, cfg, "setup", "/api/modifyLayoutLightning/queryLayout", body)
 }
 
 func pageLayoutSave(args []string, stdout io.Writer, cwd string) error {
@@ -636,7 +636,7 @@ func pageLayoutSave(args []string, stdout io.Writer, cwd string) error {
 		"layoutId":   layoutId,
 		"layoutJson": layoutJSON,
 	}
-	return postClass(stdout, cfg, "setup", "/api/modifyLayoutLightning/saveLayout", body)
+	return postClass(stdout, projectPath, cfg, "setup", "/api/modifyLayoutLightning/saveLayout", body)
 }
 
 func normalizePageLayoutJSON(layout map[string]any, layoutId string) (string, error) {
@@ -741,7 +741,7 @@ func callGenericRedacted(ep endpoint, action string, resource string, args []str
 	return callGenericWithPrinter(ep, action, resource, args, stdout, cwd, postClassRedacted)
 }
 
-func callGenericWithPrinter(ep endpoint, action string, resource string, args []string, stdout io.Writer, cwd string, printer func(io.Writer, config.Config, string, string, map[string]any) error) error {
+func callGenericWithPrinter(ep endpoint, action string, resource string, args []string, stdout io.Writer, cwd string, printer func(io.Writer, string, config.Config, string, string, map[string]any) error) error {
 	projectPath := firstArg(args, cwd)
 	body := map[string]any{}
 	if len(args) > 1 && args[1] != "" {
@@ -760,7 +760,7 @@ func callGenericWithPrinter(ep endpoint, action string, resource string, args []
 	if err != nil {
 		return err
 	}
-	return printer(stdout, cfg, ep.base, ep.path, body)
+	return printer(stdout, projectPath, cfg, ep.base, ep.path, body)
 }
 
 func isApiRegistrarRuntimeAction(action string) bool {
@@ -781,7 +781,8 @@ func handleBrief(action string, args []string, stdout io.Writer, cwd string) err
 		return err
 	}
 	var res map[string]any
-	if err := httpclient.New().PostClass(config.String(cfg, "setupSvc")+"/api/customObject/newPage", map[string]any{"id": ""}, config.String(cfg, "accessToken"), &res); err != nil {
+	projectPath := firstArg(args, cwd)
+	if err := postClassResponse(projectPath, cfg, "setup", "/api/customObject/newPage", map[string]any{"id": ""}, &res); err != nil {
 		return err
 	}
 	if data, _ := res["data"].(map[string]any); data != nil {
@@ -808,7 +809,7 @@ func handleObject(action string, args []string, stdout io.Writer, stderr io.Writ
 		if err != nil {
 			return err
 		}
-		return postClass(stdout, cfg, "setup", "/api/customObject/deleteLogic", map[string]any{"objid": args[1]})
+		return postClass(stdout, args[0], cfg, "setup", "/api/customObject/deleteLogic", map[string]any{"objid": args[1]})
 	case "purge":
 		return objectPurge(args, stdout, cwd)
 	default:
@@ -826,10 +827,9 @@ func objectGet(args []string, stdout io.Writer, cwd string) error {
 	if err != nil {
 		return err
 	}
-	client := httpclient.New()
 	if kind == "deleted" || kind == "recycle" || kind == "recycle-bin" {
 		var res map[string]any
-		if err := client.PostClass(config.String(cfg, "setupSvc")+"/api/customObject/queryDeletedObjList", map[string]any{}, config.String(cfg, "accessToken"), &res); err != nil {
+		if err := postClassResponse(projectPath, cfg, "setup", "/api/customObject/queryDeletedObjList", map[string]any{}, &res); err != nil {
 			return err
 		}
 		return printJSON(stdout, res)
@@ -837,7 +837,7 @@ func objectGet(args []string, stdout io.Writer, cwd string) error {
 	var out []map[string]any
 	if kind == "" || kind == "chat" || kind == "standard" {
 		var res map[string]any
-		if err := client.PostClass(config.String(cfg, "setupSvc")+"/api/customObject/standardObjList", map[string]any{}, config.String(cfg, "accessToken"), &res); err != nil {
+		if err := postClassResponse(projectPath, cfg, "setup", "/api/customObject/standardObjList", map[string]any{}, &res); err != nil {
 			return err
 		}
 		if list, ok := res["data"].([]any); ok {
@@ -857,7 +857,7 @@ func objectGet(args []string, stdout io.Writer, cwd string) error {
 	}
 	if kind == "" || kind == "chat" || kind == "custom" {
 		var res map[string]any
-		if err := client.PostClass(config.String(cfg, "setupSvc")+"/api/customObject/list", map[string]any{}, config.String(cfg, "accessToken"), &res); err != nil {
+		if err := postClassResponse(projectPath, cfg, "setup", "/api/customObject/list", map[string]any{}, &res); err != nil {
 			return err
 		}
 		if data, _ := res["data"].(map[string]any); data != nil {
@@ -879,7 +879,7 @@ func objectGet(args []string, stdout io.Writer, cwd string) error {
 	}
 	if kind == "trigger" {
 		var res map[string]any
-		if err := client.PostClass(config.String(cfg, "setupSvc")+"/api/trigger/newobjtrigger", map[string]any{}, config.String(cfg, "accessToken"), &res); err != nil {
+		if err := postClassResponse(projectPath, cfg, "setup", "/api/trigger/newobjtrigger", map[string]any{}, &res); err != nil {
 			return err
 		}
 		if data, _ := res["data"].(map[string]any); data != nil {
@@ -925,7 +925,7 @@ func objectPurge(args []string, stdout io.Writer, cwd string) error {
 	if err != nil {
 		return err
 	}
-	return postClass(stdout, cfg, "setup", "/api/customObject/deletePhysics", body)
+	return postClass(stdout, projectPath, cfg, "setup", "/api/customObject/deletePhysics", body)
 }
 
 func objectCreate(args []string, stdout io.Writer, stderr io.Writer, cwd string) error {
@@ -951,7 +951,7 @@ func objectCreate(args []string, stdout io.Writer, stderr io.Writer, cwd string)
 	if err != nil {
 		return err
 	}
-	profiles, err := loadProfileIDs(cfg)
+	profiles, err := loadProfileIDs(projectPath, cfg)
 	if err != nil {
 		return err
 	}
@@ -983,7 +983,7 @@ func objectCreate(args []string, stdout io.Writer, stderr io.Writer, cwd string)
 		body["obj"].(map[string]any)["accessable"] = accessable
 	}
 	fmt.Fprintln(stderr, "Creating, please wait...")
-	return postClass(stdout, cfg, "setup", "/api/customObject/saveButton", body)
+	return postClass(stdout, projectPath, cfg, "setup", "/api/customObject/saveButton", body)
 }
 
 func objectUpdate(args []string, stdout io.Writer, cwd string) error {
@@ -1004,15 +1004,15 @@ func objectUpdate(args []string, stdout io.Writer, cwd string) error {
 		return err
 	}
 	var editResponse map[string]any
-	if err := httpclient.New().PostClass(config.String(cfg, "setupSvc")+"/api/customObject/editPage", map[string]any{"objid": objID}, config.String(cfg, "accessToken"), &editResponse); err != nil {
+	if err := postClassResponse(projectPath, cfg, "setup", "/api/customObject/editPage", map[string]any{"objid": objID}, &editResponse); err != nil {
 		return err
 	}
-	return postClass(stdout, cfg, "setup", "/api/customObject/saveButton", body)
+	return postClass(stdout, projectPath, cfg, "setup", "/api/customObject/saveButton", body)
 }
 
-func loadProfileIDs(cfg config.Config) ([]string, error) {
+func loadProfileIDs(projectPath string, cfg config.Config) ([]string, error) {
 	var res map[string]any
-	if err := httpclient.New().PostClass(config.String(cfg, "setupSvc")+"/api/customObject/newPage", map[string]any{"id": ""}, config.String(cfg, "accessToken"), &res); err != nil {
+	if err := postClassResponse(projectPath, cfg, "setup", "/api/customObject/newPage", map[string]any{"id": ""}, &res); err != nil {
 		return nil, err
 	}
 	var ids []string
@@ -1038,7 +1038,7 @@ func handleFieldsGet(args []string, stdout io.Writer, cwd string) error {
 	if err != nil {
 		return err
 	}
-	return postClass(stdout, cfg, "setup", "/api/fieldSetup/queryField", map[string]any{"prefix": args[1]})
+	return postClass(stdout, args[0], cfg, "setup", "/api/fieldSetup/queryField", map[string]any{"prefix": args[1]})
 }
 
 func handleCodeResource(action string, resource string, dir string, apiName string, args []string, stdout io.Writer, stderr io.Writer, cwd string) error {
@@ -1061,7 +1061,7 @@ func handleCodeResource(action string, resource string, dir string, apiName stri
 		if len(args) > 1 {
 			body["name"] = args[1]
 		}
-		return postClass(stdout, cfg, "setup", listPath, body)
+		return postClass(stdout, projectPath, cfg, "setup", listPath, body)
 	case "detail", "pull":
 		if len(args) < 2 {
 			return fmt.Errorf("cloudcc %s %s <projectPath> <name>", action, resource)
@@ -1070,7 +1070,7 @@ func handleCodeResource(action string, resource string, dir string, apiName stri
 		if err != nil {
 			return err
 		}
-		return postClass(stdout, cfg, "setup", "/api/"+apiName+"/detail", map[string]any{"name": args[1]})
+		return postClass(stdout, args[0], cfg, "setup", "/api/"+apiName+"/detail", map[string]any{"name": args[1]})
 	case "delete":
 		if len(args) < 2 {
 			return fmt.Errorf("cloudcc delete %s <projectPath> <id>", resource)
@@ -1079,7 +1079,7 @@ func handleCodeResource(action string, resource string, dir string, apiName stri
 		if err != nil {
 			return err
 		}
-		return postClass(stdout, cfg, "setup", "/api/"+apiName+"/delete", map[string]any{"id": args[1]})
+		return postClass(stdout, args[0], cfg, "setup", "/api/"+apiName+"/delete", map[string]any{"id": args[1]})
 	default:
 		return fmt.Errorf("unsupported %s action: %s", resource, action)
 	}
@@ -1167,7 +1167,7 @@ func publishJavaResource(dir string, apiName string, args []string, stdout io.Wr
 	operationEdit := timerID != "" && timerID != "<nil>"
 	var preSaveDetail map[string]any
 	if operationEdit {
-		preSaveDetail, _ = setupSvcDetail(cfg, "/api/"+apiName+"/detail", timerID, "timer detail")
+		preSaveDetail, _ = setupSvcDetail(projectPath, cfg, "/api/"+apiName+"/detail", timerID, "timer detail")
 	}
 	publishVersion := highCodePublishVersion(cfgContent, preSaveDetail, operationEdit)
 	endpoint := "/api/" + apiName + "/save"
@@ -1178,14 +1178,14 @@ func publishJavaResource(dir string, apiName string, args []string, stdout io.Wr
 		"folderId": "wgd",
 	}
 	putHighCodeVersion(body, publishVersion)
-	remoteValidation, err := validateRemoteCustomCode(cfg, "timer", name, "/api/"+apiName+"/validate", body)
+	remoteValidation, err := validateRemoteCustomCode(projectPath, cfg, "timer", name, "/api/"+apiName+"/validate", body)
 	if err != nil {
 		_ = writeJSON(stdout, map[string]any{"status": "blocked_remote_validation", "resource": "timer", "name": name, "remoteValidation": remoteValidation})
 		return err
 	}
 	fmt.Fprintln(stderr, "Remote CloudCC timer validation passed; posting, please wait...")
 	var saveResponse map[string]any
-	if err := postClassResponse(cfg, "setup", endpoint, body, &saveResponse); err != nil {
+	if err := postClassResponse(projectPath, cfg, "setup", endpoint, body, &saveResponse); err != nil {
 		return err
 	}
 	if message := cloudCCResponseFailure(saveResponse); message != "" {
@@ -1195,7 +1195,7 @@ func publishJavaResource(dir string, apiName string, args []string, stdout io.Wr
 	if id := recursiveFirstStringValue(saveResponse, "id"); id != "" {
 		cfgContent["id"] = id
 		savedVersion := publishVersion
-		if detail, detailErr := setupSvcDetail(cfg, "/api/"+apiName+"/detail", id, "timer detail"); detailErr == nil {
+		if detail, detailErr := setupSvcDetail(projectPath, cfg, "/api/"+apiName+"/detail", id, "timer detail"); detailErr == nil {
 			if version := highCodeRecordVersion(detail); version != "" {
 				savedVersion = version
 			}
@@ -1256,14 +1256,14 @@ func publishClassResource(args []string, stdout io.Writer, stderr io.Writer, cwd
 	}
 	classID := strings.TrimSpace(fmt.Sprint(configID(cfgContent)))
 	if classID == "" {
-		classID, err = lookupClassID(publishURL, accessToken, name)
+		classID, err = lookupClassID(opts.ProjectPath, cfg, publishURL, name)
 		if err != nil {
 			return fmt.Errorf("cannot establish idempotent class publish target: %w", err)
 		}
 	}
 	var preSaveDetail map[string]any
 	if classID != "" {
-		preSaveDetail, _ = classDetail(publishURL, accessToken, classID)
+		preSaveDetail, _ = classDetail(opts.ProjectPath, cfg, publishURL, classID)
 	}
 	publishVersion := highCodePublishVersion(cfgContent, preSaveDetail, classID != "")
 	body := map[string]any{
@@ -1281,7 +1281,7 @@ func publishClassResource(args []string, stdout io.Writer, stderr io.Writer, cwd
 	endpoint := publishURL + "/api/ccfag/save"
 	fmt.Fprintln(stderr, "Local and remote CloudCC class validation passed; publishing through the target gateway and reading back...")
 	var saveResponse map[string]any
-	if err := httpclient.New().PostClass(endpoint, body, accessToken, &saveResponse); err != nil {
+	if err := postClassAbsoluteResponse(opts.ProjectPath, cfg, endpoint, body, &saveResponse); err != nil {
 		return err
 	}
 	if message := cloudCCResponseFailure(saveResponse); message != "" {
@@ -1298,7 +1298,7 @@ func publishClassResource(args []string, stdout io.Writer, stderr io.Writer, cwd
 		return fmt.Errorf("class saved but response did not return the class id required for readback")
 	}
 	var detailResponse map[string]any
-	if err := httpclient.New().PostClass(publishURL+"/api/ccfag/detail", map[string]any{"id": classID}, accessToken, &detailResponse); err != nil {
+	if err := postClassAbsoluteResponse(opts.ProjectPath, cfg, publishURL+"/api/ccfag/detail", map[string]any{"id": classID}, &detailResponse); err != nil {
 		return fmt.Errorf("class saved but readback failed: %w", err)
 	}
 	readbackSource := recursiveFirstStringValue(detailResponse, "source", "triggerSource", "sourcecode")
@@ -1357,9 +1357,9 @@ func putHighCodeVersion(body map[string]any, version string) {
 	}
 }
 
-func setupSvcDetail(cfg config.Config, path string, id string, label string) (map[string]any, error) {
+func setupSvcDetail(projectPath string, cfg config.Config, path string, id string, label string) (map[string]any, error) {
 	var response map[string]any
-	if err := postClassResponse(cfg, "setup", path, map[string]any{"id": id}, &response); err != nil {
+	if err := postClassResponse(projectPath, cfg, "setup", path, map[string]any{"id": id}, &response); err != nil {
 		return nil, err
 	}
 	if message := cloudCCResponseFailure(response); message != "" {
@@ -1368,9 +1368,9 @@ func setupSvcDetail(cfg config.Config, path string, id string, label string) (ma
 	return response, nil
 }
 
-func classDetail(setupURL string, accessToken string, id string) (map[string]any, error) {
+func classDetail(projectPath string, cfg config.Config, setupURL string, id string) (map[string]any, error) {
 	var response map[string]any
-	if err := httpclient.New().PostClass(setupURL+"/api/ccfag/detail", map[string]any{"id": id}, accessToken, &response); err != nil {
+	if err := postClassAbsoluteResponse(projectPath, cfg, setupURL+"/api/ccfag/detail", map[string]any{"id": id}, &response); err != nil {
 		return nil, err
 	}
 	if message := cloudCCResponseFailure(response); message != "" {
@@ -1379,13 +1379,13 @@ func classDetail(setupURL string, accessToken string, id string) (map[string]any
 	return response, nil
 }
 
-func lookupClassID(setupURL string, accessToken string, name string) (string, error) {
+func lookupClassID(projectPath string, cfg config.Config, setupURL string, name string) (string, error) {
 	var response map[string]any
 	body := map[string]any{
 		"sname": name, "fid": "", "shownum": "100", "showpage": "1",
 		"rptcond": "lastmodifydate", "rptorder": "desc",
 	}
-	if err := httpclient.New().PostClass(setupURL+"/api/ccfag/list", body, accessToken, &response); err != nil {
+	if err := postClassAbsoluteResponse(projectPath, cfg, setupURL+"/api/ccfag/list", body, &response); err != nil {
 		return "", err
 	}
 	if message := cloudCCResponseFailure(response); message != "" {
@@ -1426,10 +1426,22 @@ func cloudCCResponseFailure(response map[string]any) string {
 	return ""
 }
 
-func validateRemoteCustomCode(cfg config.Config, resource string, name string, path string, body map[string]any) (map[string]any, error) {
+func validateRemoteCustomCode(projectPath string, cfg config.Config, resource string, name string, path string, body map[string]any) (map[string]any, error) {
 	base := strings.TrimRight(config.String(cfg, "setupSvc"), "/")
 	accessToken := firstNonBlankString(strings.TrimSpace(os.Getenv("CLOUDCC_ACCESS_TOKEN")), config.String(cfg, "accessToken"))
-	return validateRemoteCustomCodeWithBase(base, accessToken, resource, name, path, body)
+	response, err := validateRemoteCustomCodeWithBase(base, accessToken, resource, name, path, body)
+	if err == nil {
+		return response, nil
+	}
+	refreshed, refreshErr := refreshConfigAfterAccessTokenError(projectPath, err)
+	if refreshErr != nil {
+		return response, refreshErr
+	}
+	if refreshed == nil {
+		return response, err
+	}
+	base = strings.TrimRight(config.String(refreshed, "setupSvc"), "/")
+	return validateRemoteCustomCodeWithBase(base, config.String(refreshed, "accessToken"), resource, name, path, body)
 }
 
 func validateRemoteCustomCodeWithBase(base string, accessToken string, resource string, name string, path string, body map[string]any) (map[string]any, error) {
@@ -1567,7 +1579,9 @@ func handleScript(action string, args []string, stdout io.Writer, stderr io.Writ
 			return err
 		}
 		var res map[string]any
-		if err := httpclient.New().PostEnvelope(baseURL(cfg)+"/devconsole/script/saveClientScript", local, map[string]any(cfg), &res); err != nil {
+		if err := postDevconsoleEnvelopeResponse(cwd, cfg, "/script/saveClientScript", local, func(next config.Config) map[string]any {
+			return map[string]any(next)
+		}, &res); err != nil {
 			return err
 		}
 		return printJSON(stdout, res)
@@ -1592,7 +1606,9 @@ func callDevConsoleScript(action string, args []string, stdout io.Writer, cwd st
 		return err
 	}
 	var res map[string]any
-	if err := httpclient.New().PostEnvelope(baseURL(cfg)+"/devconsole/script/pageClientScript", body, map[string]any(cfg), &res); err != nil {
+	if err := postDevconsoleEnvelopeResponse(projectPath, cfg, "/script/pageClientScript", body, func(next config.Config) map[string]any {
+		return map[string]any(next)
+	}, &res); err != nil {
 		return err
 	}
 	return printJSON(stdout, res)
@@ -1655,7 +1671,7 @@ func handleStaticResource(action string, args []string, stdout io.Writer, stderr
 			return err
 		}
 		body := map[string]any{"name": args[0], "filePath": args[1]}
-		return postClass(stdout, cfg, "setup", "/api/staticResource/save", body)
+		return postClass(stdout, cwd, cfg, "setup", "/api/staticResource/save", body)
 	case "get":
 		return callGeneric(endpoint{"setup", "/api/staticResource/list"}, action, "staticResource", args, stdout, cwd)
 	case "detail":
@@ -1669,34 +1685,155 @@ func handleStaticResource(action string, args []string, stdout io.Writer, stderr
 	}
 }
 
-func postClass(stdout io.Writer, cfg config.Config, base string, apiPath string, body map[string]any) error {
+func postClass(stdout io.Writer, projectPath string, cfg config.Config, base string, apiPath string, body map[string]any) error {
 	var res map[string]any
-	if err := postClassResponse(cfg, base, apiPath, body, &res); err != nil {
+	if err := postClassResponse(projectPath, cfg, base, apiPath, body, &res); err != nil {
 		return err
 	}
 	return printJSON(stdout, res)
 }
 
-func postClassRedacted(stdout io.Writer, cfg config.Config, base string, apiPath string, body map[string]any) error {
+func postClassRedacted(stdout io.Writer, projectPath string, cfg config.Config, base string, apiPath string, body map[string]any) error {
 	var res map[string]any
-	if err := postClassResponse(cfg, base, apiPath, body, &res); err != nil {
+	if err := postClassResponse(projectPath, cfg, base, apiPath, body, &res); err != nil {
 		return err
 	}
 	return printJSONNoHTMLEscape(stdout, redactApiRegistrarLogValue(res))
 }
 
-func postClassResponse(cfg config.Config, base string, apiPath string, body map[string]any, res *map[string]any) error {
-	var svc string
-	if base == "api" {
-		svc = strings.TrimRight(config.String(cfg, "apiSvc"), "/")
-	} else {
-		svc = strings.TrimRight(config.String(cfg, "setupSvc"), "/")
-	}
+func postClassResponse(projectPath string, cfg config.Config, base string, apiPath string, body map[string]any, res *map[string]any) error {
+	svc := postClassServiceBase(cfg, base)
+	return postClassAbsoluteResponse(projectPath, cfg, svc+apiPath, body, res)
+}
+
+func postClassAbsoluteResponse(projectPath string, cfg config.Config, endpoint string, body map[string]any, res *map[string]any) error {
 	accessToken := firstNonBlankString(strings.TrimSpace(os.Getenv("CLOUDCC_ACCESS_TOKEN")), config.String(cfg, "accessToken"))
-	if err := httpclient.New().PostClass(svc+apiPath, body, accessToken, res); err != nil {
+	if err := httpclient.New().PostClass(endpoint, body, accessToken, res); err != nil {
+		if refreshed, refreshErr := refreshConfigAfterAccessTokenError(projectPath, err); refreshErr != nil {
+			return refreshErr
+		} else if refreshed != nil {
+			cfg = refreshed
+			accessToken = config.String(cfg, "accessToken")
+			*res = nil
+			return httpclient.New().PostClass(endpoint, body, accessToken, res)
+		}
 		return err
 	}
+	if msg := config.AccessTokenErrorMessage(*res); msg != "" {
+		refreshed, refreshErr := refreshConfigAfterAccessTokenError(projectPath, msg)
+		if refreshErr != nil {
+			return refreshErr
+		}
+		if refreshed != nil {
+			cfg = refreshed
+			accessToken = config.String(cfg, "accessToken")
+			*res = nil
+			if err := httpclient.New().PostClass(endpoint, body, accessToken, res); err != nil {
+				return err
+			}
+			if retryMsg := config.AccessTokenErrorMessage(*res); retryMsg != "" {
+				_ = config.ClearCacheEntry(projectPath)
+				return fmt.Errorf("CloudCC accessToken refresh succeeded but the target service still rejected the refreshed token: %s", retryMsg)
+			}
+		}
+	}
 	return nil
+}
+
+func postDevconsoleEnvelopeResponse(projectPath string, cfg config.Config, apiPath string, body map[string]any, header func(config.Config) map[string]any, res *map[string]any) error {
+	endpoint := strings.TrimRight(baseURL(cfg), "/") + pageComponentDevDispatch(cfg) + apiPath
+	if err := httpclient.New().PostEnvelope(endpoint, body, header(cfg), res); err != nil {
+		if refreshed, refreshErr := refreshConfigAfterAccessTokenError(projectPath, err); refreshErr != nil {
+			return refreshErr
+		} else if refreshed != nil {
+			cfg = refreshed
+			endpoint = strings.TrimRight(baseURL(cfg), "/") + pageComponentDevDispatch(cfg) + apiPath
+			*res = nil
+			return httpclient.New().PostEnvelope(endpoint, body, header(cfg), res)
+		}
+		return err
+	}
+	if msg := config.AccessTokenErrorMessage(*res); msg != "" {
+		refreshed, refreshErr := refreshConfigAfterAccessTokenError(projectPath, msg)
+		if refreshErr != nil {
+			return refreshErr
+		}
+		if refreshed != nil {
+			cfg = refreshed
+			endpoint = strings.TrimRight(baseURL(cfg), "/") + pageComponentDevDispatch(cfg) + apiPath
+			*res = nil
+			if err := httpclient.New().PostEnvelope(endpoint, body, header(cfg), res); err != nil {
+				return err
+			}
+			if retryMsg := config.AccessTokenErrorMessage(*res); retryMsg != "" {
+				_ = config.ClearCacheEntry(projectPath)
+				return fmt.Errorf("CloudCC accessToken refresh succeeded but the target service still rejected the refreshed token: %s", retryMsg)
+			}
+		}
+	}
+	return nil
+}
+
+func postDevconsoleRawEnvelopeResponse(projectPath string, cfg config.Config, apiPath string, body map[string]any, header func(config.Config) map[string]any, res *map[string]any) error {
+	endpoint := strings.TrimRight(baseURL(cfg), "/") + pageComponentDevDispatch(cfg) + apiPath
+	envelope := map[string]any{"head": header(cfg), "body": body}
+	if err := httpclient.New().PostRaw(endpoint, envelope, nil, res); err != nil {
+		if refreshed, refreshErr := refreshConfigAfterAccessTokenError(projectPath, err); refreshErr != nil {
+			return refreshErr
+		} else if refreshed != nil {
+			cfg = refreshed
+			endpoint = strings.TrimRight(baseURL(cfg), "/") + pageComponentDevDispatch(cfg) + apiPath
+			envelope = map[string]any{"head": header(cfg), "body": body}
+			*res = nil
+			return httpclient.New().PostRaw(endpoint, envelope, nil, res)
+		}
+		return err
+	}
+	if msg := config.AccessTokenErrorMessage(*res); msg != "" {
+		refreshed, refreshErr := refreshConfigAfterAccessTokenError(projectPath, msg)
+		if refreshErr != nil {
+			return refreshErr
+		}
+		if refreshed != nil {
+			cfg = refreshed
+			endpoint = strings.TrimRight(baseURL(cfg), "/") + pageComponentDevDispatch(cfg) + apiPath
+			envelope = map[string]any{"head": header(cfg), "body": body}
+			*res = nil
+			if err := httpclient.New().PostRaw(endpoint, envelope, nil, res); err != nil {
+				return err
+			}
+			if retryMsg := config.AccessTokenErrorMessage(*res); retryMsg != "" {
+				_ = config.ClearCacheEntry(projectPath)
+				return fmt.Errorf("CloudCC accessToken refresh succeeded but the target service still rejected the refreshed token: %s", retryMsg)
+			}
+		}
+	}
+	return nil
+}
+
+func postClassServiceBase(cfg config.Config, base string) string {
+	if base == "api" {
+		return strings.TrimRight(config.String(cfg, "apiSvc"), "/")
+	}
+	return strings.TrimRight(config.String(cfg, "setupSvc"), "/")
+}
+
+func refreshConfigAfterAccessTokenError(projectPath string, tokenError any) (config.Config, error) {
+	msg := config.AccessTokenErrorMessage(tokenError)
+	if msg == "" {
+		return nil, nil
+	}
+	if strings.TrimSpace(os.Getenv("CLOUDCC_ACCESS_TOKEN")) != "" {
+		return nil, fmt.Errorf("CloudCC accessToken was rejected by the target service, but CLOUDCC_ACCESS_TOKEN is explicitly set so the CLI will not refresh it automatically: %s", msg)
+	}
+	refreshed, err := config.RefreshAccessToken(projectPath)
+	if err != nil {
+		return nil, fmt.Errorf("CloudCC accessToken was rejected by the target service (%s), and refresh through /api/cauth/token failed: %w", msg, err)
+	}
+	if config.String(refreshed, "accessToken") == "" {
+		return nil, fmt.Errorf("CloudCC accessToken was rejected by the target service (%s), and refresh through /api/cauth/token did not return data.accessToken", msg)
+	}
+	return refreshed, nil
 }
 
 func destructiveFlags(args []string) (bool, string) {

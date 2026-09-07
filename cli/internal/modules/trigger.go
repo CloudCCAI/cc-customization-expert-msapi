@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"cloudcc-customization-expert-go/internal/config"
-	"cloudcc-customization-expert-go/internal/httpclient"
 	"cloudcc-customization-expert-go/internal/jsonx"
 )
 
@@ -37,7 +36,7 @@ func triggerList(args []string, stdout io.Writer, cwd string) error {
 	if err != nil {
 		return err
 	}
-	res, err := triggerRequest(cfg, triggerListEndpoint, body, "Get Trigger List Failed")
+	res, err := triggerRequest(projectPath, cfg, triggerListEndpoint, body, "Get Trigger List Failed")
 	if err != nil {
 		return err
 	}
@@ -48,15 +47,16 @@ func triggerDetail(args []string, stdout io.Writer, cwd string) error {
 	if len(args) < 2 || strings.TrimSpace(args[1]) == "" {
 		return fmt.Errorf("cloudcc detail trigger <projectPath> <id|name|apiName>")
 	}
-	cfg, err := config.Load(firstArg(args, cwd))
+	projectPath := firstArg(args, cwd)
+	cfg, err := config.Load(projectPath)
 	if err != nil {
 		return err
 	}
-	id, err := resolveTriggerID(cfg, args[1])
+	id, err := resolveTriggerID(projectPath, cfg, args[1])
 	if err != nil {
 		return err
 	}
-	res, err := triggerRequest(cfg, triggerDetailEndpoint, map[string]any{"id": id}, "Get Trigger Detail Failed")
+	res, err := triggerRequest(projectPath, cfg, triggerDetailEndpoint, map[string]any{"id": id}, "Get Trigger Detail Failed")
 	if err != nil {
 		return err
 	}
@@ -70,15 +70,16 @@ func triggerDelete(args []string, stdout io.Writer, cwd string) error {
 	if len(args) < 2 || strings.TrimSpace(args[1]) == "" {
 		return fmt.Errorf("cloudcc delete trigger <projectPath> <id|name|apiName>")
 	}
-	cfg, err := config.Load(firstArg(args, cwd))
+	projectPath := firstArg(args, cwd)
+	cfg, err := config.Load(projectPath)
 	if err != nil {
 		return err
 	}
-	id, err := resolveTriggerID(cfg, args[1])
+	id, err := resolveTriggerID(projectPath, cfg, args[1])
 	if err != nil {
 		return err
 	}
-	res, err := triggerRequest(cfg, triggerDeleteEndpoint, map[string]any{"id": id}, "Delete Trigger Failed")
+	res, err := triggerRequest(projectPath, cfg, triggerDeleteEndpoint, map[string]any{"id": id}, "Delete Trigger Failed")
 	if err != nil {
 		return err
 	}
@@ -123,7 +124,7 @@ func triggerSaveSpec(action string, args []string, stdout io.Writer, cwd string)
 	}
 	operationEdit := strings.TrimSpace(fmt.Sprint(spec["id"])) != "" && strings.TrimSpace(fmt.Sprint(spec["id"])) != "<nil>"
 	if operationEdit {
-		if detail, detailErr := triggerRequest(cfg, triggerDetailEndpoint, map[string]any{"id": spec["id"]}, "Resolve Trigger Version Failed"); detailErr == nil {
+		if detail, detailErr := triggerRequest(projectPath, cfg, triggerDetailEndpoint, map[string]any{"id": spec["id"]}, "Resolve Trigger Version Failed"); detailErr == nil {
 			if version := highCodeRecordVersion(detail); version != "" {
 				spec["version"] = version
 			}
@@ -131,7 +132,7 @@ func triggerSaveSpec(action string, args []string, stdout io.Writer, cwd string)
 	} else {
 		spec["version"] = highCodeDefaultVersion
 	}
-	res, err := triggerRequest(cfg, triggerSaveEndpoint, spec, "Save Trigger Failed")
+	res, err := triggerRequest(projectPath, cfg, triggerSaveEndpoint, spec, "Save Trigger Failed")
 	if err != nil {
 		return err
 	}
@@ -168,7 +169,7 @@ func publishTrigger(args []string, stdout io.Writer, stderr io.Writer, cwd strin
 	operationEdit := triggerID != "" && triggerID != "<nil>"
 	var preSaveDetail map[string]any
 	if operationEdit {
-		if detail, detailErr := triggerRequest(cfg, triggerDetailEndpoint, map[string]any{"id": triggerID}, "Resolve Trigger Version Failed"); detailErr == nil {
+		if detail, detailErr := triggerRequest(projectPath, cfg, triggerDetailEndpoint, map[string]any{"id": triggerID}, "Resolve Trigger Version Failed"); detailErr == nil {
 			preSaveDetail = detail
 		}
 	}
@@ -186,7 +187,7 @@ func publishTrigger(args []string, stdout io.Writer, stderr io.Writer, cwd strin
 		"folderid":       firstAny(cfgContent["folderid"], cfgContent["folderId"], "wgd"),
 	}
 	putHighCodeVersion(validateBody, publishVersion)
-	remoteValidation, err := validateRemoteCustomCode(cfg, "trigger", name, triggerValidateEndpoint, validateBody)
+	remoteValidation, err := validateRemoteCustomCode(projectPath, cfg, "trigger", name, triggerValidateEndpoint, validateBody)
 	if err != nil {
 		_ = writeJSON(stdout, map[string]any{"status": "blocked_remote_validation", "resource": "trigger", "name": name, "remoteValidation": remoteValidation})
 		return err
@@ -194,7 +195,7 @@ func publishTrigger(args []string, stdout io.Writer, stderr io.Writer, cwd strin
 	saveBody := copyStringAnyMap(validateBody)
 	saveBody["triggerSource"] = encodeJavaURLDecoderComponent(source)
 	fmt.Fprintln(stderr, "Remote CloudCC trigger validation passed; posting trigger, please wait...")
-	res, err := triggerRequest(cfg, triggerSaveEndpoint, saveBody, "Publish Trigger Failed")
+	res, err := triggerRequest(projectPath, cfg, triggerSaveEndpoint, saveBody, "Publish Trigger Failed")
 	if err != nil {
 		return err
 	}
@@ -207,7 +208,7 @@ func publishTrigger(args []string, stdout io.Writer, stderr io.Writer, cwd strin
 		}
 		savedVersion := publishVersion
 		if id := strings.TrimSpace(fmt.Sprint(cfgContent["id"])); id != "" && id != "<nil>" {
-			if detail, detailErr := triggerRequest(cfg, triggerDetailEndpoint, map[string]any{"id": id}, "Read Trigger Version Failed"); detailErr == nil {
+			if detail, detailErr := triggerRequest(projectPath, cfg, triggerDetailEndpoint, map[string]any{"id": id}, "Read Trigger Version Failed"); detailErr == nil {
 				if version := highCodeRecordVersion(detail); version != "" {
 					savedVersion = version
 				}
@@ -223,9 +224,9 @@ func publishTrigger(args []string, stdout io.Writer, stderr io.Writer, cwd strin
 	return writeJSON(stdout, map[string]any{"status": "published", "resource": "trigger", "name": name, "remoteValidation": remoteValidation, "saveResponse": res})
 }
 
-func resolveTriggerID(cfg config.Config, selector string) (string, error) {
+func resolveTriggerID(projectPath string, cfg config.Config, selector string) (string, error) {
 	selector = strings.TrimSpace(selector)
-	listRes, err := triggerRequest(cfg, triggerListEndpoint, triggerListRequest(selector), "Resolve Trigger Failed")
+	listRes, err := triggerRequest(projectPath, cfg, triggerListEndpoint, triggerListRequest(selector), "Resolve Trigger Failed")
 	if err != nil {
 		return "", err
 	}
@@ -250,7 +251,7 @@ func resolveTriggerID(cfg config.Config, selector string) (string, error) {
 	}
 	// The global list filters name/API name but not id. Validate a possible direct
 	// id through the canonical detail endpoint before any destructive operation.
-	detail, detailErr := triggerRequest(cfg, triggerDetailEndpoint, map[string]any{"id": selector}, "Resolve Trigger ID Failed")
+	detail, detailErr := triggerRequest(projectPath, cfg, triggerDetailEndpoint, map[string]any{"id": selector}, "Resolve Trigger ID Failed")
 	if detailErr != nil {
 		return "", detailErr
 	}
@@ -277,10 +278,9 @@ func triggerListRequest(search string) map[string]any {
 	}
 }
 
-func triggerRequest(cfg config.Config, endpoint string, body map[string]any, label string) (map[string]any, error) {
+func triggerRequest(projectPath string, cfg config.Config, endpoint string, body map[string]any, label string) (map[string]any, error) {
 	var res map[string]any
-	base := strings.TrimRight(config.String(cfg, "setupSvc"), "/")
-	if err := httpclient.New().PostClass(base+endpoint, body, config.String(cfg, "accessToken"), &res); err != nil {
+	if err := postClassResponse(projectPath, cfg, "setup", endpoint, body, &res); err != nil {
 		return nil, err
 	}
 	if result, exists := res["result"].(bool); exists && !result {

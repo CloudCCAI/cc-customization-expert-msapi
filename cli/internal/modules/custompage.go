@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"cloudcc-customization-expert-go/internal/config"
-	"cloudcc-customization-expert-go/internal/httpclient"
 	"cloudcc-customization-expert-go/internal/jsonx"
 )
 
@@ -270,7 +269,7 @@ func customPageGet(args []string, stdout io.Writer, cwd string) error {
 		},
 	}
 	var res map[string]any
-	if err := customPagePost(cfg, "/custom/pc/1.0/post/pageCustomPage", body, &res); err != nil {
+	if err := customPagePost(projectPath, cfg, "/custom/pc/1.0/post/pageCustomPage", body, &res); err != nil {
 		return err
 	}
 	if err := requireCloudCCSuccess(res, "Get CustomPage List Failed"); err != nil {
@@ -339,7 +338,7 @@ func customPageDelete(args []string, stdout io.Writer, cwd string) error {
 	}
 	var res map[string]any
 	body := customPageIdentifierBody(args[1])
-	if err := customPagePost(cfg, "/custom/pc/1.0/post/deleteCustomPage", body, &res); err != nil {
+	if err := customPagePost(args[0], cfg, "/custom/pc/1.0/post/deleteCustomPage", body, &res); err != nil {
 		return err
 	}
 	if err := requireCloudCCSuccess(res, "Delete CustomPage Failed"); err != nil {
@@ -354,7 +353,7 @@ func customPageSave(projectPath string, identifier string, payload map[string]an
 		return err
 	}
 	var res map[string]any
-	if err := customPageSavePost(cfg, payload, &res); err != nil {
+	if err := customPageSavePost(projectPath, cfg, payload, &res); err != nil {
 		return err
 	}
 	if err := requireCloudCCSuccess(res, "Save CustomPage Failed"); err != nil {
@@ -415,7 +414,7 @@ func customPageDetailData(projectPath string, identifier string) (map[string]any
 	}
 	var res map[string]any
 	body := customPageIdentifierBody(identifier)
-	if err := customPagePost(cfg, "/custom/pc/1.0/post/detailCustomPage", body, &res); err != nil {
+	if err := customPagePost(projectPath, cfg, "/custom/pc/1.0/post/detailCustomPage", body, &res); err != nil {
 		return nil, err
 	}
 	if err := requireCloudCCSuccess(res, "Get CustomPage Details Failed"); err != nil {
@@ -448,18 +447,16 @@ func isCloudCCObjectID(identifier string) bool {
 	return true
 }
 
-func customPagePost(cfg config.Config, apiPath string, body map[string]any, out any) error {
-	head := customPageDevconsoleHeader(cfg)
-	envelope := map[string]any{"head": head, "body": body}
-	return httpclient.New().PostRaw(strings.TrimRight(baseURL(cfg), "/")+pageComponentDevDispatch(cfg)+apiPath, envelope, nil, out)
+func customPagePost(projectPath string, cfg config.Config, apiPath string, body map[string]any, out *map[string]any) error {
+	return postDevconsoleRawEnvelopeResponse(projectPath, cfg, apiPath, body, customPageDevconsoleHeader, out)
 }
 
-func customPageSavePost(cfg config.Config, payload map[string]any, out any) error {
+func customPageSavePost(projectPath string, cfg config.Config, payload map[string]any, out *map[string]any) error {
 	wirePayload, err := customPageWirePayload(payload)
 	if err != nil {
 		return err
 	}
-	return customPagePost(cfg, "/custom/pc/1.0/post/insertCustomPage", wirePayload, out)
+	return customPagePost(projectPath, cfg, "/custom/pc/1.0/post/insertCustomPage", wirePayload, out)
 }
 
 func customPageWirePayload(payload map[string]any) (map[string]any, error) {
