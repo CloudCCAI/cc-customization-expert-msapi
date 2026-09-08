@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.54-msapi
+# cc-customization-expert-msapi v2.2.55-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -40,6 +40,8 @@ Strict MetadataService package: low-code operations require MetadataService.
 从技能 `2.2.53` 开始，验证规则 CLI 用户级文档明确列出全部已确认可执行全局变量：`$User.id`、`$User.name`、`$User.roleId`、`$User.roleName`、`$User.profileId`、`$User.profileName`、`$User.department`、`$User.title`、`$User.email`、`$User.phone`、`$User.mobilePhone`；同时说明 setup-web / setup-service 中 `$User.<用户对象字段API>` 动态选择项的边界，以及源码未确认 `$Profile`、`$Organization`、`$Permission` 等独立命名空间。
 
 从技能 `2.2.54` 开始，页面布局 CLI/MSAPI 支持 setup-web 详情页的全部布局能力：PC 页面布局、移动页面布局、行式布局、悬停布局和动态页面布局规则；动态布局支持规则、主条件、二级条件、触发动作、启停和删除计划，要求 MetadataService `1.1.54` 或更高版本。
+
+从技能 `2.2.55` 开始，`cloudcc --help` 明确展示用户管理的完整 setup-svc 直连动作，包括查询列表、视图、新增/编辑表单、详情、创建、更新、停用、重置密码、解锁、解绑 MFA 和发送邮件；命令级回归测试同步覆盖这些 `/api/usermange/*` 路由和请求体包装。
 
 从技能 `2.2.41` 开始，`cloudcc get/getList view` 统一作为对象视图列表查询，可传对象 ID/API 名/前缀或 JSON filter；`detail/editInfo view` 才按 viewId 查详情。字段文档明确 `P`、`c`、`N`、`LT` 的 create/update/upsert 精度规则为 `length + decimalPlaces <= 18`，历史非法字段需要先修复字段定义，CLI 不自动缩短字段。
 

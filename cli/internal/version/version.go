@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.54"
+const Version = "2.2.55"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -34,6 +34,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	case "changelog":
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
+		fmt.Fprintln(stderr, "- User management CLI help and regression coverage now expose the complete setup-svc /api/usermange/* action surface: query/getList, views/queryViews, newInfo/addUserQuery, view/detail, editInfo, create/save, update/editSave, delete/deactivate/disable, resetpw, unlock/unlocked, unBindMfa/mfa-unbind, choseemail, setSendFrom, and sendemail.")
 		fmt.Fprintln(stderr, "- Page layout CLI/MSAPI support now covers all setup-web detail tabs: PC layouts, mobile layouts, row layouts, hover layouts, and dynamic layout rules with main conditions, second conditions, actions, enable/disable, and delete planning.")
 		fmt.Fprintln(stderr, "- Validation rule CLI user docs now list every confirmed executable validation-rule global variable with a per-variable note, document the boundary for dynamic $User.<user object field API> picker entries, and note that no $Profile, $Organization, or $Permission namespace was confirmed in the validation-rule formula runtime.")
 		fmt.Fprintln(stderr, "- CloudCC accessToken handling now treats cached or configured cauth tokens rejected by setup-svc/api-svc, customPage/pagecomponent devconsole envelope, high-code helper calls, high-code scan, or MetadataService as refreshable token failures: the CLI clears cache, forces /api/cauth/token, retries once, and reports clear refresh/configuration errors if recovery fails.")
@@ -310,7 +311,7 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc updateRate currency <projectPath> <currencyCode|id> <rate>")
 	fmt.Fprintln(stdout, "  cloudcc createDatedRate currency <projectPath> <beginDate> <currencyCode> <rate>")
 	fmt.Fprintln(stdout, "  cloudcc <activate|deactivate|enable|disable> currency <projectPath> <currencyCode|id> [fallbackCorporateCurrencyCode]")
-	fmt.Fprintln(stdout, "  cloudcc <get|detail|create|update|delete> user <projectPath> ...  # setup-svc /api/usermange/*")
+	fmt.Fprintln(stdout, "  cloudcc <get|query|getList|views|queryViews|newInfo|addUserQuery|view|detail|editInfo|create|save|update|editSave|delete|deactivate|disable|resetpw|unlock|unlocked|unBindMfa|mfa-unbind|choseemail|setSendFrom|sendemail> user <projectPath> ...  # setup-svc /api/usermange/*")
 	fmt.Fprintln(stdout, "  cloudcc get report <projectPath> [folderId] [searchKeyWord] [page] [pageSize] [orderField] [orderType]")
 	fmt.Fprintln(stdout, "  cloudcc detail report <projectPath> <reportId|encodedBodyJson>")
 	fmt.Fprintln(stdout, "  cloudcc create report <projectPath> <encodedReportJson>")
