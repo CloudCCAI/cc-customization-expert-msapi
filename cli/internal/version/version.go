@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.56"
+const Version = "2.2.57"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -34,6 +34,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	case "changelog":
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
+		fmt.Fprintln(stderr, "- Field CLI docs and MetadataService compatibility now explicitly forbid caller-generated field IDs and tp_sys_code option IDs: create fields should omit id so MetadataService generates setup-svc ffe field IDs, and local picklist options should pass values while MetadataService generates or reuses option IDs by natural key.")
 		fmt.Fprintln(stderr, "- Menu create now defaults omitted profile and application selections to the full runtime tenant sets: all tp_sys_profile rows receive enabled tab visibility with setup-svc tabState=show, and all tp_sys_app rows receive tp_sys_app_tab links unless explicit profile/app selections are supplied.")
 		fmt.Fprintln(stderr, "- User management CLI help and regression coverage now expose the complete setup-svc /api/usermange/* action surface: query/getList, views/queryViews, newInfo/addUserQuery, view/detail, editInfo, create/save, update/editSave, delete/deactivate/disable, resetpw, unlock/unlocked, unBindMfa/mfa-unbind, choseemail, setSendFrom, and sendemail.")
 		fmt.Fprintln(stderr, "- Page layout CLI/MSAPI support now covers all setup-web detail tabs: PC layouts, mobile layouts, row layouts, hover layouts, and dynamic layout rules with main conditions, second conditions, actions, enable/disable, and delete planning.")

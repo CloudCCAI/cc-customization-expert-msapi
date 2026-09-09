@@ -35,7 +35,15 @@ cloudcc operation msapi <projectPath> <operationId>
 
 MetadataService spec 是当前字段创建的主入口。调用方应在 JSON 中显式声明稳定的 `apiName`、`label`、`type` 和所属对象；不要依赖 CLI 自动生成字段 API 名。位置参数版 `cloudcc create fields ...` 属于兼容旧通道的基础字段快捷写法，见 [5. 兼容位置参数入口](#5-兼容位置参数入口)。
 
-### 2.1 MetadataService 物理槽位规则
+### 2.1 字段 ID 和选项 ID 规则
+
+- 创建字段时通常不要传 `id`。字段物理 ID 由 MetadataService 按 setup-svc 兼容格式生成，当前字段 ID 使用 `ffe` 前缀。
+- `apiName` 是调用方需要设计和传入的业务稳定标识；`id` 是平台物理元数据 ID。不要把 `apiName`、`f_ci_` + `apiName`、对象前缀、年份、随机串或示例值拼成字段 `id`。
+- 只有更新、删除、精确迁移回放，或引用已经存在字段时，才使用字段 `id`；该值必须来自 `cloudcc get fields`、MetadataService scan/readback、创建回执或平台详情页回读。
+- 本地选项列表 `options[]` 中也不要自造 `id` 或 `code`。普通创建只传 `value`、排序、默认值、本地化等业务字段；MetadataService 会生成或复用 `tp_sys_code` 行 ID。
+- 对同一字段，本地选项的自然键是 `(codetype=字段ID, codevalue=选项值, LANG, RENDER)`。重复提交相同值、语言和 render 不会靠新 ID 变成合法新选项；目标库若已经存在多条相同自然键，需要先治理重复数据再重新 plan。
+
+### 2.2 MetadataService 物理槽位规则
 
 - `dataFieldRef`（如 `str_field1`、`date_field1`）是对象内唯一的物理存储槽位，不是可随意复用的业务标识。
 - MetadataService 创建或 upsert 字段时会查询 `tp_sys_schemetable`，保留已有字段自己的映射，并按字段类型选择首个可用空槽；例如已占用 `str_field1`、`str_field3` 时，新文本类字段使用 `str_field2`。
@@ -43,7 +51,7 @@ MetadataService spec 是当前字段创建的主入口。调用方应在 JSON �
 - plan 阶段会拒绝现有映射冲突和同一计划内的重复槽位；apply 阶段会在事务内重新锁定并检查，防止陈旧或并发计划覆盖其他字段。
 - 收到 `field_slot_conflict` 时，重新执行目标环境 scan 并生成新 plan；不要修改数据库或绕过 MetadataService 守卫。
 
-### 2.2 MetadataService 完整字段元数据
+### 2.3 MetadataService 完整字段元数据
 
 `cloudcc plan msapi <projectPath> fields @field.json create` 会按平台元数据保存规则展开字段元数据；对象计划中的 `fields[]` 也使用同一条展开链路。自动编号、查找筛选、相关列表、公式、累计汇总、地址、地理定位、字段权限和布局落位等完整字段能力都应使用 MetadataService spec。
 
@@ -86,7 +94,7 @@ MetadataService spec 是当前字段创建的主入口。调用方应在 JSON �
 | `decimalPlaces` | 否 | 小数位数；`P`、`c`、`N`、`LT` 受 `length + decimalPlaces <= 18` 约束。 |
 | `defaultValue` | 否 | 默认值；图片/文件字段中也用于上传数量。 |
 | `dataFieldRef` | 通常不要传 | 物理存储槽位。普通创建由 MetadataService 分配；只有迁移或精确回放时才显式传。 |
-| `options` / `ptext` | 选项字段需要 | 本地选项值。`options[]` 是推荐结构；`ptext` 是兼容换行字符串。 |
+| `options` / `ptext` | 选项字段需要 | 本地选项值。`options[]` 是推荐结构；`ptext` 是兼容换行字符串；普通创建不要在选项中自造 `id` / `code`。 |
 | `globalSelectId` / `useGlobalSelect` | 全局选项字段需要 | 目标环境真实回读的全局选项列表 ID。 |
 | `lookupObjectId` / `lookupObj` | 关系字段需要 | 被关联对象的真实 `tp_sys_object.ID`，不是对象 API 名或显示名称。 |
 | `conditionVals` | 否 | 查找筛选或累计汇总筛选的条件行。 |
@@ -96,13 +104,13 @@ MetadataService spec 是当前字段创建的主入口。调用方应在 JSON �
 | `profileFieldJson` | 否 | 字段级简档权限，必须使用真实回读的简档 ID。 |
 | `layoutPlacements` | 否 | 字段落位到页面布局的显式配置。 |
 
-#### 2.2.1 数字精度上限
+#### 2.3.1 数字精度上限
 
 MetadataService 与平台字段编辑页保持同一条字段精度规则：`P`（百分比）、`c`（币种）、`N`（数字）和 `LT`（地理定位）的 `schemefieldLength` / `length` 与 `decimalPlaces` 必须为非负整数，且 `length + decimalPlaces <= 18`。
 
 该规则在 create、update、upsert 以及对象计划内嵌字段展开时都会执行。历史上通过旧版 CLI 或其他链路创建的字段如果不满足该规则，后续 upsert 字段或把字段放入布局时也会被 MetadataService 拦截；CLI 不会自动缩短字段长度或修改小数位数。收到 `invalid_field_precision` 时，请先按目标租户的字段定义治理流程修复该字段精度，再重新生成 plan。
 
-#### 2.2.2 批量添加字段
+#### 2.3.2 批量添加字段
 
 MetadataService `fields` 计划支持在同一个 spec 中通过 `fields[]` 批量添加字段：
 
@@ -200,7 +208,7 @@ apply 阶段会优先批量执行字段主表行，再按既有顺序执行语�
 
 对象默认搜索布局相关的字段、按钮和 lookup-layout ID 必须保持在平台 `rel_id` 的 20 字符边界内。MetadataService 生成的默认 ID 使用短 ID；不要在 spec 中覆盖为超长 ID，否则旧版 `to_mlang` 查询可能报 `Data too long for column 'rel_id'`。
 
-### 2.3 MetadataService 字段类型矩阵
+### 2.4 MetadataService 字段类型矩阵
 
 MetadataService 支持平台开放的全部字段编码。编码区分大小写：`c` 是币种，`C` 是累计汇总；`ENC` / `ENCD` 可作为输入别名，保存时会规范为平台字段编码 `enc` / `encd`。
 
@@ -615,7 +623,7 @@ cloudcc update fields <projectPath> <fieldId> <fieldType> <objid> <fieldLabel> <
 
 根据 CloudCC 官方关于“对象-字段”的说明，平台层面支持文本、URL、百分比、币种、数字、文本区、长文本、富文本、电话、电子邮件、日期、日期/时间、评分、选项列表、图片、查找关系、主详信息关系、公式、自动编号、累计汇总、查找多选、复选框等类型。
 
-位置参数快捷入口只适合下列基础字段类型；完整字段编码和高级元数据能力以 [2.3 MetadataService 字段类型矩阵](#23-metadataservice-字段类型矩阵) 为准。
+位置参数快捷入口只适合下列基础字段类型；完整字段编码和高级元数据能力以 [2.4 MetadataService 字段类型矩阵](#24-metadataservice-字段类型矩阵) 为准。
 
 **说明**：字段类型编码大小写有语义差异，必须原样保留：小写 **`c`** 是币种，大写 **`C`** 是累计汇总。下列类型在兼容请求的 **`obj`** 中带有固定的 **`schemefieldLength`** 默认值（与平台「最大长度」类属性对齐；未通过 CLI 覆盖时使用）：**`U`** `2000`，**`D`** / **`T`** `20`，**`F`** `30`，**`B`** `10`，**`H`** `15`，**`E`** `254`，**`IMG`** `255`，**`AD`** `500`；**`S`**、**`N`**、**`P`**、**`c`**、**`X`**、**`J`**、**`SCORE`** 等仍由各自字段逻辑或上文「兼容字段特殊入参」定义。
 

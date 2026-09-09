@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.56-msapi
+# cc-customization-expert-msapi v2.2.57-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -44,6 +44,8 @@ Strict MetadataService package: low-code operations require MetadataService.
 从技能 `2.2.55` 开始，`cloudcc --help` 明确展示用户管理的完整 setup-svc 直连动作，包括查询列表、视图、新增/编辑表单、详情、创建、更新、停用、重置密码、解锁、解绑 MFA 和发送邮件；命令级回归测试同步覆盖这些 `/api/usermange/*` 路由和请求体包装。
 
 从技能 `2.2.56` 开始，菜单创建未传简档或应用选择时默认展开当前租户全部 `tp_sys_profile` 和 `tp_sys_app`：全部简档写入启用的菜单可见性且 setup-svc `tabState=show`，全部应用写入 `tp_sys_app_tab`；显式简档状态按 setup-svc 三态字符串 `show`、`hidden`、`close` 传入；只有显式传入简档或应用集合时才限制到指定范围，要求 MetadataService `1.1.55` 或更高版本。
+
+从技能 `2.2.57` 开始，字段 CLI 用户级文档明确：创建字段通常省略 `id`，由 MetadataService 生成 setup-svc 兼容的 `ffe` 字段 ID；禁止按 `apiName`、`f_ci_` + `apiName`、对象前缀、年份、随机串或样例值自造字段 ID；本地选项 `options[]` 普通创建不要自造 `id`/`code`，由 MetadataService 按 `(codetype, codevalue, LANG, RENDER)` 复用或生成 `tp_sys_code` ID。该防护要求 MetadataService `1.1.56` 或更高版本。
 
 从技能 `2.2.41` 开始，`cloudcc get/getList view` 统一作为对象视图列表查询，可传对象 ID/API 名/前缀或 JSON filter；`detail/editInfo view` 才按 viewId 查详情。字段文档明确 `P`、`c`、`N`、`LT` 的 create/update/upsert 精度规则为 `length + decimalPlaces <= 18`，历史非法字段需要先修复字段定义，CLI 不自动缩短字段。
 
