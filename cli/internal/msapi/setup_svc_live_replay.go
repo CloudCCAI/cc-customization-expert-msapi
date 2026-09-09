@@ -10258,7 +10258,7 @@ func setupSvcLiveReplayMetadataServiceCreateSpec(domain string) map[string]any {
 	case "applications":
 		return map[string]any{"id": "app_cc_replay", "name": "回放应用", "label": "回放应用", "custom": "1", "tabs": []any{map[string]any{"id": "tab_cc_replay", "name": "cc_replay_tab", "label": "回放菜单", "appTabId": "apptab_cc_replay"}}, "visibleProfiles": []any{"aaa000001"}, "allProfileIds": []any{"aaa000001", "aaa000002"}}
 	case "menus":
-		return map[string]any{"id": "tab_cc_replay", "type": "object", "objectId": "obj_cc_replay", "objectApiName": "cc_replay_object", "objectPrefix": "CRP", "tabName": "回放菜单", "appIds": []any{"app_cc_replay"}, "allOrSome": "all", "overrideSelect": "2", "allProfileIds": []any{"aaa000001", "aaa000002"}}
+		return map[string]any{"id": "tab_cc_replay", "type": "object", "objectId": "obj_cc_replay", "objectApiName": "cc_replay_object", "objectPrefix": "CRP", "tabName": "回放菜单", "appIds": []any{"app_cc_replay"}, "allOrSome": "all", "overrideSelect": "show", "allProfileIds": []any{"aaa000001", "aaa000002"}}
 	case "buttons":
 		return map[string]any{"id": "btn_cc_replay", "name": "cc_replay_submit", "label": "提交回放", "objId": "obj_cc_replay", "event": "URL", "url": "/cc-replay/submit", "scopeon": "location"}
 	case "custom-settings":

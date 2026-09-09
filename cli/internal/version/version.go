@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.55"
+const Version = "2.2.56"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -34,6 +34,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	case "changelog":
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
+		fmt.Fprintln(stderr, "- Menu create now defaults omitted profile and application selections to the full runtime tenant sets: all tp_sys_profile rows receive enabled tab visibility with setup-svc tabState=show, and all tp_sys_app rows receive tp_sys_app_tab links unless explicit profile/app selections are supplied.")
 		fmt.Fprintln(stderr, "- User management CLI help and regression coverage now expose the complete setup-svc /api/usermange/* action surface: query/getList, views/queryViews, newInfo/addUserQuery, view/detail, editInfo, create/save, update/editSave, delete/deactivate/disable, resetpw, unlock/unlocked, unBindMfa/mfa-unbind, choseemail, setSendFrom, and sendemail.")
 		fmt.Fprintln(stderr, "- Page layout CLI/MSAPI support now covers all setup-web detail tabs: PC layouts, mobile layouts, row layouts, hover layouts, and dynamic layout rules with main conditions, second conditions, actions, enable/disable, and delete planning.")
 		fmt.Fprintln(stderr, "- Validation rule CLI user docs now list every confirmed executable validation-rule global variable with a per-variable note, document the boundary for dynamic $User.<user object field API> picker entries, and note that no $Profile, $Organization, or $Permission namespace was confirmed in the validation-rule formula runtime.")

@@ -45,8 +45,8 @@
 5. 选择要加入的应用程序（决定菜单出现在哪个应用）
 6. 保存并验证显示效果
 
-在 `cloudcc-cli` 中，你主要通过 `cloudcc create menu ...` 完成第 2-3
-步；若要调整页面菜单入口，可使用 `cloudcc update menu page ...`；权限与应用归属建议在创建后补充核验。
+在 `cloudcc-cli` 中，你主要通过 `cloudcc create menu ...` 完成第 2-5
+步；未显式指定简档或应用时，菜单会默认对全部简档打开并加入全部应用程序。若要调整页面菜单入口，可使用 `cloudcc update menu page ...`；创建后仍建议回读核验简档可见性与应用归属。
 
 ---
 

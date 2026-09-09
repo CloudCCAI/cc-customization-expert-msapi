@@ -1,12 +1,12 @@
 ---
 name: cc-customization-expert-msapi
-version: 2.2.55-msapi
+version: 2.2.56-msapi
 description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService."
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.2.55-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.2.56-msapi
 
-当前技能版本：`2.2.55-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.2.56-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
 
@@ -41,6 +41,7 @@ description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict Metad
 - 从技能 `2.2.52` 开始，CLI 对 `/api/cauth/token` 获取的 CloudCC `accessToken` 增加过期前缓存失效、token 错误识别、自动刷新和原请求重试；setup-svc/api-svc、customPage/pagecomponent devconsole envelope、triggers/classes/timer 发布辅助调用、high-code scan 和 MetadataService 401/invalid_token 都会在 token 被拒绝时给出明确刷新结果或配置检查提示。
 - 从技能 `2.2.54` 开始，页面布局 CLI/MSAPI 支持 setup-web 详情页的全部布局能力：PC 页面布局、移动页面布局、行式布局、悬停布局和动态页面布局规则；动态布局支持规则、主条件、二级条件、触发动作、启停和删除计划，要求 MetadataService `1.1.54` 或更高版本。
 - 从技能 `2.2.55` 开始，`cloudcc --help` 明确展示用户管理的完整 setup-svc 直连动作，包括查询列表、视图、新增/编辑表单、详情、创建、更新、停用、重置密码、解锁、解绑 MFA 和发送邮件；命令级回归测试同步覆盖这些 `/api/usermange/*` 路由和请求体包装。
+- 从技能 `2.2.56` 开始，菜单创建未传简档或应用选择时默认展开当前租户全部 `tp_sys_profile` 和 `tp_sys_app`：全部简档写入启用的菜单可见性且 setup-svc `tabState=show`，全部应用写入 `tp_sys_app_tab`；显式简档状态按 setup-svc 三态字符串 `show`、`hidden`、`close` 传入；只有显式传入简档或应用集合时才限制到指定范围，要求 MetadataService `1.1.55` 或更高版本。
 - 从技能 `2.2.53` 开始，验证规则 CLI 用户级文档明确列出全部已确认可执行全局变量：`$User.id`、`$User.name`、`$User.roleId`、`$User.roleName`、`$User.profileId`、`$User.profileName`、`$User.department`、`$User.title`、`$User.email`、`$User.phone`、`$User.mobilePhone`；同时说明 setup-web / setup-service 中 `$User.<用户对象字段API>` 动态选择项的边界，以及源码未确认 `$Profile`、`$Organization`、`$Permission` 等独立命名空间。
 - 从技能 `2.2.50` 开始，记录类型详情的选项列表值分配纳入 MetadataService：`saveDependency/assignPicklistValues recordType` 生成 `record-types save-dependency` 计划，对齐 setup-svc `/api/recordType/saveDependency` 的所选值全量替换、未选旧值删除和默认值设置语义，要求 MetadataService `1.1.52` 或更高版本。
 - 高代码发布前先读 `cloudcc doc platform/classes|triggers|timer devguide` 或 `platform/almRelease devguide`；从技能 `2.2.7` 开始，classes/triggers/timer 的 publish 建议 setup-svc `19.3.R20` 或更高版本，不要求 MetadataService 版本门槛。classes 固定执行本地编译、目标 setup-svc validate、最后 save；triggers/timer 执行目标 setup-svc validate、最后 save；并把 validate 失败详情返回调用方。

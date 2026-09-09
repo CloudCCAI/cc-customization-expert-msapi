@@ -41,8 +41,15 @@ cloudcc create menu object <path> <objectId-or-objectApiName> <tabName> [tabStyl
 **简档可见性规则：**
 
 - `profileIds` / `profiles` 表示菜单可见简档，简档 ID 也必须来自 CLI 查询或回读，不能自行构造。
-- 如果没有传简档集合，或集合为空，MetadataService 默认按当前租户 `tp_sys_profile` 的全部简档生成菜单可见性。
+- 如果没有传简档集合，或集合为空，MetadataService 默认按当前租户 `tp_sys_profile` 的全部简档生成菜单可见性，并写入启用状态与 setup-svc `tabState=show`。
+- setup-svc 菜单简档页签状态是三态字符串：`show` 表示打开，`hidden` 表示隐藏，`close` 表示关闭。显式传简档时可用 `profileIds: ["<profileId>-show"]`、`"<profileId>-hidden"`、`"<profileId>-close"`，或对象形式 `{ "profileId": "...", "tabState": "close" }`。
 - 只传 `aaa000001` 通常只代表系统管理员简档可见，不代表其它简档可见。
+
+**应用挂载规则：**
+
+- `appIds` / `apps` / `appId` / `currentAppId` 表示菜单要加入的应用程序，应用 ID 必须来自 CLI 查询或回读，不能自行构造。
+- 如果没有传应用集合，或集合为空，MetadataService 默认按当前租户 `tp_sys_app` 的全部应用生成 `tp_sys_app_tab` 关系。
+- 只传某一个应用 ID 时，菜单只会加入该应用；不会再自动补到其它应用。
 
 **示例：**
 

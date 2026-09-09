@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.55-msapi
+# cc-customization-expert-msapi v2.2.56-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -42,6 +42,8 @@ Strict MetadataService package: low-code operations require MetadataService.
 从技能 `2.2.54` 开始，页面布局 CLI/MSAPI 支持 setup-web 详情页的全部布局能力：PC 页面布局、移动页面布局、行式布局、悬停布局和动态页面布局规则；动态布局支持规则、主条件、二级条件、触发动作、启停和删除计划，要求 MetadataService `1.1.54` 或更高版本。
 
 从技能 `2.2.55` 开始，`cloudcc --help` 明确展示用户管理的完整 setup-svc 直连动作，包括查询列表、视图、新增/编辑表单、详情、创建、更新、停用、重置密码、解锁、解绑 MFA 和发送邮件；命令级回归测试同步覆盖这些 `/api/usermange/*` 路由和请求体包装。
+
+从技能 `2.2.56` 开始，菜单创建未传简档或应用选择时默认展开当前租户全部 `tp_sys_profile` 和 `tp_sys_app`：全部简档写入启用的菜单可见性且 setup-svc `tabState=show`，全部应用写入 `tp_sys_app_tab`；显式简档状态按 setup-svc 三态字符串 `show`、`hidden`、`close` 传入；只有显式传入简档或应用集合时才限制到指定范围，要求 MetadataService `1.1.55` 或更高版本。
 
 从技能 `2.2.41` 开始，`cloudcc get/getList view` 统一作为对象视图列表查询，可传对象 ID/API 名/前缀或 JSON filter；`detail/editInfo view` 才按 viewId 查详情。字段文档明确 `P`、`c`、`N`、`LT` 的 create/update/upsert 精度规则为 `length + decimalPlaces <= 18`，历史非法字段需要先修复字段定义，CLI 不自动缩短字段。
 
