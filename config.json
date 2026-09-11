@@ -1,7 +1,7 @@
 {
     "packageName":  "cc-customization-expert-msapi",
-    "version":  "2.2.57-msapi",
-    "releaseDate":  "2026-09-09",
+    "version":  "2.2.58-msapi",
+    "releaseDate":  "2026-09-11",
     "compatCloudccCliVersion":  "2.5.3",
     "runtime":  "go",
     "projectOutputs":  {
@@ -56,6 +56,21 @@
                                          "sourceOfTruth":  "cc-customization-expert-go/config.json",
                                          "policy":  "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
                                          "minimumByCapability":  [
+                                                                     {
+                                                                         "capability":  "msapi.buttons.urlFieldNormalization",
+                                                                         "label":  "Button URL field normalization for single and batch create",
+                                                                         "introducedInSkillVersion":  "2.2.58-msapi",
+                                                                         "minimumMetadataServiceVersion":  "1.1.57",
+                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.57",
+                                                                         "domains":  [
+                                                                                         "buttons"
+                                                                                     ],
+                                                                         "operations":  [
+                                                                                            "create",
+                                                                                            "update"
+                                                                                        ],
+                                                                         "reason":  "Requires MetadataService to accept setup-web aligned custom button events lightning, lightning-script, lightning-url, and URL; map user-facing template/url aliases to the persisted setup-svc event values; persist the effective URL consistently for single-button and buttons[] batch specs; and reject conflicting url/functionCode payloads before apply."
+                                                                     },
                                                                      {
                                                                          "capability":  "msapi.fields.fieldIdAndPicklistOptionDedupe",
                                                                          "label":  "Field ID generation and picklist option natural-key reuse",

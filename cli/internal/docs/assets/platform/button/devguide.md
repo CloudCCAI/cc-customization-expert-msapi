@@ -52,60 +52,122 @@ cloudcc get button . <prefix>
 | `custbutton`  | 自定义按钮列表                              |
 | `btnType`     | `detailBtn` 详情页按钮 / `listBtn` 列表按钮 |
 | `category`    | `StandardButton` 标准 / `CustomButton` 自定义 |
-| `event`       | `URL` 跳转 / `JavaScript` 执行脚本         |
+| `event`       | 按钮类型：`lightning` / `lightning-script` / `lightning-url` / `URL` |
 | `behavior`    | 打开方式：`self` 当前页 / `newWindow` 新窗口 |
 
 ---
 
 ## 3. 新建自定义按钮
 
-```bash
-cloudcc create button . <objid> <label> [name] [btnType] [event]
+按钮写入使用 MetadataService 的 plan/apply 流程。先准备一个 JSON 文件，再创建计划、确认计划内容，最后 apply。
+
+示例 `button-url.json`：
+
+```json
+{
+  "objId": "202646FC67ACF24D39sG",
+  "label": "打开帮助",
+  "name": "open_help",
+  "category": "CustomButton",
+  "btnType": "detailBtn",
+  "event": "URL",
+  "behavior": "newWindow",
+  "url": "https://example.com/help"
+}
 ```
 
-| 参数        | 必填 | 说明                                                                        |
-|-------------|------|-----------------------------------------------------------------------------|
-| `objid`     | ✅   | 所属对象 ID                                                                 |
-| `label`     | ✅   | 按钮标签（显示名称）                                                        |
-| `name`      | ❌   | 按钮 API 名称，默认同 `label`                                               |
-| `btnType`   | ❌   | 显示类型：`detailBtn`（详情页按钮，默认）/ `listBtn`（列表按钮）            |
-| `event`     | ❌   | 按钮类型，见下表，默认 `template`                                           |
-
-### 按钮类型（event）
-
-| 取值              | 平台支持         | 说明                                                      |
-|-------------------|------------------|-----------------------------------------------------------|
-| `template`        | 仅 PC            | PC 端 JavaScript 代码，默认代码 `alert('hello world')`    |
-| `lightning-script`| PC + 移动端      | PC 和移动端各需要 JS 代码，默认均为 `alert('hello world')` |
-| `lightning-url`   | PC + 移动端      | PC 端填 URL，移动端自动选取自定义页面组件列表第一项       |
-| `url`             | 仅 PC            | PC 端 URL 地址，默认 `www.cloudcc.com`                    |
-
-### 示例
+执行命令：
 
 ```bash
-# 新建 template 类型按钮（默认）
-cloudcc create button . 202646FC67ACF24D39sG "我的按钮"
-
-# 指定名称和显示类型
-cloudcc create button . 202646FC67ACF24D39sG "我的按钮" myBtn detailBtn
-
-# lightning-script 类型，列表按钮
-cloudcc create button . 202646FC67ACF24D39sG "脚本按钮" scriptBtn listBtn lightning-script
-
-# lightning-url 类型（移动端自动取第一个自定义页面组件）
-cloudcc create button . 202646FC67ACF24D39sG "跳转按钮" urlBtn detailBtn lightning-url
-
-# url 类型
-cloudcc create button . 202646FC67ACF24D39sG "外链按钮" linkBtn detailBtn url
+cloudcc plan msapi <projectPath> button @button-url.json create
+cloudcc apply msapi <projectPath> <planId> '{"async":true}'
+cloudcc operation msapi <projectPath> <applyId>
+cloudcc get button <projectPath> <prefix>
 ```
 
-> **注意：** 各类型代码/URL 默认值仅供快速创建使用，创建后请在页面上编辑替换为实际内容。
+常用字段：
+
+| 字段 | 必填 | 说明 |
+|------|------|------|
+| `objId` / `objectId` | 是 | 所属对象 ID。批量创建也可以在顶层统一写 `objectId`。 |
+| `label` | 是 | 按钮显示名称。 |
+| `name` | 建议 | 按钮 API 名称。省略时系统会按按钮 ID 生成默认 API 名称。 |
+| `category` | 否 | 自定义按钮写 `CustomButton`，省略时默认按自定义按钮创建。 |
+| `btnType` | 否 | `detailBtn` 详情页按钮；`listBtn` 列表按钮。默认 `detailBtn`。 |
+| `event` | 是 | 按钮类型。可选 `lightning`、`lightning-script`、`lightning-url`、`URL`。兼容别名：`template` 会按 `lightning` 入库，`url` 会按 `URL` 入库。 |
+| `behavior` | 否 | `lightning-url` 常用打开方式：`self` 当前页打开；`newWindow` 新窗口打开。 |
+| `functionCode` | 按类型 | PC 端内容。`lightning` / `lightning-script` 填 PC 端脚本；`lightning-url` 填 PC 端自定义页面或页面地址；`URL` 按钮建议改用 `url`。 |
+| `url` | URL 按钮优先填写 | `URL` 按钮的跳转地址。`url` 与兼容字段 `functionCode` 至少填写一个；两者都填写时必须相同。计划入库时会将有效地址同步写入 `url` 和 `functionCode`。 |
+| `mobileurl` | 否 | `lightning-url` 的移动端地址。选择平台自定义页面时通常是 `__UNI__110007E/#/pages/index/index?pageApi=<pageApi>`；选择自定义小程序时填写实际小程序路径。 |
+| `h5FunctionCode` | 否 | `lightning-script` 的移动端脚本。 |
+| `menubar` | 否 | `lightning-url` 且 `behavior` 为 `newWindow` 时可用，通常填写 `show` 或 `hidden`。 |
+| `remark` / `description` | 否 | 备注说明。 |
+
+四种按钮类型和入库字段：
+
+| `event` | 界面显示 | 适用场景 | 主要入库字段 |
+|---------|----------|----------|--------------|
+| `lightning` | `template` | 仅 PC 端脚本模板按钮 | `EVENT=lightning`，`FUNCTION_CODE=<functionCode>` |
+| `lightning-script` | `lightning-script` | PC + 移动端脚本按钮 | `EVENT=lightning-script`，`FUNCTION_CODE=<functionCode>`，`H5FUNCTION_CODE=<h5FunctionCode>` |
+| `lightning-url` | `lightning-url` | PC + 移动端页面/链接按钮 | `EVENT=lightning-url`，`FUNCTION_CODE=<functionCode>`，`MOBILEURL=<mobileurl>`，可带 `BEHAVIOR`、`MENUBAR` |
+| `URL` | `url` | 普通 URL 跳转按钮 | `EVENT=URL`，`URL=<url>`，`FUNCTION_CODE=<url>` |
+
+> `URL` 按钮优先使用 `url`。为兼容已有 JSON，也可只传 `functionCode`；计划会把它视为 URL 地址。两者都传且不一致时，计划会失败，避免入库后回显和运行行为不一致。
+
+`lightning-script` 按钮示例：
+
+```json
+{
+  "objId": "202646FC67ACF24D39sG",
+  "label": "校验合同",
+  "name": "validate_contract",
+  "category": "CustomButton",
+  "btnType": "detailBtn",
+  "event": "lightning-script",
+  "behavior": "self",
+  "functionCode": "alert('validate pc');",
+  "h5FunctionCode": "alert('validate h5');"
+}
+```
+
+`lightning-url` 按钮示例：
+
+```json
+{
+  "objId": "202646FC67ACF24D39sG",
+  "label": "打开移动页面",
+  "name": "open_mobile_page",
+  "category": "CustomButton",
+  "btnType": "detailBtn",
+  "event": "lightning-url",
+  "behavior": "newWindow",
+  "menubar": "show",
+  "functionCode": "pc_page_api_or_url",
+  "mobileurl": "__UNI__110007E/#/pages/index/index?pageApi=mobile_page_api"
+}
+```
+
+`template` 显示类型对应的实际入库 event 是 `lightning`。CLI 可以直接写 `lightning`，也可以写别名 `template`，计划会按 `lightning` 入库：
+
+```json
+{
+  "objId": "202646FC67ACF24D39sG",
+  "label": "模板按钮",
+  "name": "template_button",
+  "category": "CustomButton",
+  "btnType": "detailBtn",
+  "event": "lightning",
+  "functionCode": "alert('template');"
+}
+```
+
+服务预约定位类按钮还可以填写 `scopeon`、`radius`、`baseaddress`、`uploadphoto`、`uploadfromalbum`、`restrictionType` 等字段。
 
 ---
 
 ### 3.1 批量创建自定义按钮
 
-一次要在同一个对象下创建多个自定义按钮时，使用 MetadataService plan/apply。文件顶层写 `objectId`、`objectApiName` 或 `objectPrefix` 指定目标对象，并在 `buttons[]` 中写每个按钮。批量创建是对象级能力：同一个文件只能作用于一个对象，数组项不能覆盖到其它对象，也不能和其它 domain 混在同一次计划里提交。
+一次要在同一个对象下创建多个自定义按钮时，文件顶层写 `objectId`、`objectApiName` 或 `objectPrefix` 指定目标对象，并在 `buttons[]` 中写每个按钮。`buttons[]` 内每一项的字段与单个按钮创建一致。批量创建是对象级能力：同一个文件只能作用于一个对象，数组项不能覆盖到其它对象，也不能和其它 domain 混在同一次计划里提交。
 
 示例 `buttons-batch.json`：
 
@@ -120,7 +182,7 @@ cloudcc create button . 202646FC67ACF24D39sG "外链按钮" linkBtn detailBtn ur
       "name": "submit_contract",
       "category": "CustomButton",
       "btnType": "detailBtn",
-      "event": "JavaScript",
+      "event": "lightning-script",
       "behavior": "self",
       "functionCode": "alert('submit');"
     },
@@ -147,7 +209,7 @@ cloudcc operation msapi <projectPath> <applyId>
 cloudcc get button <projectPath> <prefix>
 ```
 
-`button` / `buttons` 都可作为 `plan msapi` 的 domain 参数。批量计划会逐项检查同批重复、目标对象已有同 ID / API 名 / 名称 / 标签按钮、以及数组项是否声明了其它对象。批量创建只处理自定义按钮；`category` 为 `StandardButton` 的项会标记为 `FAILED_PRECHECK`，标准按钮请使用对应的更新或配置能力。
+`button` / `buttons` 都可作为 `plan msapi` 的 domain 参数。批量计划会逐项检查同批重复、目标对象已有同 ID / API 名 / 名称 / 标签按钮、以及数组项是否声明了其它对象。批量创建只处理自定义按钮；`category` 为 `StandardButton` 的项会标记为 `FAILED_PRECHECK`，标准按钮请使用对应的更新或配置能力。批量项里的 `event` 和字段入库规则与单个按钮完全一致。
 
 `onExisting` 支持：
 
