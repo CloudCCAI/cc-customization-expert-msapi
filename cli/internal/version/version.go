@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.59"
+const Version = "2.2.60"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -34,6 +34,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	case "changelog":
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
+		fmt.Fprintln(stderr, "- High-code publish keeps current id authoritative, falls back to legacy devid/devId only when id is absent or blank, and treats the resource as new only when no valid identifier exists; this prevents copied legacy trigger/class/timer packages from being inserted again under an existing API name.")
 		fmt.Fprintln(stderr, "- Trigger JSON create now supplies a harmless non-empty triggerSource comment when callers omit source code, preventing setup-svc null-source failures while leaving explicitly supplied triggerSource/sourceFile content unchanged.")
 		fmt.Fprintln(stderr, "- High-code create now handles the user-facing resource aliases reported from project use: create trigger/triggers accepts a single encoded JSON or @file in the current project without treating it as a Windows directory name, and create plugin/plugins is a compatibility alias for pagecomponent creation with camelCase/underscore names normalized to lowercase hyphen component directories.")
 		fmt.Fprintln(stderr, "- Button plans now align custom button event values with setup-web/setup-svc: lightning (shown as template), lightning-script, lightning-url, and URL (shown as url); URL specs may use user-level url and persist the same value through url and functionCode for single-button and buttons[] batch create specs, while conflicting url/functionCode values are rejected before apply.")

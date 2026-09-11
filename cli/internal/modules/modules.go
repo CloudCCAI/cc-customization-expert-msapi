@@ -2216,8 +2216,13 @@ func extractMainBody(content string) (string, error) {
 }
 
 func configID(data map[string]any) any {
-	if v := data["id"]; v != nil {
-		return v
+	for _, key := range []string{"id", "devid", "devId"} {
+		if v := data[key]; v != nil {
+			value := strings.TrimSpace(fmt.Sprint(v))
+			if value != "" && value != "<nil>" {
+				return v
+			}
+		}
 	}
 	return ""
 }
