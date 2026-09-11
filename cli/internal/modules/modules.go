@@ -320,7 +320,7 @@ func Handle(action string, resource string, args []string, stdout io.Writer, std
 		return handleCustomPage(action, args, stdout, stderr, cwd)
 	case "scheduleJob":
 		return handleScheduleJob(action, args, stdout, cwd)
-	case "pagecomponent":
+	case "pagecomponent", "plugin", "plugins":
 		return handlePageComponent(action, resource, args, stdout, stderr, cwd)
 	case "injectionPage":
 		return handleInjectionPage(action, args, stdout, stderr, cwd)
@@ -1340,6 +1340,9 @@ func backendResourcePath(projectPath string, dir string, parts ...string) string
 func handleTrigger(action string, args []string, stdout io.Writer, stderr io.Writer, cwd string) error {
 	switch action {
 	case "create":
+		if len(args) == 1 && looksLikeTriggerSpec(args[0]) {
+			return triggerSaveSpec(action, []string{cwd, args[0]}, stdout, cwd)
+		}
 		if len(args) > 1 && looksLikeTriggerSpec(args[1]) {
 			return triggerSaveSpec(action, args, stdout, cwd)
 		}

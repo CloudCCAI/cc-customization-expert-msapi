@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.58-msapi
+# cc-customization-expert-msapi v2.2.59-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -48,6 +48,8 @@ Strict MetadataService package: low-code operations require MetadataService.
 从技能 `2.2.57` 开始，字段 CLI 用户级文档明确：创建字段通常省略 `id`，由 MetadataService 生成 setup-svc 兼容的 `ffe` 字段 ID；禁止按 `apiName`、`f_ci_` + `apiName`、对象前缀、年份、随机串或样例值自造字段 ID；本地选项 `options[]` 普通创建不要自造 `id`/`code`，由 MetadataService 按 `(codetype, codevalue, LANG, RENDER)` 复用或生成 `tp_sys_code` ID。该防护要求 MetadataService `1.1.56` 或更高版本。
 
 从技能 `2.2.58` 开始，按钮 CLI 用户级文档以 MetadataService JSON spec 作为创建入口；自定义按钮 `event` 对齐 setup-web/setup-svc 的四种类型：`lightning`（界面显示 `template`）、`lightning-script`、`lightning-url`、`URL`（界面显示 `url`）。单个按钮创建和 `buttons[]` 批量创建使用同一套字段；`URL` 按钮使用 `url` 填写跳转地址并由 MetadataService 同步写入 `url` 与 `functionCode`。该能力要求 MetadataService `1.1.57` 或更高版本。
+
+从技能 `2.2.59` 开始，高代码创建入口兼容实际使用习惯：`cloudcc create trigger|triggers <encodedJson|@file>` 在项目根执行时会使用当前目录作为项目路径并保存触发器元数据，不再把编码 JSON 当目录名；未传 `triggerSource` 时自动补一行无业务逻辑注释，避免 setup-svc 对空源码抛出异常；`cloudcc create plugin|plugins <name>` 作为 `pagecomponent` 兼容别名，并把驼峰/下划线名称规范化为小写连字符组件目录。
 
 从技能 `2.2.41` 开始，`cloudcc get/getList view` 统一作为对象视图列表查询，可传对象 ID/API 名/前缀或 JSON filter；`detail/editInfo view` 才按 viewId 查详情。字段文档明确 `P`、`c`、`N`、`LT` 的 create/update/upsert 精度规则为 `length + decimalPlaces <= 18`，历史非法字段需要先修复字段定义，CLI 不自动缩短字段。
 

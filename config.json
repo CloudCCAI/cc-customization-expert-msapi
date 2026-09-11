@@ -1,455 +1,455 @@
 {
-    "packageName":  "cc-customization-expert-msapi",
-    "version":  "2.2.58-msapi",
-    "releaseDate":  "2026-09-11",
-    "compatCloudccCliVersion":  "2.5.3",
-    "runtime":  "go",
-    "projectOutputs":  {
-                           "schemaVersion":  "cloudcc-project-outputs/v1",
-                           "root":  "outputs",
-                           "fixedTemplates":  false,
-                           "fixedFiles":  [
-                                              "README.md",
-                                              "00-output-index.md",
-                                              "output-manifest.json"
-                                          ],
-                           "kinds":  [
-                                         "document",
-                                         "tool",
-                                         "data-package",
-                                         "deployment-package",
-                                         "training-package",
-                                         "integration-package",
-                                         "other"
-                                     ],
-                           "commands":  [
-                                            "init project-outputs",
-                                            "doctor project-outputs"
-                                        ]
-                       },
-    "testGovernance":  {
-                           "schemaVersion":  "cloudcc-test-governance/v1",
-                           "advisory":  true,
-                           "blocking":  false,
-                           "humanDecisionRequired":  true,
-                           "commands":  [
-                                            "init test-governance",
-                                            "advise testing",
-                                            "decide testing",
-                                            "record testing",
-                                            "doctor test-governance"
-                                        ]
-                       },
-    "metadataService":  {
-                            "promptWhenMissing":  true,
-                            "publicCloudDefaultUrl":  "https://dc52.apis.cloudcc.cn/metadata",
-                            "skillConfigFile":  "cloudcc-cli.config.json",
-                            "skillInitPrompt":  "public-or-private-cloud",
-                            "env":  "CLOUDCC_METADATA_SERVICE_URL",
-                            "projectConfigKeys":  [
-                                                      "metadataService.url",
-                                                      "metadataServiceUrl",
-                                                      "metadata_service_url"
-                                                  ]
-                        },
-    "metadataServiceCompatibility":  {
-                                         "sourceOfTruth":  "cc-customization-expert-go/config.json",
-                                         "policy":  "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
-                                         "minimumByCapability":  [
-                                                                     {
-                                                                         "capability":  "msapi.buttons.urlFieldNormalization",
-                                                                         "label":  "Button URL field normalization for single and batch create",
-                                                                         "introducedInSkillVersion":  "2.2.58-msapi",
-                                                                         "minimumMetadataServiceVersion":  "1.1.57",
-                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.57",
-                                                                         "domains":  [
-                                                                                         "buttons"
-                                                                                     ],
-                                                                         "operations":  [
-                                                                                            "create",
-                                                                                            "update"
-                                                                                        ],
-                                                                         "reason":  "Requires MetadataService to accept setup-web aligned custom button events lightning, lightning-script, lightning-url, and URL; map user-facing template/url aliases to the persisted setup-svc event values; persist the effective URL consistently for single-button and buttons[] batch specs; and reject conflicting url/functionCode payloads before apply."
-                                                                     },
-                                                                     {
-                                                                         "capability":  "msapi.fields.fieldIdAndPicklistOptionDedupe",
-                                                                         "label":  "Field ID generation and picklist option natural-key reuse",
-                                                                         "introducedInSkillVersion":  "2.2.57-msapi",
-                                                                         "minimumMetadataServiceVersion":  "1.1.56",
-                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.56",
-                                                                         "domains":  [
-                                                                                         "fields"
-                                                                                     ],
-                                                                         "operations":  [
-                                                                                            "create",
-                                                                                            "upsert"
-                                                                                        ],
-                                                                         "reason":  "Requires MetadataService to generate setup-svc-compatible ffe field IDs when create/upsert omits id, reject incident-shaped caller-derived f_ci_* field IDs, and reuse or fail closed on local picklist tp_sys_code option natural keys instead of creating duplicate rows."
-                                                                     },
-                                                                     {
-                                                                         "capability":  "msapi.menuDefaultProfileApplicationExpansion",
-                                                                         "label":  "Menu default all-profile visibility and all-application links",
-                                                                         "introducedInSkillVersion":  "2.2.56-msapi",
-                                                                         "minimumMetadataServiceVersion":  "1.1.55",
-                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.55",
-                                                                         "domains":  [
-                                                                                         "menus"
-                                                                                     ],
-                                                                         "operations":  [
-                                                                                            "create"
-                                                                                        ],
-                                                                         "reason":  "Requires MetadataService to default omitted or empty menu profile/application selections to all runtime tp_sys_profile and tp_sys_app rows, write enabled setup-svc tab visibility with tabState=show, and only limit visibility/application links when explicit collections are supplied."
-                                                                     },
-                                                                     {
-                                                                         "capability":  "msapi.layouts.completeCapabilities",
-                                                                         "label":  "Complete page layout detail capabilities",
-                                                                         "introducedInSkillVersion":  "2.2.54-msapi",
-                                                                         "minimumMetadataServiceVersion":  "1.1.54",
-                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.54",
-                                                                         "domains":  [
-                                                                                         "layouts"
-                                                                                     ],
-                                                                         "operations":  [
-                                                                                            "create",
-                                                                                            "update",
-                                                                                            "delete",
-                                                                                            "activate",
-                                                                                            "deactivate",
-                                                                                            "query"
-                                                                                        ],
-                                                                         "reason":  "Requires MetadataService to plan setup-web/setup-svc page layout detail capabilities for PC layouts, mobile layouts, row layouts, hover layouts, and dynamic layout rules with main conditions, second conditions, and actions."
-                                                                     },
-                                                                     {
-                                                                         "capability":  "msapi.recordTypes.picklistValueAssignment",
-                                                                         "label":  "Record type picklist value assignment",
-                                                                         "introducedInSkillVersion":  "2.2.50-msapi",
-                                                                         "minimumMetadataServiceVersion":  "1.1.52",
-                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.52",
-                                                                         "domains":  [
-                                                                                         "record-types"
-                                                                                     ],
-                                                                         "operations":  [
-                                                                                            "save-dependency",
-                                                                                            "assign-picklist-values"
-                                                                                        ],
-                                                                         "reason":  "Requires MetadataService to create setup-svc /api/recordType/saveDependency-compatible tp_sys_field_dependency plans that replace assigned picklist code values and default value for one record type and dependency field."
-                                                                     },
-                                                                     {
-                                                                         "capability":  "msapi.objects.batchCreate",
-                                                                         "label":  "Batch create custom objects with top-level objects[]",
-                                                                         "introducedInSkillVersion":  "2.2.10-msapi",
-                                                                         "minimumMetadataServiceVersion":  "1.1.23",
-                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.23",
-                                                                         "domains":  [
-                                                                                         "objects"
-                                                                                     ],
-                                                                         "operations":  [
-                                                                                            "create"
-                                                                                        ],
-                                                                         "reason":  "Requires server-side objects[] batch planning and apply-time per-object PREFIX/DATATABLE_NAME allocation."
-                                                                     },
-                                                                     {
-                                                                         "capability":  "msapi.globalSelectLists.batchAdd",
-                                                                         "label":  "Batch add global select lists and append or merge options",
-                                                                         "introducedInSkillVersion":  "2.2.13-msapi",
-                                                                         "minimumMetadataServiceVersion":  "1.1.24",
-                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.24",
-                                                                         "domains":  [
-                                                                                         "global-select-lists"
-                                                                                     ],
-                                                                         "operations":  [
-                                                                                            "create",
-                                                                                            "upsert"
-                                                                                        ],
-                                                                         "reason":  "Requires server-side globalSelectLists[] precheck, onExisting policies, and optionsMode append/merge/replace handling."
-                                                                     },
-                                                                     {
-                                                                         "capability":  "msapi.fields.batchAdd",
-                                                                         "label":  "Batch add fields with server-side slot allocation and existing-target policies",
-                                                                         "introducedInSkillVersion":  "2.2.14-msapi",
-                                                                         "minimumMetadataServiceVersion":  "1.1.25",
-                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.25",
-                                                                         "domains":  [
-                                                                                         "fields"
-                                                                                     ],
-                                                                         "operations":  [
-                                                                                            "create",
-                                                                                            "upsert"
-                                                                                        ],
-                                                                         "reason":  "Requires server-side fields[] precheck, onExisting policies, safe object-local DATAFIELD_REF allocation, and batched field-row apply."
-                                                                     },
-                                                                     {
-                                                                         "capability":  "msapi.batchCreate.asyncApply",
-                                                                         "label":  "Async apply for batch create plans",
-                                                                         "introducedInSkillVersion":  "2.2.16-msapi",
-                                                                         "minimumMetadataServiceVersion":  "1.1.27",
-                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.27",
-                                                                         "domains":  [
-                                                                                         "objects",
-                                                                                         "fields",
-                                                                                         "global-select-lists"
-                                                                                     ],
-                                                                         "operations":  [
-                                                                                            "create"
-                                                                                        ],
-                                                                         "reason":  "Requires MetadataService async apply support for objects[], fields[], and globalSelectLists[] batch create plans, returning applyId/operationId for polling."
-                                                                     },
-                                                                     {
-                                                                         "capability":  "msapi.batchCreate.itemPrecheckResults",
-                                                                         "label":  "Item-level precheck results for batch create plans",
-                                                                         "introducedInSkillVersion":  "2.2.17-msapi",
-                                                                         "minimumMetadataServiceVersion":  "1.1.29",
-                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.29",
-                                                                         "domains":  [
-                                                                                         "objects",
-                                                                                         "fields",
-                                                                                         "global-select-lists"
-                                                                                     ],
-                                                                         "operations":  [
-                                                                                            "create",
-                                                                                            "upsert"
-                                                                                        ],
-                                                                         "reason":  "Requires MetadataService plan metadata batchItemResults/batchExecutableCount/batchPrecheckFailedCount so independent preflight validation failures do not block unrelated batch items, while apply-time SQL remains batched and transactional."
-                                                                     },
-                                                                     {
-                                                                         "capability":  "msapi.objectScopedBatchCreate.domains",
-                                                                         "label":  "Object-scoped batch create for record types, page layouts, validation rules, and buttons",
-                                                                         "introducedInSkillVersion":  "2.2.29-msapi",
-                                                                         "minimumMetadataServiceVersion":  "1.1.37",
-                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.37",
-                                                                         "domains":  [
-                                                                                         "record-types",
-                                                                                         "layouts",
-                                                                                         "validation-rules",
-                                                                                         "buttons"
-                                                                                     ],
-                                                                         "operations":  [
-                                                                                            "create"
-                                                                                        ],
-                                                                         "reason":  "Requires MetadataService compilers to accept recordTypes[], layouts[], validationRules[], and buttons[] under one resolved root object, enforce same-object prechecks, and emit item-level batch metadata."
-                                                                     },
-                                                                     {
-                                                                         "capability":  "msapi.lowcodeAvailabilityClosure",
-                                                                         "label":  "Low-code module usability closure for layouts, search layouts, tabs, and record type profile defaults",
-                                                                         "introducedInSkillVersion":  "2.2.31-msapi",
-                                                                         "minimumMetadataServiceVersion":  "1.1.38",
-                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.38",
-                                                                         "domains":  [
-                                                                                         "objects",
-                                                                                         "fields",
-                                                                                         "record-types",
-                                                                                         "layouts",
-                                                                                         "applications",
-                                                                                         "profiles"
-                                                                                     ],
-                                                                         "operations":  [
-                                                                                            "create",
-                                                                                            "update",
-                                                                                            "query"
-                                                                                        ],
-                                                                         "reason":  "Requires MetadataService low-code availability closure gates for in-plan default layout placement, record type profile/default/layout fallback, application tab reference validation, search layout enrichment, and profile/application readback evidence."
-                                                                     },
-                                                                     {
-                                                                         "capability":  "msapi.layouts.recordTypeAssignment",
-                                                                         "label":  "Page layout record-type assignment during create and assignment-only plans",
-                                                                         "introducedInSkillVersion":  "2.2.42-msapi",
-                                                                         "minimumMetadataServiceVersion":  "1.1.48",
-                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.48",
-                                                                         "domains":  [
-                                                                                         "layouts"
-                                                                                     ],
-                                                                         "operations":  [
-                                                                                            "create",
-                                                                                            "assign"
-                                                                                        ],
-                                                                         "reason":  "Requires MetadataService layouts.create assignments[] and layouts.assign to write tp_sys_profile_layout for explicit profile/record-type bindings while preserving setup-svc layout create/clone behavior when assignments are omitted."
-                                                                     },
-                                                                     {
-                                                                         "capability":  "msapi.companyCurrencyDomain",
-                                                                         "label":  "Company currency and dated exchange-rate low-code domain",
-                                                                         "introducedInSkillVersion":  "2.2.43-msapi",
-                                                                         "minimumMetadataServiceVersion":  "1.1.49",
-                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.49",
-                                                                         "domains":  [
-                                                                                         "currencies"
-                                                                                     ],
-                                                                         "operations":  [
-                                                                                            "create",
-                                                                                            "update",
-                                                                                            "activate",
-                                                                                            "deactivate",
-                                                                                            "update-rate",
-                                                                                            "dated-rate-create",
-                                                                                            "dated-rate-update",
-                                                                                            "dated-rate-delete",
-                                                                                            "advanced-toggle",
-                                                                                            "change-corporate",
-                                                                                            "query"
-                                                                                        ],
-                                                                         "reason":  "Requires MetadataService currency readback, fixed currency compiler, advanced dated-rate compiler, corporate-currency explicit rebase guard, and setup-web/setup-service parity for /api/currency/* company currency management."
-                                                                     },
-                                                                     {
-                                                                         "capability":  "msapi.fields.formulaCompiledCreate",
-                                                                         "label":  "Formula field create persistence with server-side formula compilation",
-                                                                         "introducedInSkillVersion":  "2.2.47-msapi",
-                                                                         "minimumMetadataServiceVersion":  "1.1.51",
-                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.51",
-                                                                         "domains":  [
-                                                                                         "fields"
-                                                                                     ],
-                                                                         "operations":  [
-                                                                                            "create",
-                                                                                            "upsert"
-                                                                                        ],
-                                                                         "reason":  "Requires MetadataService to persist formula fields with platform-compatible non-storage metadata, lowercase formula schemefieldName defaults, server-side formulaText to executeExpression compilation, automatic cross-object formula relevance rows in tp_sys_relevance, and specific plan failures for missing object, field, user field, or lookup target metadata."
-                                                                     },
-                                                                     {
-                                                                         "capability":  "msapi.menuApplicationReferenceProfiles",
-                                                                         "label":  "Menu object references by object API name and default all-profile visibility",
-                                                                         "introducedInSkillVersion":  "2.2.32-msapi",
-                                                                         "minimumMetadataServiceVersion":  "1.1.40",
-                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.40",
-                                                                         "domains":  [
-                                                                                         "menus",
-                                                                                         "applications"
-                                                                                     ],
-                                                                         "operations":  [
-                                                                                            "create"
-                                                                                        ],
-                                                                         "reason":  "Requires MetadataService to resolve menu object references from object apiName to real object ID/PREFIX, validate supplied object ID or prefix for consistency when present, and default omitted or empty menu/application profile collections to all runtime tp_sys_profile rows."
-                                                                     },
-                                                                     {
-                                                                         "capability":  "msapi.apiRegistrars.phase1",
-                                                                         "label":  "API registrar metadata CRUD and readback with runtime debug separation",
-                                                                         "introducedInSkillVersion":  "2.2.33-msapi",
-                                                                         "minimumMetadataServiceVersion":  "1.1.41",
-                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.41",
-                                                                         "domains":  [
-                                                                                         "api-registrars"
-                                                                                     ],
-                                                                         "operations":  [
-                                                                                            "create",
-                                                                                            "update",
-                                                                                            "delete",
-                                                                                            "query"
-                                                                                        ],
-                                                                         "reason":  "Requires MetadataService-generated id/apiName, caller-defined or securely generated unique apiCode, DRAFT-on-create/update behavior, logical delete, read-only list/detail endpoints, and rejection of runtime-maintained debug/status fields; debug and log calls remain direct setup-svc runtime operations."
-                                                                     },
-                                                                     {
-                                                                         "capability":  "msapi.companyFiscalYearAreaDomains",
-                                                                         "label":  "Fiscal year, fiscal quarter, and area hierarchy low-code domains",
-                                                                         "introducedInSkillVersion":  "2.2.39-msapi",
-                                                                         "minimumMetadataServiceVersion":  "1.1.45",
-                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.45",
-                                                                         "domains":  [
-                                                                                         "fiscal-years",
-                                                                                         "areas"
-                                                                                     ],
-                                                                         "operations":  [
-                                                                                            "create",
-                                                                                            "update",
-                                                                                            "delete",
-                                                                                            "query",
-                                                                                            "quarter-create",
-                                                                                            "quarter-delete"
-                                                                                        ],
-                                                                         "reason":  "Requires fiscal year plus child fiscal quarter MetadataService compiler/readback aligned to /api/fiscalYear/queryFiscalYearList, fiscalYearDetail, saveFiscalYear, delFiscalYear, saveFiscalQuarter, and delFiscalQuarter, plus area hierarchy compiler/readback aligned only to /api/area/queryTree, saveArea, and DeleteArea."
-                                                                     },
-                                                                     {
-                                                                         "capability":  "msapi.fields.rollupSummaryDerivedCreate",
-                                                                         "label":  "Rollup summary field creation with platform-readable API references and derived runtime SQL",
-                                                                         "introducedInSkillVersion":  "2.2.26-msapi",
-                                                                         "minimumMetadataServiceVersion":  "1.1.36",
-                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.36",
-                                                                         "domains":  [
-                                                                                         "fields"
-                                                                                     ],
-                                                                         "operations":  [
-                                                                                            "create",
-                                                                                            "upsert"
-                                                                                        ],
-                                                                         "reason":  "Requires MetadataService to normalize rollup summary summarizedObj/aggregateField into platform-readable API form, parse string conditionVals, derive executeExpression/decimalPlaces/summaryfieldtype, write platform-readable tp_sys_condition MAIN_OBJ_ID/BOOL_FILTER rows and AGGCONDITIONDIS for filtered summaries, store filtered rollup metadata in the expected field shape, support batch fields[] rollup summary creation, and fail closed when filtered summaries lack UI condition rows or SQL conditions."
-                                                                     },
-                                                                     {
-                                                                         "capability":  "msapi.workflows.phase1",
-                                                                         "label":  "Workflow rule CRUD, condition rows, readback, and explicit activation plans",
-                                                                         "introducedInSkillVersion":  "2.2.21-msapi",
-                                                                         "minimumMetadataServiceVersion":  "1.1.35",
-                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.35",
-                                                                         "domains":  [
-                                                                                         "workflows"
-                                                                                     ],
-                                                                         "operations":  [
-                                                                                            "create",
-                                                                                            "update",
-                                                                                            "delete",
-                                                                                            "activate",
-                                                                                            "deactivate",
-                                                                                            "query"
-                                                                                        ],
-                                                                         "reason":  "Requires MetadataService workflow compiler and read-only /metadata/v1/workflows endpoints aligned to setup-web /api/workFlowSetup/listworkflows, detailWorkflow, saveNewButton, saveWorkflow, deleteWorkflow, and activeWorkflow."
-                                                                     }
-                                                                 ]
-                                     },
-    "setupSvcCompatibility":  {
-                                  "sourceOfTruth":  "cc-customization-expert-go/config.json",
-                                  "policy":  "When a CLI capability has a recommended setup-svc baseline, record the dependency here and warn during project initialization and config/doctor checks. setup-svc branch versions can be customer-specific, so these checks are advisory and must not block execution by version string alone.",
-                                  "versionProbe":  {
-                                                       "env":  "CLOUDCC_SETUP_SVC_VERSION",
-                                                       "projectConfigKeys":  [
-                                                                                 "setupSvc.version",
-                                                                                 "setupSvcVersion",
-                                                                                 "setup_svc_version"
-                                                                             ],
-                                                       "readOnlyEndpoints":  [
-                                                                                 "/ccmonitor/sck"
-                                                                             ]
-                                                   },
-                                  "minimumByCapability":  [
-                                                              {
-                                                                  "capability":  "highcode.publishValidationGate",
-                                                                  "label":  "High-code publish remote validation for classes, triggers, and timers",
-                                                                  "introducedInSkillVersion":  "2.2.7-msapi",
-                                                                  "minimumSetupSvcVersion":  "19.3.R20",
-                                                                  "domains":  [
-                                                                                  "classes",
-                                                                                  "triggers",
-                                                                                  "timer"
-                                                                              ],
-                                                                  "operations":  [
-                                                                                     "publish",
-                                                                                     "validate"
-                                                                                 ],
-                                                                  "reason":  "Recommends confirming setup-svc validate endpoint support for /api/ccfag/validate, /api/trigger/validate, and /api/ccPeak/validate."
-                                                              },
-                                                              {
-                                                                  "capability":  "setupSvc.apiRegistrar.remoteRuntime",
-                                                                  "label":  "API registrar runtime debug/logs and high-code remote invocation adjustments",
-                                                                  "introducedInSkillVersion":  "2.2.33-msapi",
-                                                                  "minimumSetupSvcVersion":  "19.7.R8",
-                                                                  "domains":  [
-                                                                                  "api-registrars",
-                                                                                  "classes",
-                                                                                  "triggers",
-                                                                                  "timer"
-                                                                              ],
-                                                                  "operations":  [
-                                                                                     "debug",
-                                                                                     "logs",
-                                                                                     "logDetail",
-                                                                                     "remote-call"
-                                                                                 ],
-                                                                  "reason":  "Recommends confirming setup-svc support for the adjusted API registrar runtime and high-code remote invocation contracts."
-                                                              }
-                                                          ]
-                              },
-    "execution":  {
-                      "defaultMode":  "msapi",
-                      "strictMode":  "msapi",
-                      "env":  "CLOUDCC_EXECUTION_MODE",
-                      "projectConfigKeys":  [
-                                                "executionMode",
-                                                "execution_mode"
-                                            ]
-                  }
+  "packageName": "cc-customization-expert-msapi",
+  "version": "2.2.59-msapi",
+  "releaseDate": "2026-09-11",
+  "compatCloudccCliVersion": "2.5.3",
+  "runtime": "go",
+  "projectOutputs": {
+    "schemaVersion": "cloudcc-project-outputs/v1",
+    "root": "outputs",
+    "fixedTemplates": false,
+    "fixedFiles": [
+      "README.md",
+      "00-output-index.md",
+      "output-manifest.json"
+    ],
+    "kinds": [
+      "document",
+      "tool",
+      "data-package",
+      "deployment-package",
+      "training-package",
+      "integration-package",
+      "other"
+    ],
+    "commands": [
+      "init project-outputs",
+      "doctor project-outputs"
+    ]
+  },
+  "testGovernance": {
+    "schemaVersion": "cloudcc-test-governance/v1",
+    "advisory": true,
+    "blocking": false,
+    "humanDecisionRequired": true,
+    "commands": [
+      "init test-governance",
+      "advise testing",
+      "decide testing",
+      "record testing",
+      "doctor test-governance"
+    ]
+  },
+  "metadataService": {
+    "promptWhenMissing": true,
+    "publicCloudDefaultUrl": "https://dc52.apis.cloudcc.cn/metadata",
+    "skillConfigFile": "cloudcc-cli.config.json",
+    "skillInitPrompt": "public-or-private-cloud",
+    "env": "CLOUDCC_METADATA_SERVICE_URL",
+    "projectConfigKeys": [
+      "metadataService.url",
+      "metadataServiceUrl",
+      "metadata_service_url"
+    ]
+  },
+  "metadataServiceCompatibility": {
+    "sourceOfTruth": "cc-customization-expert-go/config.json",
+    "policy": "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
+    "minimumByCapability": [
+      {
+        "capability": "msapi.buttons.urlFieldNormalization",
+        "label": "Button URL field normalization for single and batch create",
+        "introducedInSkillVersion": "2.2.58-msapi",
+        "minimumMetadataServiceVersion": "1.1.57",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.57",
+        "domains": [
+          "buttons"
+        ],
+        "operations": [
+          "create",
+          "update"
+        ],
+        "reason": "Requires MetadataService to accept setup-web aligned custom button events lightning, lightning-script, lightning-url, and URL; map user-facing template/url aliases to the persisted setup-svc event values; persist the effective URL consistently for single-button and buttons[] batch specs; and reject conflicting url/functionCode payloads before apply."
+      },
+      {
+        "capability": "msapi.fields.fieldIdAndPicklistOptionDedupe",
+        "label": "Field ID generation and picklist option natural-key reuse",
+        "introducedInSkillVersion": "2.2.57-msapi",
+        "minimumMetadataServiceVersion": "1.1.56",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.56",
+        "domains": [
+          "fields"
+        ],
+        "operations": [
+          "create",
+          "upsert"
+        ],
+        "reason": "Requires MetadataService to generate setup-svc-compatible ffe field IDs when create/upsert omits id, reject incident-shaped caller-derived f_ci_* field IDs, and reuse or fail closed on local picklist tp_sys_code option natural keys instead of creating duplicate rows."
+      },
+      {
+        "capability": "msapi.menuDefaultProfileApplicationExpansion",
+        "label": "Menu default all-profile visibility and all-application links",
+        "introducedInSkillVersion": "2.2.56-msapi",
+        "minimumMetadataServiceVersion": "1.1.55",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.55",
+        "domains": [
+          "menus"
+        ],
+        "operations": [
+          "create"
+        ],
+        "reason": "Requires MetadataService to default omitted or empty menu profile/application selections to all runtime tp_sys_profile and tp_sys_app rows, write enabled setup-svc tab visibility with tabState=show, and only limit visibility/application links when explicit collections are supplied."
+      },
+      {
+        "capability": "msapi.layouts.completeCapabilities",
+        "label": "Complete page layout detail capabilities",
+        "introducedInSkillVersion": "2.2.54-msapi",
+        "minimumMetadataServiceVersion": "1.1.54",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.54",
+        "domains": [
+          "layouts"
+        ],
+        "operations": [
+          "create",
+          "update",
+          "delete",
+          "activate",
+          "deactivate",
+          "query"
+        ],
+        "reason": "Requires MetadataService to plan setup-web/setup-svc page layout detail capabilities for PC layouts, mobile layouts, row layouts, hover layouts, and dynamic layout rules with main conditions, second conditions, and actions."
+      },
+      {
+        "capability": "msapi.recordTypes.picklistValueAssignment",
+        "label": "Record type picklist value assignment",
+        "introducedInSkillVersion": "2.2.50-msapi",
+        "minimumMetadataServiceVersion": "1.1.52",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.52",
+        "domains": [
+          "record-types"
+        ],
+        "operations": [
+          "save-dependency",
+          "assign-picklist-values"
+        ],
+        "reason": "Requires MetadataService to create setup-svc /api/recordType/saveDependency-compatible tp_sys_field_dependency plans that replace assigned picklist code values and default value for one record type and dependency field."
+      },
+      {
+        "capability": "msapi.objects.batchCreate",
+        "label": "Batch create custom objects with top-level objects[]",
+        "introducedInSkillVersion": "2.2.10-msapi",
+        "minimumMetadataServiceVersion": "1.1.23",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.23",
+        "domains": [
+          "objects"
+        ],
+        "operations": [
+          "create"
+        ],
+        "reason": "Requires server-side objects[] batch planning and apply-time per-object PREFIX/DATATABLE_NAME allocation."
+      },
+      {
+        "capability": "msapi.globalSelectLists.batchAdd",
+        "label": "Batch add global select lists and append or merge options",
+        "introducedInSkillVersion": "2.2.13-msapi",
+        "minimumMetadataServiceVersion": "1.1.24",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.24",
+        "domains": [
+          "global-select-lists"
+        ],
+        "operations": [
+          "create",
+          "upsert"
+        ],
+        "reason": "Requires server-side globalSelectLists[] precheck, onExisting policies, and optionsMode append/merge/replace handling."
+      },
+      {
+        "capability": "msapi.fields.batchAdd",
+        "label": "Batch add fields with server-side slot allocation and existing-target policies",
+        "introducedInSkillVersion": "2.2.14-msapi",
+        "minimumMetadataServiceVersion": "1.1.25",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.25",
+        "domains": [
+          "fields"
+        ],
+        "operations": [
+          "create",
+          "upsert"
+        ],
+        "reason": "Requires server-side fields[] precheck, onExisting policies, safe object-local DATAFIELD_REF allocation, and batched field-row apply."
+      },
+      {
+        "capability": "msapi.batchCreate.asyncApply",
+        "label": "Async apply for batch create plans",
+        "introducedInSkillVersion": "2.2.16-msapi",
+        "minimumMetadataServiceVersion": "1.1.27",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.27",
+        "domains": [
+          "objects",
+          "fields",
+          "global-select-lists"
+        ],
+        "operations": [
+          "create"
+        ],
+        "reason": "Requires MetadataService async apply support for objects[], fields[], and globalSelectLists[] batch create plans, returning applyId/operationId for polling."
+      },
+      {
+        "capability": "msapi.batchCreate.itemPrecheckResults",
+        "label": "Item-level precheck results for batch create plans",
+        "introducedInSkillVersion": "2.2.17-msapi",
+        "minimumMetadataServiceVersion": "1.1.29",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.29",
+        "domains": [
+          "objects",
+          "fields",
+          "global-select-lists"
+        ],
+        "operations": [
+          "create",
+          "upsert"
+        ],
+        "reason": "Requires MetadataService plan metadata batchItemResults/batchExecutableCount/batchPrecheckFailedCount so independent preflight validation failures do not block unrelated batch items, while apply-time SQL remains batched and transactional."
+      },
+      {
+        "capability": "msapi.objectScopedBatchCreate.domains",
+        "label": "Object-scoped batch create for record types, page layouts, validation rules, and buttons",
+        "introducedInSkillVersion": "2.2.29-msapi",
+        "minimumMetadataServiceVersion": "1.1.37",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.37",
+        "domains": [
+          "record-types",
+          "layouts",
+          "validation-rules",
+          "buttons"
+        ],
+        "operations": [
+          "create"
+        ],
+        "reason": "Requires MetadataService compilers to accept recordTypes[], layouts[], validationRules[], and buttons[] under one resolved root object, enforce same-object prechecks, and emit item-level batch metadata."
+      },
+      {
+        "capability": "msapi.lowcodeAvailabilityClosure",
+        "label": "Low-code module usability closure for layouts, search layouts, tabs, and record type profile defaults",
+        "introducedInSkillVersion": "2.2.31-msapi",
+        "minimumMetadataServiceVersion": "1.1.38",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.38",
+        "domains": [
+          "objects",
+          "fields",
+          "record-types",
+          "layouts",
+          "applications",
+          "profiles"
+        ],
+        "operations": [
+          "create",
+          "update",
+          "query"
+        ],
+        "reason": "Requires MetadataService low-code availability closure gates for in-plan default layout placement, record type profile/default/layout fallback, application tab reference validation, search layout enrichment, and profile/application readback evidence."
+      },
+      {
+        "capability": "msapi.layouts.recordTypeAssignment",
+        "label": "Page layout record-type assignment during create and assignment-only plans",
+        "introducedInSkillVersion": "2.2.42-msapi",
+        "minimumMetadataServiceVersion": "1.1.48",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.48",
+        "domains": [
+          "layouts"
+        ],
+        "operations": [
+          "create",
+          "assign"
+        ],
+        "reason": "Requires MetadataService layouts.create assignments[] and layouts.assign to write tp_sys_profile_layout for explicit profile/record-type bindings while preserving setup-svc layout create/clone behavior when assignments are omitted."
+      },
+      {
+        "capability": "msapi.companyCurrencyDomain",
+        "label": "Company currency and dated exchange-rate low-code domain",
+        "introducedInSkillVersion": "2.2.43-msapi",
+        "minimumMetadataServiceVersion": "1.1.49",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.49",
+        "domains": [
+          "currencies"
+        ],
+        "operations": [
+          "create",
+          "update",
+          "activate",
+          "deactivate",
+          "update-rate",
+          "dated-rate-create",
+          "dated-rate-update",
+          "dated-rate-delete",
+          "advanced-toggle",
+          "change-corporate",
+          "query"
+        ],
+        "reason": "Requires MetadataService currency readback, fixed currency compiler, advanced dated-rate compiler, corporate-currency explicit rebase guard, and setup-web/setup-service parity for /api/currency/* company currency management."
+      },
+      {
+        "capability": "msapi.fields.formulaCompiledCreate",
+        "label": "Formula field create persistence with server-side formula compilation",
+        "introducedInSkillVersion": "2.2.47-msapi",
+        "minimumMetadataServiceVersion": "1.1.51",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.51",
+        "domains": [
+          "fields"
+        ],
+        "operations": [
+          "create",
+          "upsert"
+        ],
+        "reason": "Requires MetadataService to persist formula fields with platform-compatible non-storage metadata, lowercase formula schemefieldName defaults, server-side formulaText to executeExpression compilation, automatic cross-object formula relevance rows in tp_sys_relevance, and specific plan failures for missing object, field, user field, or lookup target metadata."
+      },
+      {
+        "capability": "msapi.menuApplicationReferenceProfiles",
+        "label": "Menu object references by object API name and default all-profile visibility",
+        "introducedInSkillVersion": "2.2.32-msapi",
+        "minimumMetadataServiceVersion": "1.1.40",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.40",
+        "domains": [
+          "menus",
+          "applications"
+        ],
+        "operations": [
+          "create"
+        ],
+        "reason": "Requires MetadataService to resolve menu object references from object apiName to real object ID/PREFIX, validate supplied object ID or prefix for consistency when present, and default omitted or empty menu/application profile collections to all runtime tp_sys_profile rows."
+      },
+      {
+        "capability": "msapi.apiRegistrars.phase1",
+        "label": "API registrar metadata CRUD and readback with runtime debug separation",
+        "introducedInSkillVersion": "2.2.33-msapi",
+        "minimumMetadataServiceVersion": "1.1.41",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.41",
+        "domains": [
+          "api-registrars"
+        ],
+        "operations": [
+          "create",
+          "update",
+          "delete",
+          "query"
+        ],
+        "reason": "Requires MetadataService-generated id/apiName, caller-defined or securely generated unique apiCode, DRAFT-on-create/update behavior, logical delete, read-only list/detail endpoints, and rejection of runtime-maintained debug/status fields; debug and log calls remain direct setup-svc runtime operations."
+      },
+      {
+        "capability": "msapi.companyFiscalYearAreaDomains",
+        "label": "Fiscal year, fiscal quarter, and area hierarchy low-code domains",
+        "introducedInSkillVersion": "2.2.39-msapi",
+        "minimumMetadataServiceVersion": "1.1.45",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.45",
+        "domains": [
+          "fiscal-years",
+          "areas"
+        ],
+        "operations": [
+          "create",
+          "update",
+          "delete",
+          "query",
+          "quarter-create",
+          "quarter-delete"
+        ],
+        "reason": "Requires fiscal year plus child fiscal quarter MetadataService compiler/readback aligned to /api/fiscalYear/queryFiscalYearList, fiscalYearDetail, saveFiscalYear, delFiscalYear, saveFiscalQuarter, and delFiscalQuarter, plus area hierarchy compiler/readback aligned only to /api/area/queryTree, saveArea, and DeleteArea."
+      },
+      {
+        "capability": "msapi.fields.rollupSummaryDerivedCreate",
+        "label": "Rollup summary field creation with platform-readable API references and derived runtime SQL",
+        "introducedInSkillVersion": "2.2.26-msapi",
+        "minimumMetadataServiceVersion": "1.1.36",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.36",
+        "domains": [
+          "fields"
+        ],
+        "operations": [
+          "create",
+          "upsert"
+        ],
+        "reason": "Requires MetadataService to normalize rollup summary summarizedObj/aggregateField into platform-readable API form, parse string conditionVals, derive executeExpression/decimalPlaces/summaryfieldtype, write platform-readable tp_sys_condition MAIN_OBJ_ID/BOOL_FILTER rows and AGGCONDITIONDIS for filtered summaries, store filtered rollup metadata in the expected field shape, support batch fields[] rollup summary creation, and fail closed when filtered summaries lack UI condition rows or SQL conditions."
+      },
+      {
+        "capability": "msapi.workflows.phase1",
+        "label": "Workflow rule CRUD, condition rows, readback, and explicit activation plans",
+        "introducedInSkillVersion": "2.2.21-msapi",
+        "minimumMetadataServiceVersion": "1.1.35",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.35",
+        "domains": [
+          "workflows"
+        ],
+        "operations": [
+          "create",
+          "update",
+          "delete",
+          "activate",
+          "deactivate",
+          "query"
+        ],
+        "reason": "Requires MetadataService workflow compiler and read-only /metadata/v1/workflows endpoints aligned to setup-web /api/workFlowSetup/listworkflows, detailWorkflow, saveNewButton, saveWorkflow, deleteWorkflow, and activeWorkflow."
+      }
+    ]
+  },
+  "setupSvcCompatibility": {
+    "sourceOfTruth": "cc-customization-expert-go/config.json",
+    "policy": "When a CLI capability has a recommended setup-svc baseline, record the dependency here and warn during project initialization and config/doctor checks. setup-svc branch versions can be customer-specific, so these checks are advisory and must not block execution by version string alone.",
+    "versionProbe": {
+      "env": "CLOUDCC_SETUP_SVC_VERSION",
+      "projectConfigKeys": [
+        "setupSvc.version",
+        "setupSvcVersion",
+        "setup_svc_version"
+      ],
+      "readOnlyEndpoints": [
+        "/ccmonitor/sck"
+      ]
+    },
+    "minimumByCapability": [
+      {
+        "capability": "highcode.publishValidationGate",
+        "label": "High-code publish remote validation for classes, triggers, and timers",
+        "introducedInSkillVersion": "2.2.7-msapi",
+        "minimumSetupSvcVersion": "19.3.R20",
+        "domains": [
+          "classes",
+          "triggers",
+          "timer"
+        ],
+        "operations": [
+          "publish",
+          "validate"
+        ],
+        "reason": "Recommends confirming setup-svc validate endpoint support for /api/ccfag/validate, /api/trigger/validate, and /api/ccPeak/validate."
+      },
+      {
+        "capability": "setupSvc.apiRegistrar.remoteRuntime",
+        "label": "API registrar runtime debug/logs and high-code remote invocation adjustments",
+        "introducedInSkillVersion": "2.2.33-msapi",
+        "minimumSetupSvcVersion": "19.7.R8",
+        "domains": [
+          "api-registrars",
+          "classes",
+          "triggers",
+          "timer"
+        ],
+        "operations": [
+          "debug",
+          "logs",
+          "logDetail",
+          "remote-call"
+        ],
+        "reason": "Recommends confirming setup-svc support for the adjusted API registrar runtime and high-code remote invocation contracts."
+      }
+    ]
+  },
+  "execution": {
+    "defaultMode": "msapi",
+    "strictMode": "msapi",
+    "env": "CLOUDCC_EXECUTION_MODE",
+    "projectConfigKeys": [
+      "executionMode",
+      "execution_mode"
+    ]
+  }
 }

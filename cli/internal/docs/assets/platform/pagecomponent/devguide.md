@@ -28,6 +28,7 @@
 
 ```bash
 cloudcc create pagecomponent <name>
+cloudcc create plugin <name>   # 兼容别名，推荐继续使用 pagecomponent
 cloudcc package pagecomponent <name> [projectPath] --dry-run
 cloudcc publish pagecomponent <name>
 cloudcc bind pagecomponent <projectPath> <pageApi> <componentIdOrName> [--embedded true|false] [--workspace-url <url>] [--dry-run]
@@ -41,7 +42,7 @@ cloudcc doc platform/pagecomponent <introduction|devguide>
 
 参数约定：
 
-- `name` / `pageComponentName`：组件目录名，与 `frontend/pagecomponents/<name>/` 一致。
+- `name` / `pageComponentName`：组件目录名，与 `frontend/pagecomponents/<name>/` 一致。`create` 接受驼峰或下划线输入并规范化为小写连字符目录名，例如 `TestComment` 会生成 `test-comment`。
 - `projectPath`：项目根路径；不传则使用当前工作目录。`get` 的第一个可选参数即为
   `projectPath`。
 - `pageComponentNameOrId`：本地目录名，或云端组件 ID；若本地存在 `config.json` 且含
@@ -70,21 +71,23 @@ cloudcc doc platform/pagecomponent <introduction|devguide>
 cloudcc get pagecomponent .
 
 # 2) 仅通过 create 生成目录与模板
-cloudcc create pagecomponent my_plugin
+cloudcc create pagecomponent cc-demo
+# 历史兼容别名，同样会生成 frontend/pagecomponents/test-comment/
+cloudcc create plugin TestComment
 
 # 3) 外部构建产出 UMD bundle 后发布（勿跳过 CLI 发布流程）
-cloudcc package pagecomponent my_plugin . --dry-run
-cloudcc publish pagecomponent my_plugin
+cloudcc package pagecomponent cc-demo . --dry-run
+cloudcc publish pagecomponent cc-demo
 
 # 4) 若已有 customPage 引用旧组件 id，发布后显式绑定
-cloudcc bind pagecomponent . customer_interaction_workbench component-my-plugin --embedded true --dry-run
+cloudcc bind pagecomponent . customer_interaction_workbench component-cc-demo --embedded true --dry-run
 
 # 5) 与云端对齐或迁移机器时拉取
-cloudcc pull pagecomponent my_plugin
+cloudcc pull pagecomponent cc-demo
 # 或已知云端 ID：cloudcc pull pagecomponent <id> .
 
 # 6) 不再使用时删除云端组件
-cloudcc delete pagecomponent my_plugin
+cloudcc delete pagecomponent cc-demo
 ```
 
 ---
@@ -97,14 +100,12 @@ cloudcc delete pagecomponent my_plugin
 
 ### 1.2 创建组件
 
-- **使用本 CLI 时**：在项目根执行 `cloudcc create pagecomponent <name>`，会在
+- **使用本 CLI 时**：在项目根执行 `cloudcc create pagecomponent <name>`（或兼容别名 `cloudcc create plugin <name>`），会在
   `frontend/pagecomponents/<name>/` 生成标准模板（推荐）。
 - 或在模板工程中手动新建入口文件，**组件名称必须满足 DOM
   命名规则**，例如：`cc-com-demo.vue`
   - 推荐遵循：以 `cc-` 开头，后续使用小写单词和 `-` 连接。
-  - 创建命令会生成 `component-${name}` 作为 `componentInfo.component`，因此
-    `<name>` 也必须符合命名规则：仅允许小写字母和
-    `-`（不允许数字），且不能使用驼峰（如 `scheduleWorkbench`）。
+  - 创建命令会生成 `component-${name}` 作为 `componentInfo.component`；若输入为驼峰或下划线形式，CLI 会先规范化为小写连字符名称。
 
 ### 1.3 在 `App` 中引入组件
 

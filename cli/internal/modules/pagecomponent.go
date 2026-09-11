@@ -67,11 +67,12 @@ func pageComponentCreate(args []string, stderr io.Writer, cwd string) error {
 	if len(args) < 1 || strings.TrimSpace(args[0]) == "" {
 		return fmt.Errorf("cloudcc create pagecomponent <name>")
 	}
-	name := strings.TrimSpace(args[0])
+	inputName := strings.TrimSpace(args[0])
+	name := suggestPageComponentName(inputName)
 	component := "component-" + name
 	if !isValidPageComponentElement(component) {
 		suggested := suggestPageComponentName(name)
-		return fmt.Errorf("%q is not a valid pagecomponent element name; use lowercase letters and '-' only, for example: cloudcc create pagecomponent %s", component, suggested)
+		return fmt.Errorf("%q is not a valid pagecomponent element name; use lowercase letters and '-' only, for example: cloudcc create pagecomponent %s", inputName, suggested)
 	}
 	target := pageComponentDir(cwd, name)
 	if err := os.MkdirAll(filepath.Join(target, "components"), 0755); err != nil {

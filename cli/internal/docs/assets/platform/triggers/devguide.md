@@ -159,15 +159,16 @@ CLI 会先从全局列表按 `id`、`name`、`apiname` 或 `apiName` 精确解�
 
 ### 9.3 创建、更新与发布
 
-直接保存元数据：
+直接保存元数据。传两个参数时第一个是项目路径；只传 JSON/`@file` 时使用当前目录作为项目路径，便于在项目根执行：
 
 ```bash
 cloudcc create trigger <projectPath> <triggerJson|@file>
+cloudcc create triggers <triggerJson|@file>
 cloudcc update trigger <projectPath> <triggerJson|@file>
 cloudcc save trigger <projectPath> <triggerJson|@file>
 ```
 
-`update` 必须包含 `id`。常用字段包括 `id`、`name`、`apiname`、`apiName`、`isactive`、`folderid`、`version`、`triggerTime`、`targetObjectId`、`remark` 和 `triggerSource`。可以用 `sourceFile` 指向带 SOURCE 标记的本地 Java 文件；CLI 会读取标记内内容。
+`update` 必须包含 `id`。常用字段包括 `id`、`name`、`apiname`、`apiName`、`isactive`、`folderid`、`version`、`triggerTime`、`targetObjectId`、`remark` 和 `triggerSource`。可以用 `sourceFile` 指向带 SOURCE 标记的本地 Java 文件；CLI 会读取标记内内容。创建时可以省略 `triggerSource`，CLI 会补一行无业务逻辑的注释，避免 setup-svc 因空源码失败；需要实际业务逻辑时仍应显式传 `triggerSource` 或 `sourceFile`。
 
 创建本地骨架与发布：
 

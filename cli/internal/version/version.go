@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.58"
+const Version = "2.2.59"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -34,6 +34,8 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	case "changelog":
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
+		fmt.Fprintln(stderr, "- Trigger JSON create now supplies a harmless non-empty triggerSource comment when callers omit source code, preventing setup-svc null-source failures while leaving explicitly supplied triggerSource/sourceFile content unchanged.")
+		fmt.Fprintln(stderr, "- High-code create now handles the user-facing resource aliases reported from project use: create trigger/triggers accepts a single encoded JSON or @file in the current project without treating it as a Windows directory name, and create plugin/plugins is a compatibility alias for pagecomponent creation with camelCase/underscore names normalized to lowercase hyphen component directories.")
 		fmt.Fprintln(stderr, "- Button plans now align custom button event values with setup-web/setup-svc: lightning (shown as template), lightning-script, lightning-url, and URL (shown as url); URL specs may use user-level url and persist the same value through url and functionCode for single-button and buttons[] batch create specs, while conflicting url/functionCode values are rejected before apply.")
 		fmt.Fprintln(stderr, "- Field CLI docs and MetadataService compatibility now explicitly forbid caller-generated field IDs and tp_sys_code option IDs: create fields should omit id so MetadataService generates setup-svc ffe field IDs, and local picklist options should pass values while MetadataService generates or reuses option IDs by natural key.")
 		fmt.Fprintln(stderr, "- Menu create now defaults omitted profile and application selections to the full runtime tenant sets: all tp_sys_profile rows receive enabled tab visibility with setup-svc tabState=show, and all tp_sys_app rows receive tp_sys_app_tab links unless explicit profile/app selections are supplied.")
@@ -291,6 +293,7 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc get trigger <projectPath> [nameOrQueryJson]")
 	fmt.Fprintln(stdout, "  cloudcc detail trigger <projectPath> <id|name|apiName>")
 	fmt.Fprintln(stdout, "  cloudcc <create|update|save> trigger <projectPath> <triggerJson|@file>")
+	fmt.Fprintln(stdout, "  cloudcc create triggers <triggerJson|@file>  # uses current project")
 	fmt.Fprintln(stdout, "  cloudcc delete trigger <projectPath> <id|name|apiName>")
 	fmt.Fprintln(stdout, "  cloudcc get profile <projectPath> [filter]")
 	fmt.Fprintln(stdout, "  cloudcc detail profile <projectPath> <id|name|apiName>")
@@ -341,6 +344,7 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc publish timer <TimerName> [projectPath]")
 	fmt.Fprintln(stdout, "  # classes publish runs local compiler validation then remote setup-svc validate; triggers/timer publish run remote validate then save")
 	fmt.Fprintln(stdout, "  cloudcc create pagecomponent <name>")
+	fmt.Fprintln(stdout, "  cloudcc create plugin <name>  # compatibility alias for pagecomponent")
 	fmt.Fprintln(stdout, "  cloudcc package pagecomponent <name> [projectPath] --dry-run")
 	fmt.Fprintln(stdout, "  cloudcc publish pagecomponent <name> [projectPath]")
 	fmt.Fprintln(stdout, "  cloudcc bind pagecomponent <projectPath> <pageApi> <componentIdOrName> [--embedded true|false] [--workspace-url <url>] [--dry-run]")

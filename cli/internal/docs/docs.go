@@ -25,7 +25,7 @@ func Read(module string, kind string) (string, error) {
 	module = normalizeModule(module)
 	requestedModule := module
 	if module == "plugin" || module == "platform/plugin" {
-		return "", fmt.Errorf("unsupported doc module: plugin; use platform/pagecomponent")
+		module = "platform/pagecomponent"
 	}
 	kind = normalizeKind(module, kind)
 	if module == "" {
@@ -41,8 +41,8 @@ func Read(module string, kind string) (string, error) {
 	}
 	content := string(b)
 	content = canonicalizeLayoutPaths(content)
-	if requestedModule == "platform/pagecomponent" {
-		prefix := "命名说明：CloudCC 自定义页面组件统一使用 pagecomponent 命令。\n\n"
+	if requestedModule == "platform/pagecomponent" || requestedModule == "plugin" || requestedModule == "platform/plugin" {
+		prefix := "命名说明：CloudCC 自定义页面组件推荐使用 pagecomponent 命令；plugin/plugins 作为历史兼容别名。\n\n"
 		content = strings.ReplaceAll(content, "cloudcc create plugin", "cloudcc create pagecomponent")
 		content = strings.ReplaceAll(content, "cloudcc publish plugin", "cloudcc publish pagecomponent")
 		content = strings.ReplaceAll(content, "cloudcc get plugin", "cloudcc get pagecomponent")

@@ -108,6 +108,12 @@ func triggerSaveSpec(action string, args []string, stdout io.Writer, cwd string)
 		}
 		spec["triggerSource"] = source
 	}
+	if action == "create" {
+		source := strings.TrimSpace(fmt.Sprint(spec["triggerSource"]))
+		if source == "" || source == "<nil>" {
+			spec["triggerSource"] = "// Empty trigger created by CloudCC CLI."
+		}
+	}
 	if source := strings.TrimSpace(fmt.Sprint(spec["triggerSource"])); source != "" && source != "<nil>" && !triggerSpecSourceEncoded(spec) {
 		spec["triggerSource"] = encodeJavaURLDecoderComponent(source)
 	}
