@@ -1,12 +1,12 @@
 ---
 name: cc-customization-expert-msapi
-version: 2.2.60-msapi
+version: 2.2.61-msapi
 description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService."
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.2.60-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.2.61-msapi
 
-当前技能版本：`2.2.60-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.2.61-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
 
@@ -46,6 +46,7 @@ description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict Metad
 - 从技能 `2.2.58` 开始，按钮 CLI 用户级文档以 MetadataService JSON spec 作为创建入口；自定义按钮 `event` 对齐 setup-web/setup-svc 的四种类型：`lightning`（界面显示 `template`）、`lightning-script`、`lightning-url`、`URL`（界面显示 `url`）。单个按钮创建和 `buttons[]` 批量创建使用同一套字段；`URL` 按钮使用 `url` 填写跳转地址并由 MetadataService 同步写入 `url` 与 `functionCode`。该能力要求 MetadataService `1.1.57` 或更高版本。
 - 从技能 `2.2.59` 开始，高代码本地/线上创建补齐用户常用入口：`cloudcc create trigger|triggers <encodedJson|@file>` 在项目根执行时会使用当前目录作为项目路径并保存触发器元数据，不再把编码 JSON 当目录名；未传 `triggerSource` 时自动补一行无业务逻辑注释，避免 setup-svc 对空源码抛出异常；`cloudcc create plugin|plugins <name>` 作为 `pagecomponent` 兼容别名，并把驼峰/下划线名称规范化为小写连字符组件目录。
 - 从技能 `2.2.60` 开始，高代码发布严格优先使用当前 `id`；仅当 `id` 缺失或为空时才兼容旧包的 `devid` / `devId`，三者都不存在时才按新增处理，避免旧触发器、类或定时类被误判为新增并触发 API 名唯一键冲突。
+- 从技能 `2.2.61` 开始，高代码 Java 源码实行一个文件一个顶级资源类：自定义类只能包含与资源同名的一个 `public class`，禁止在其后追加包级 `class` / `interface` / `enum` / `record`；触发器和定时类 SOURCE 片段不得声明命名局部类型。同一职责优先拆为私有方法，独立或可复用职责必须通过 `cloudcc create classes <ClassName>` 创建新的 CloudCC 自定义类。小型 `private static` 嵌套数据载体可以保留，但默认不生成，不能承载查询、写入、远程调用或完整业务流程。`validate classes` 和 publish 本地门禁会阻断不合规结构并报告类型名与行号。
 - 从技能 `2.2.53` 开始，验证规则 CLI 用户级文档明确列出全部已确认可执行全局变量：`$User.id`、`$User.name`、`$User.roleId`、`$User.roleName`、`$User.profileId`、`$User.profileName`、`$User.department`、`$User.title`、`$User.email`、`$User.phone`、`$User.mobilePhone`；同时说明 setup-web / setup-service 中 `$User.<用户对象字段API>` 动态选择项的边界，以及源码未确认 `$Profile`、`$Organization`、`$Permission` 等独立命名空间。
 - 从技能 `2.2.50` 开始，记录类型详情的选项列表值分配纳入 MetadataService：`saveDependency/assignPicklistValues recordType` 生成 `record-types save-dependency` 计划，对齐 setup-svc `/api/recordType/saveDependency` 的所选值全量替换、未选旧值删除和默认值设置语义，要求 MetadataService `1.1.52` 或更高版本。
 - 高代码发布前先读 `cloudcc doc platform/classes|triggers|timer devguide` 或 `platform/almRelease devguide`；从技能 `2.2.7` 开始，classes/triggers/timer 的 publish 建议 setup-svc `19.3.R20` 或更高版本，不要求 MetadataService 版本门槛。classes 固定执行本地编译、目标 setup-svc validate、最后 save；triggers/timer 执行目标 setup-svc validate、最后 save；并把 validate 失败详情返回调用方。

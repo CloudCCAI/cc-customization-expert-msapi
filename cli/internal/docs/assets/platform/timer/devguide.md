@@ -112,6 +112,7 @@ List rows = cs.pagedQuery("Account", expression, "1", "200", "false", "id,name,t
 - 不要手工修改 `config.json` 中的 `id` 或版本字段
 - 不要在 `// @SOURCE_CONTENT_START` 与 `// @SOURCE_CONTENT_END` 之外写业务逻辑
 - 不要把复杂批处理、同步、生成、通知逻辑全部塞进一个定时类或一个配套自定义类；单个 Java 文件不得超过 2000 行
+- 不要在定时类文件后追加包级辅助 `class` / `interface` / `enum` / `record`，也不要在 SOURCE 片段中声明命名局部类型；publish 会在远程请求前阻断这些结构
 
 ### 7.3 AI 允许做的事情
 
@@ -119,6 +120,7 @@ List rows = cs.pagedQuery("Account", expression, "1", "200", "false", "id,name,t
 - 保持 `package schedule.<类名>;` 与目录名一致
 - 构造方法名与类名一致
 - 当需求复杂或预计超过 1500 行时，先设计多个自定义类分工，再由定时类入口编排调用
+- 同一职责优先提取为方法；独立或可复用职责使用 `cloudcc create classes <ClassName> <projectPath>` 创建单独资源，并先发布依赖类、后发布定时入口
 
 ### 7.4 timer 模块支持的 CLI 命令总览（重点：入参）
 

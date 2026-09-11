@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.60-msapi
+# cc-customization-expert-msapi v2.2.61-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -52,6 +52,8 @@ Strict MetadataService package: low-code operations require MetadataService.
 从技能 `2.2.59` 开始，高代码创建入口兼容实际使用习惯：`cloudcc create trigger|triggers <encodedJson|@file>` 在项目根执行时会使用当前目录作为项目路径并保存触发器元数据，不再把编码 JSON 当目录名；未传 `triggerSource` 时自动补一行无业务逻辑注释，避免 setup-svc 对空源码抛出异常；`cloudcc create plugin|plugins <name>` 作为 `pagecomponent` 兼容别名，并把驼峰/下划线名称规范化为小写连字符组件目录。
 
 从技能 `2.2.60` 开始，高代码发布严格优先使用当前 `id`；仅当 `id` 缺失或为空时才兼容旧包的 `devid` / `devId`，三者都不存在时才按新增处理，避免旧触发器、类或定时类被误判为新增并触发 API 名唯一键冲突。
+
+从技能 `2.2.61` 开始，高代码 Java 资源遵守一个文件一个顶级资源类。自定义类必须且只能声明与资源同名的 `public class`；第二个包级类型、触发器/定时类 SOURCE 中的命名局部类型会在远程请求前被阻断。生成代码时，同一职责优先拆为私有方法，独立或可复用职责通过 `cloudcc create classes` 创建单独资源；小型 `private static` 嵌套数据载体仅作为例外并产生本地校验提示。
 
 从技能 `2.2.41` 开始，`cloudcc get/getList view` 统一作为对象视图列表查询，可传对象 ID/API 名/前缀或 JSON filter；`detail/editInfo view` 才按 viewId 查详情。字段文档明确 `P`、`c`、`N`、`LT` 的 create/update/upsert 精度规则为 `length + decimalPlaces <= 18`，历史非法字段需要先修复字段定义，CLI 不自动缩短字段。
 

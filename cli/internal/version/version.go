@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.60"
+const Version = "2.2.61"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -34,6 +34,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	case "changelog":
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
+		fmt.Fprintln(stderr, "- High-code Java structure validation now enforces one matching top-level public class per custom-class source, rejects additional package-level types and named trigger/timer fragment types before remote requests, and advises on the exceptional use of small private static nested data holders.")
 		fmt.Fprintln(stderr, "- High-code publish keeps current id authoritative, falls back to legacy devid/devId only when id is absent or blank, and treats the resource as new only when no valid identifier exists; this prevents copied legacy trigger/class/timer packages from being inserted again under an existing API name.")
 		fmt.Fprintln(stderr, "- Trigger JSON create now supplies a harmless non-empty triggerSource comment when callers omit source code, preventing setup-svc null-source failures while leaving explicitly supplied triggerSource/sourceFile content unchanged.")
 		fmt.Fprintln(stderr, "- High-code create now handles the user-facing resource aliases reported from project use: create trigger/triggers accepts a single encoded JSON or @file in the current project without treating it as a Windows directory name, and create plugin/plugins is a compatibility alias for pagecomponent creation with camelCase/underscore names normalized to lowercase hyphen component directories.")

@@ -1400,11 +1400,25 @@ func publishJavaResource(dir string, apiName string, args []string, stdout io.Wr
 	}
 	srcDir := backendResourcePath(projectPath, dir, args[0])
 	sourceFile := filepath.Join(srcDir, name+".java")
+	fullSource, err := os.ReadFile(sourceFile)
+	if err != nil {
+		return err
+	}
+	structureViolations, structureWarnings := javaSourceStructurePolicy(string(fullSource), name)
+	if len(structureViolations) > 0 {
+		return fmt.Errorf("timer source violates CloudCC policy: %s", strings.Join(structureViolations, "; "))
+	}
+	for _, warning := range structureWarnings {
+		fmt.Fprintln(stderr, "CloudCC timer source warning:", warning)
+	}
 	source, err := readMarkedSource(sourceFile)
 	if err != nil {
 		return err
 	}
 	source = strings.TrimSpace(source)
+	if violations := javaFragmentTypePolicyViolations(source, "timer"); len(violations) > 0 {
+		return fmt.Errorf("timer source violates CloudCC policy: %s", strings.Join(violations, "; "))
+	}
 	cfgContent, _ := jsonx.ReadObjectFile(filepath.Join(srcDir, "config.json"))
 	if cfgContent == nil {
 		cfgContent = map[string]any{}
@@ -1469,6 +1483,19 @@ func publishClassResource(args []string, stdout io.Writer, stderr io.Writer, cwd
 		return err
 	}
 	source = strings.TrimSpace(source)
+	structureViolations, structureWarnings := javaSourceStructurePolicy(source, name)
+	if len(structureViolations) > 0 {
+		validation := classValidationResult{
+			Status:           "failed",
+			ClassName:        name,
+			SourceFile:       filepath.Join(srcDir, name+".java"),
+			SourceSHA256:     sourceDigest(source),
+			PolicyViolations: structureViolations,
+			PolicyWarnings:   structureWarnings,
+		}
+		_ = writeJSON(stdout, map[string]any{"status": "blocked_local_validation", "validation": validation})
+		return fmt.Errorf("class source violates CloudCC policy: %s", strings.Join(structureViolations, "; "))
+	}
 	validation := classValidationResult{}
 	if opts.ValidationEvidence != "" {
 		b, readErr := os.ReadFile(opts.ValidationEvidence)

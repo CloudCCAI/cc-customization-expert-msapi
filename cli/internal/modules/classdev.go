@@ -111,6 +111,7 @@ type classValidationResult struct {
 	ClasspathEntries  int                      `json:"classpathEntries"`
 	Diagnostics       []classCompileDiagnostic `json:"diagnostics"`
 	PolicyViolations  []string                 `json:"policyViolations,omitempty"`
+	PolicyWarnings    []string                 `json:"policyWarnings,omitempty"`
 	CompilationOutput string                   `json:"compilationOutput,omitempty"`
 }
 
@@ -502,6 +503,9 @@ func validateClass(name string, opts classDevOptions) (classValidationResult, er
 	source = strings.TrimSpace(source)
 	result.SourceSHA256 = sourceDigest(source)
 	result.PolicyViolations = classSourcePolicyViolations(source)
+	structureViolations, structureWarnings := javaSourceStructurePolicy(source, name)
+	result.PolicyViolations = append(result.PolicyViolations, structureViolations...)
+	result.PolicyWarnings = append(result.PolicyWarnings, structureWarnings...)
 	if !hasUserInfoConstructor(source, name) {
 		result.PolicyViolations = append(result.PolicyViolations, "public "+name+"(UserInfo userInfo) constructor is required by the CloudCC class invoker")
 	}

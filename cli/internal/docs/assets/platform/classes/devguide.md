@@ -320,7 +320,36 @@ AI 不能把大量核心逻辑直接堆在按钮入口、触发器入口、页�
 - 入口层只做参数接收、基础校验、结果返回
 - 复杂逻辑沉到服务方法或独立服务类
 
-### 5.5 必须显式处理异常
+### 5.5 一个文件只能有一个顶级资源类
+
+每个 `backend/classes/<ClassName>/<ClassName>.java` 只能声明一个顶级类型，并且必须是与目录、文件和资源名称一致的：
+
+```java
+public class ClassName {
+}
+```
+
+绝对禁止下面这种虽然能被 Java 编译器接受、但不符合 CloudCC 资源模型的写法：
+
+```java
+public class PriceApprovalWorkbenchController {
+}
+
+class PriceApprovalWorkbenchContextHelper {
+}
+```
+
+同文件中也不能追加顶级 `interface`、`enum` 或 `record`。需要拆分逻辑时按以下顺序选择：
+
+1. 仍属于同一职责的校验、查询、计算、组装逻辑，拆成主类中的 `private` 方法。
+2. 具备独立状态、独立测试价值、跨入口复用或不同职责的逻辑，运行 `cloudcc create classes <NewClassName> <projectPath>` 创建新的 CloudCC 自定义类。
+3. 入口类通过平台支持的自定义类调用机制编排独立类，并按依赖类在前、入口类在后的顺序发布。
+
+命名嵌套类型默认不要生成。只有无法由方法、`Map` 或现有 DTO 清晰表达的本地小型数据载体，才允许声明为 `private static`；它不得执行 `CCService` 查询/写入、外部接口调用或完整业务流程。`public`、`protected`、包级、非 `static` 嵌套类型以及方法内局部类型均不允许。
+
+`cloudcc validate classes` 会在编译前检查这些规则；`cloudcc publish classes` 自动执行相同门禁。第二个顶级类型会直接阻断，并返回类型名和源码行号。
+
+### 5.6 必须显式处理异常
 
 调用 `CCService` 等平台方法时，AI 不能默认“不会失败”。
 
@@ -331,7 +360,7 @@ AI 不能把大量核心逻辑直接堆在按钮入口、触发器入口、页�
 - 保留失败原因
 - 对外返回明确结果，而不是悄悄吞错
 
-### 5.6 涉及时间必须使用 TimeUtil
+### 5.7 涉及时间必须使用 TimeUtil
 
 AI 编写代码时，凡是时间写库、时间比较、格式化、Calendar
 处理，都不能默认直接用本地时区对象。
@@ -2746,6 +2775,17 @@ AI 生成或改写自定义类时，单个 Java 源文件必须控制在 2000 �
 
 如果用户需求复杂，AI 应先给出类拆分清单，再分别生成多个 `backend/classes/<ClassName>/` 自定义类；不要把完整业务系统压进一个超长类。
 
+跨资源拆分时，不要在入口文件末尾追加包级辅助类。独立 CloudCC 自定义类可以通过 `PageClsInvoker` 编排调用，例如：
+
+```java
+List<Object> args = new ArrayList<Object>();
+args.add(requestJson);
+Object result = new PageClsInvoker(userInfo)
+    .invoker("PriceApprovalQueryService", "query", args);
+```
+
+被调用类仍然必须是通过 CLI 创建和发布的独立资源，并保留自己的 `public Xxx(UserInfo userInfo)` 构造函数。发布时先发布被依赖类，再发布入口类。
+
 ### 7.2 返回值规范
 
 AI 需要根据调用场景选择返回值类型：
@@ -3041,8 +3081,10 @@ AI 完成代码后，必须自检：
 9. 是否避免了直接 `new Date()`
 10. 是否把复杂逻辑拆成了可读的方法
 11. 是否单个 Java 文件低于 2000 行；复杂需求是否拆分成多个自定义类
-12. 是否避免了不必要硬编码
-13. 是否让返回结果对调用方足够清晰
+12. 是否只有一个与资源同名的顶级 `public class`，且没有追加任何包级辅助类型
+13. 是否优先使用私有方法；确需拆类时是否通过 CLI 创建独立 CloudCC 自定义类，而不是随意生成嵌套类
+14. 是否避免了不必要硬编码
+15. 是否让返回结果对调用方足够清晰
 
 ## 17. 推荐骨架
 

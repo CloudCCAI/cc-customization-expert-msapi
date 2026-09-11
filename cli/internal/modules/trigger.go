@@ -162,6 +162,10 @@ func publishTrigger(args []string, stdout io.Writer, stderr io.Writer, cwd strin
 		return err
 	}
 	source = strings.TrimSpace(source)
+	structureViolations, _ := javaOptionalResourceClassPolicy(source, name)
+	if len(structureViolations) > 0 {
+		return fmt.Errorf("trigger source violates CloudCC policy: %s", strings.Join(structureViolations, "; "))
+	}
 	configPath := filepath.Join(srcDir, "config.json")
 	cfgContent, _ := jsonx.ReadObjectFile(configPath)
 	if cfgContent == nil {
