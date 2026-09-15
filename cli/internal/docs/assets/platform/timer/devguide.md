@@ -79,6 +79,7 @@ public class MyTimerService{
 - 业务逻辑写入自定义类
 - 复杂流程通过自定义类继续拆分和编排
 - 定时器源码和它调用的自定义类都必须遵守单个 Java 文件低于 2000 行的限制；复杂定时任务应拆分为多个自定义类
+- 定时类生成或修改后必须运行 `cloudcc format timer <TimerName> <projectPath> --write`，再用 `--check` 复核。内置 `google-java-format 1.29.0 --aosp` 使用 4 空格缩进并拆分同一行的普通语句；SOURCE 构造器片段通过临时包装格式化。publish 不静默改写文件，非规范源码会在远程请求前以 `blocked_local_format` 阻断
 
 定时任务通常会处理批量数据，因此查询必须显式收敛：
 

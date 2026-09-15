@@ -349,7 +349,19 @@ class PriceApprovalWorkbenchContextHelper {
 
 `cloudcc validate classes` 会在编译前检查这些规则；`cloudcc publish classes` 自动执行相同门禁。第二个顶级类型会直接阻断，并返回类型名和源码行号。
 
-### 5.6 必须显式处理异常
+### 5.6 Java 格式必须通过本地门禁
+
+所有新生成或修改的自定义类统一使用内置 `google-java-format 1.29.0` 的 AOSP 风格：4 个空格缩进、禁止 Tab、普通语句一行一条、LF 换行、无行尾空白，并保留一个文件末尾换行。不要为了减少行数把多个调用、赋值或控制语句压缩到同一行。
+
+```bash
+cloudcc format classes <ClassName> <projectPath> --write
+cloudcc format classes <ClassName> <projectPath> --check
+cloudcc format highcode <projectPath> --check
+```
+
+`--write` 是唯一会改写本地源码的格式化入口；`--check` 和项目级 highcode 扫描只读。`validate classes` 与 `publish classes` 都会在编译或远程请求前执行格式门禁，失败状态为 `blocked_local_format`，并返回可复制的修复命令。格式化必须发生在生成之后、validate 之前，因为 validation evidence 的源码摘要会在格式化后变化。格式化器需要 JDK 21。
+
+### 5.7 必须显式处理异常
 
 调用 `CCService` 等平台方法时，AI 不能默认“不会失败”。
 
@@ -360,7 +372,7 @@ class PriceApprovalWorkbenchContextHelper {
 - 保留失败原因
 - 对外返回明确结果，而不是悄悄吞错
 
-### 5.7 涉及时间必须使用 TimeUtil
+### 5.8 涉及时间必须使用 TimeUtil
 
 AI 编写代码时，凡是时间写库、时间比较、格式化、Calendar
 处理，都不能默认直接用本地时区对象。
@@ -3085,6 +3097,7 @@ AI 完成代码后，必须自检：
 13. 是否优先使用私有方法；确需拆类时是否通过 CLI 创建独立 CloudCC 自定义类，而不是随意生成嵌套类
 14. 是否避免了不必要硬编码
 15. 是否让返回结果对调用方足够清晰
+16. 是否已经执行 `cloudcc format classes <ClassName> <projectPath> --write`，并通过 `--check`
 
 ## 17. 推荐骨架
 

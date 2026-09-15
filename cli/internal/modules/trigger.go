@@ -166,6 +166,11 @@ func publishTrigger(args []string, stdout io.Writer, stderr io.Writer, cwd strin
 	if len(structureViolations) > 0 {
 		return fmt.Errorf("trigger source violates CloudCC policy: %s", strings.Join(structureViolations, "; "))
 	}
+	formatResult, formatErr := requireJavaFileFormatted(sourceFile, "trigger", namePath, projectPath)
+	if formatErr != nil {
+		_ = writeJSON(stdout, formatResult)
+		return fmt.Errorf("trigger source formatting blocked publish: %w", formatErr)
+	}
 	configPath := filepath.Join(srcDir, "config.json")
 	cfgContent, _ := jsonx.ReadObjectFile(configPath)
 	if cfgContent == nil {

@@ -288,6 +288,11 @@ func Handle(action string, resource string, args []string, stdout io.Writer, std
 		resource = "apiRegistrar"
 	}
 	switch resource {
+	case "highcode":
+		if action == "format" {
+			return handleJavaFormat(resource, args, stdout, cwd)
+		}
+		return fmt.Errorf("unsupported highcode action: %s", action)
 	case "config":
 		return handleConfig(action, args, stdout, cwd)
 	case "object":
@@ -299,6 +304,9 @@ func Handle(action string, resource string, args []string, stdout io.Writer, std
 			return handleFieldsGet(args, stdout, cwd)
 		}
 	case "classes":
+		if action == "format" {
+			return handleJavaFormat(resource, args, stdout, cwd)
+		}
 		if action == "doctor" || action == "prepare" || action == "validate" || action == "test" {
 			return handleClassDev(action, args, stdout, stderr, cwd)
 		}
@@ -307,8 +315,14 @@ func Handle(action string, resource string, args []string, stdout io.Writer, std
 		}
 		return handleCodeResource(action, resource, "classes", "ccfag", args, stdout, stderr, cwd)
 	case "trigger", "triggers":
+		if action == "format" {
+			return handleJavaFormat(resource, args, stdout, cwd)
+		}
 		return handleTrigger(action, args, stdout, stderr, cwd)
 	case "timer", "schedule":
+		if action == "format" {
+			return handleJavaFormat(resource, args, stdout, cwd)
+		}
 		return handleCodeResource(action, "timer", "schedule", "ccPeak", args, stdout, stderr, cwd)
 	case "script":
 		return handleScript(action, args, stdout, stderr, cwd)
@@ -1419,6 +1433,11 @@ func publishJavaResource(dir string, apiName string, args []string, stdout io.Wr
 	if violations := javaFragmentTypePolicyViolations(source, "timer"); len(violations) > 0 {
 		return fmt.Errorf("timer source violates CloudCC policy: %s", strings.Join(violations, "; "))
 	}
+	formatResult, formatErr := requireJavaFileFormatted(sourceFile, "timer", args[0], projectPath)
+	if formatErr != nil {
+		_ = writeJSON(stdout, formatResult)
+		return fmt.Errorf("timer source formatting blocked publish: %w", formatErr)
+	}
 	cfgContent, _ := jsonx.ReadObjectFile(filepath.Join(srcDir, "config.json"))
 	if cfgContent == nil {
 		cfgContent = map[string]any{}
@@ -1478,7 +1497,8 @@ func publishClassResource(args []string, stdout io.Writer, stderr io.Writer, cwd
 		return fmt.Errorf("cloudcc publish classes <name> [projectPath]: %w", err)
 	}
 	srcDir := backendResourcePath(opts.ProjectPath, "classes", name)
-	source, err := readMarkedSource(filepath.Join(srcDir, name+".java"))
+	sourceFile := filepath.Join(srcDir, name+".java")
+	source, err := readMarkedSource(sourceFile)
 	if err != nil {
 		return err
 	}
@@ -1495,6 +1515,11 @@ func publishClassResource(args []string, stdout io.Writer, stderr io.Writer, cwd
 		}
 		_ = writeJSON(stdout, map[string]any{"status": "blocked_local_validation", "validation": validation})
 		return fmt.Errorf("class source violates CloudCC policy: %s", strings.Join(structureViolations, "; "))
+	}
+	formatResult, formatErr := requireJavaFileFormatted(sourceFile, "classes", name, opts.ProjectPath)
+	if formatErr != nil {
+		_ = writeJSON(stdout, formatResult)
+		return fmt.Errorf("class source formatting blocked publish: %w", formatErr)
 	}
 	validation := classValidationResult{}
 	if opts.ValidationEvidence != "" {

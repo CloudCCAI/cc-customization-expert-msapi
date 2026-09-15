@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.63"
+const Version = "2.2.64"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -34,6 +34,8 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	case "changelog":
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
+		fmt.Fprintln(stderr, "- Skill release packaging now removes and rejects every .claw-local directory so local Bulk test executables, input data, result files, and other development evidence cannot enter expanded distributions or archives.")
+		fmt.Fprintln(stderr, "- High-code Java formatting now uses packaged google-java-format 1.29.0 in AOSP four-space mode; explicit format check/write commands support classes, triggers, timers, and read-only project scans, while validate/publish block noncanonical source before remote requests with a repair command.")
 		fmt.Fprintln(stderr, "- Business-data bulk import calls the isolated MetadataService direct-write API without validation-rule, trigger, duplicate-filter, sharing-rule, or workflow execution; automatic numbering remains system-managed.")
 		fmt.Fprintln(stderr, "- High-code Java structure validation now enforces one matching top-level public class per custom-class source, rejects additional package-level types and named trigger/timer fragment types before remote requests, and advises on the exceptional use of small private static nested data holders.")
 		fmt.Fprintln(stderr, "- High-code publish keeps current id authoritative, falls back to legacy devid/devId only when id is absent or blank, and treats the resource as new only when no valid identifier exists; this prevents copied legacy trigger/class/timer packages from being inserted again under an existing API name.")
@@ -276,9 +278,12 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc get config [projectPath]")
 	fmt.Fprintln(stdout, "  cloudcc use config <env> [projectPath]")
 	fmt.Fprintln(stdout, "  cloudcc create project <name|.>")
+	fmt.Fprintln(stdout, "  cloudcc format <classes|trigger|timer> <name> [projectPath] [--check|--write]")
+	fmt.Fprintln(stdout, "  cloudcc format highcode [projectPath] --check")
 	fmt.Fprintln(stdout, "  cloudcc <query|pageQuery|create|update|delete|upsert> openapi <projectPath> <encodedBodyJson> [isMcp]")
 	fmt.Fprintln(stdout, "  cloudcc capabilities msapi [projectPath]")
-	fmt.Fprintln(stdout, "  cloudcc bulk msapi [projectPath] <object> <operation> <recordsJson|@file> [--format json|ndjson|csv] [--external-key-field <apiName>]")
+	fmt.Fprintln(stdout, "  cloudcc bulk-schema msapi [projectPath] <object>")
+	fmt.Fprintln(stdout, "  cloudcc bulk msapi [projectPath] <object> <operation> <recordsJson|@file> [--format json|ndjson|csv] [--external-key-field <apiName>] [--chunk-size <n>] [--wait] [--output-dir <dir>]")
 	fmt.Fprintln(stdout, "  cloudcc <bulk-status|bulk-results|bulk-resume|bulk-retry-failed|bulk-cancel> msapi [projectPath] <jobId>")
 	fmt.Fprintln(stdout, "  cloudcc scan msapi [projectPath] [summary|standard-catalog|project|highcode|online-highcode|setup-svc-live-replay-readiness|setup-svc-live-replay-environment|setup-svc-live-replay-packet|setup-svc-live-replay-coverage|setup-svc-live-replay-preflight|setup-svc-live-replay-evidence|setup-svc-live-replay-gaps|setup-svc-live-replay-capture-plan|setup-svc-live-replay-worklist|setup-svc-live-replay-source-checklist|setup-svc-live-replay-source-health|setup-svc-live-replay-source-validate|setup-svc-live-replay-source-execution-packet|setup-svc-live-replay-evidence-bundle|setup-svc-live-replay-promotion|setup-svc-live-replay-completion-audit|local|@compareRequest.json]")
 	fmt.Fprintln(stdout, "  cloudcc apply msapi [projectPath] setup-svc-live-replay-packet <@packet.json|packetJson> [--dry-run]")

@@ -263,6 +263,8 @@ AI 修改已有触发器时，只能修改：
 
 触发器源码兼容两种历史形态：纯可执行片段可以不声明类型；CLI 脚手架生成的完整形态只能包含一个与触发器资源同名的顶级 `public class`。两种形态都禁止追加第二个 `class`、`interface`、`enum` 或 `record`，也不得通过局部类型把复杂业务继续塞回触发器。同一职责优先提取为入口类中的私有方法；独立或可复用职责必须通过 `cloudcc create classes <ClassName> <projectPath>` 创建单独的 CloudCC 自定义类，再由触发器做薄编排。publish 会在任何远程 validate/save 请求前阻断不合规类型并报告行号。
 
+触发器生成或修改后必须运行 `cloudcc format trigger <object/TriggerName> <projectPath> --write`，再用 `--check` 复核。CLI 使用内置 `google-java-format 1.29.0 --aosp` 强制 4 空格缩进和普通语句一行一条；纯 SOURCE 语句片段会在临时包装成合法 Java 编译单元后格式化并安全提取。publish 不会静默改写文件，非规范源码会以 `blocked_local_format` 在远程请求前被阻断。
+
 ### 11.3 不得私改 `config.json` 的身份字段
 
 尤其不要私自改动：

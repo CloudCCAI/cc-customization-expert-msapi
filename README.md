@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.63-msapi
+# cc-customization-expert-msapi v2.2.64-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -7,6 +7,12 @@ CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 ```bash
 tools/bin/cloudcc --version
 tools/bin/cloudcc doctor provider /path/to/project
+tools/bin/cloudcc bulk-schema msapi /path/to/project Account
+tools/bin/cloudcc bulk msapi /path/to/project Account INSERT @accounts.json --format json --wait --output-dir ./bulk-results
+tools/bin/cloudcc bulk-status msapi /path/to/project <jobId>
+tools/bin/cloudcc bulk-results msapi /path/to/project <jobId>
+tools/bin/cloudcc format classes ExampleClass /path/to/project --write
+tools/bin/cloudcc format highcode /path/to/project --check
 ```
 
 Strict MetadataService package: low-code operations require MetadataService.
@@ -28,6 +34,8 @@ Strict MetadataService package: low-code operations require MetadataService.
 全局对象字段字典按元数据处置决策表治理：优先采用最终设计明确 API，其次结构化 API 列、英文源字段 snake_case 规范化，再用中文拼音兜底；迁移定位键、源编码映射、仅 crosswalk、系统字段和全局选项集必须先分流，不能进入 MSAPI fields plan。
 
 调用方通过 `cloudcc doc platform/classes|triggers|timer devguide` 或 `cloudcc doc platform/almRelease devguide` 认识高代码发布命令；这些文档说明了 classes 本地编译、setup-svc validate、save 的顺序，以及 triggers/timer 远程 validate 后 save、失败返回和源码编码规则。从技能 `2.2.7` 开始，高代码发布建议 setup-svc `19.3.R20` 或更高版本，不要求 MetadataService 版本门槛；setup-svc 分支版本只做提醒，不按字符串直接阻断。
+
+从技能 `2.2.64` 开始，Java 高代码统一由包内 `google-java-format 1.29.0 --aosp` 执行 4 空格确定性格式化。`cloudcc format <classes|trigger|timer> <name> [projectPath] --write` 显式修复单个资源，`--check` 和 `cloudcc format highcode [projectPath] --check` 只读复核；validate/publish 在远程请求前阻断非规范源码并返回修复命令，不静默改写文件。格式化器需要 JDK 21。
 
 从技能 `2.2.38` 开始，classes/triggers/timer 创建默认按 setup-svc 新版自定义代码语义发送 `version=3`；更新会先读取目标 detail，优先沿用线上记录的 version，线上 version 为空按旧版 `2` 处理，保存后再把线上 ID/version 写回本地 `config.json`。
 
@@ -56,6 +64,18 @@ Strict MetadataService package: low-code operations require MetadataService.
 从技能 `2.2.61` 开始，高代码 Java 资源遵守一个文件一个顶级资源类。自定义类必须且只能声明与资源同名的 `public class`；第二个包级类型、触发器/定时类 SOURCE 中的命名局部类型会在远程请求前被阻断。生成代码时，同一职责优先拆为私有方法，独立或可复用职责通过 `cloudcc create classes` 创建单独资源；小型 `private static` 嵌套数据载体仅作为例外并产生本地校验提示。
 
 从技能 `2.2.62` 开始，`cloudcc bulk msapi` 调用独立业务数据 Bulk API；当前实现要求 MetadataService `1.1.59` 或更高版本，按对象/字段元数据直接写物理表，不暴露也不执行验证规则、触发器、查重过滤器、共享规则或工作流，自动编号仍由系统管理。
+
+## 业务数据 Bulk API
+
+`cloudcc bulk-schema msapi <projectPath> <object>` 先查询可写字段、示例、自动编号状态和 `maxInlineRecords`；`cloudcc bulk msapi <projectPath> <object> <operation> <recordsJson|@file> [--format json|ndjson|csv] [--external-key-field <apiName>] [--chunk-size <n>] [--wait] [--output-dir <dir>]` 用于独立业务数据导入。支持 `INSERT`、`UPDATE_BY_ID`、`UPSERT_BY_ID`、`UPSERT_BY_EXTERNAL_KEY`、`DELETE_BY_ID`；CLI 也接受 `insert`、`update-by-id`、`upsert-by-id`、`upsert-by-external-key`、`delete-by-id`。
+
+Bulk API 按 MetadataService 的对象/字段到物理表映射直接写业务表，不走 MetadataService plan/apply，不执行验证规则、触发器、查重过滤器、共享规则或工作流。系统字段、逻辑删除字段、owner/create/modify 字段和自动编号由服务端管理。
+
+服务端默认关闭 Bulk API，必须显式配置 `MDS_BUSINESS_DATA_BULK_ENABLED=true`。使用 CloudCC accessToken 时，默认 scope 需要在保留 `metadata:read,metadata:plan` 的基础上追加 `data:bulk:read,data:bulk:write`；执行 `DELETE_BY_ID` 还需要 `data:bulk:delete`。
+
+直接调用 MetadataService 时，先用 `GET /metadata/v1/data/objects/{selector}/write-schema` 查询可写字段；用 `POST /metadata/v1/data/bulk/jobs` 提交 JSON job，例如 `{"object":"Account","operation":"INSERT","records":[{"name":"A"}]}`；NDJSON 使用 `POST /metadata/v1/data/bulk/jobs/ndjson?object=Account&operation=INSERT` 和 `application/x-ndjson`；CSV 使用 `POST /metadata/v1/data/bulk/jobs/csv?object=Account&operation=INSERT` 和 `text/csv`；状态、结果和控制接口分别是 `GET /metadata/v1/data/bulk/jobs/{jobId}`、`GET /metadata/v1/data/bulk/jobs/{jobId}/results`、`POST /metadata/v1/data/bulk/jobs/{jobId}:resume|:retryFailed|:cancel`。CloudCC accessToken 通过 `accessToken` header 或 `Authorization: Bearer <token>` 传入。
+
+默认单次 inline 记录数受 MetadataService `MDS_BUSINESS_DATA_BULK_MAX_INLINE_RECORDS` 限制，默认 200。服务端使用 `MDS_BUSINESS_DATA_BULK_BATCH_SIZE` 控制 job 内批量写入大小，使用 `MDS_BUSINESS_DATA_BULK_WORKER_CONCURRENCY` 控制同一服务实例的 Bulk worker 并发；大批量 `INSERT` 必须走服务端批量 DML，而不是逐行事务。CLI 会读取 `write-schema.maxInlineRecords`，超过限制或传入 `--chunk-size` 时自动分片提交多个 job 并等待结束；`--output-dir` 生成 summary/success/failed JSON 文件，终端只输出聚合摘要。直接调用 MetadataService 时由调用方按 `maxInlineRecords` 自行分片；超限会返回 `bulk_inline_limit_exceeded`。
 
 从技能 `2.2.41` 开始，`cloudcc get/getList view` 统一作为对象视图列表查询，可传对象 ID/API 名/前缀或 JSON filter；`detail/editInfo view` 才按 viewId 查详情。字段文档明确 `P`、`c`、`N`、`LT` 的 create/update/upsert 精度规则为 `length + decimalPlaces <= 18`，历史非法字段需要先修复字段定义，CLI 不自动缩短字段。
 

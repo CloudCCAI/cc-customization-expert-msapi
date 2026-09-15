@@ -85,6 +85,7 @@ type classDevEnvironment struct {
 
 type classWorkflowGates struct {
 	CompilerReady           bool `json:"compilerReady"`
+	FormatterReady          bool `json:"formatterReady"`
 	TargetGatewayConfigured bool `json:"targetGatewayConfigured"`
 	PublishAuthConfigured   bool `json:"publishAuthConfigured"`
 	PublishReady            bool `json:"publishReady"`
@@ -112,6 +113,7 @@ type classValidationResult struct {
 	Diagnostics       []classCompileDiagnostic `json:"diagnostics"`
 	PolicyViolations  []string                 `json:"policyViolations,omitempty"`
 	PolicyWarnings    []string                 `json:"policyWarnings,omitempty"`
+	FormatValidation  *javaFormatResult        `json:"formatValidation,omitempty"`
 	CompilationOutput string                   `json:"compilationOutput,omitempty"`
 }
 
@@ -124,6 +126,15 @@ func handleClassDev(action string, args []string, stdout io.Writer, _ io.Writer,
 		}
 		env := discoverClassDevEnvironment(opts)
 		gates := discoverClassWorkflowGates(opts, env)
+		formatterPath := discoverJavaFormatterJar(opts.ProjectPath)
+		formatterError := ""
+		if formatterPath == "" {
+			formatterError = "packaged Java formatter is missing"
+		} else if verifyErr := verifyJavaFormatterJar(formatterPath); verifyErr != nil {
+			formatterError = verifyErr.Error()
+		}
+		gates.FormatterReady = formatterError == "" && isExecutableFile(env.Java)
+		gates.PublishReady = gates.PublishReady && gates.FormatterReady
 		status := "blocked"
 		if env.Ready {
 			status = "compile_ready"
@@ -135,6 +146,11 @@ func handleClassDev(action string, args []string, stdout io.Writer, _ io.Writer,
 			"status":      status,
 			"environment": env,
 			"gates":       gates,
+			"javaFormatter": map[string]any{
+				"name": javaFormatterJarName, "version": javaFormatterVersion,
+				"style": "aosp", "indentSpaces": 4, "path": formatterPath,
+				"ready": gates.FormatterReady, "error": formatterError,
+			},
 			"standalone": map[string]any{
 				"platformSourceRequired": false,
 				"setupSvcRequired":       false,
@@ -511,6 +527,12 @@ func validateClass(name string, opts classDevOptions) (classValidationResult, er
 	}
 	if len(result.PolicyViolations) > 0 {
 		return result, fmt.Errorf("class source violates CloudCC policy: %s", strings.Join(result.PolicyViolations, "; "))
+	}
+	formatResult, formatErr := requireJavaFileFormatted(sourceFile, "classes", name, opts.ProjectPath)
+	if formatErr != nil {
+		result.FormatValidation = &formatResult
+		result.PolicyViolations = append(result.PolicyViolations, "source is not canonically formatted: "+formatResult.RepairCommand)
+		return result, formatErr
 	}
 	env := discoverClassDevEnvironment(opts)
 	result.CompilerHome = env.CompilerHome

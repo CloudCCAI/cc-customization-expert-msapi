@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -45,25 +46,45 @@ func Handle(action string, resource string, args []string, stdout io.Writer, cwd
 	switch action {
 	case "capabilities", "capability":
 		return c.getJSON(stdout, "/metadata/v1/capabilities")
+	case "bulk-schema":
+		if len(remaining) < 1 || strings.TrimSpace(remaining[0]) == "" {
+			return fmt.Errorf("cloudcc bulk-schema %s <object>", resource)
+		}
+		if err := c.ensureCloudccAccessToken(); err != nil {
+			return err
+		}
+		return c.getJSON(stdout, "/metadata/v1/data/objects/"+url.PathEscape(strings.TrimSpace(remaining[0]))+"/write-schema")
 	case "bulk":
-		body, err := bulkJobRequest(remaining)
+		request, err := bulkJobCommand(remaining)
 		if err != nil {
 			return err
 		}
-		return c.writeJSON(stdout, http.MethodPost, "/metadata/v1/data/bulk/jobs", body)
+		if err := c.ensureCloudccAccessToken(); err != nil {
+			return err
+		}
+		return c.runBulk(stdout, request)
 	case "bulk-status":
 		if len(remaining) < 1 || strings.TrimSpace(remaining[0]) == "" {
 			return fmt.Errorf("cloudcc bulk-status %s <jobId>", resource)
+		}
+		if err := c.ensureCloudccAccessToken(); err != nil {
+			return err
 		}
 		return c.getJSON(stdout, "/metadata/v1/data/bulk/jobs/"+url.PathEscape(remaining[0]))
 	case "bulk-results":
 		if len(remaining) < 1 || strings.TrimSpace(remaining[0]) == "" {
 			return fmt.Errorf("cloudcc bulk-results %s <jobId>", resource)
 		}
+		if err := c.ensureCloudccAccessToken(); err != nil {
+			return err
+		}
 		return c.getJSON(stdout, "/metadata/v1/data/bulk/jobs/"+url.PathEscape(remaining[0])+"/results")
 	case "bulk-resume", "bulk-retry-failed", "bulk-cancel":
 		if len(remaining) < 1 || strings.TrimSpace(remaining[0]) == "" {
 			return fmt.Errorf("cloudcc %s %s <jobId>", action, resource)
+		}
+		if err := c.ensureCloudccAccessToken(); err != nil {
+			return err
 		}
 		suffix := map[string]string{
 			"bulk-resume": ":resume", "bulk-retry-failed": ":retryFailed", "bulk-cancel": ":cancel",
@@ -200,7 +221,27 @@ func Handle(action string, resource string, args []string, stdout io.Writer, cwd
 	}
 }
 
+type bulkCommand struct {
+	body         map[string]any
+	records      []any
+	chunkSize    int
+	wait         bool
+	pollInterval time.Duration
+	outputDir    string
+	operation    string
+	objectName   string
+	autoChunk    bool
+}
+
 func bulkJobRequest(args []string) (map[string]any, error) {
+	command, err := bulkJobCommand(args)
+	if err != nil {
+		return nil, err
+	}
+	return command.body, nil
+}
+
+func bulkJobCommand(args []string) (*bulkCommand, error) {
 	const usage = "cloudcc bulk msapi <object> <operation> <recordsJson|@file> [--format json|ndjson|csv] [--external-key-field <apiName>]"
 	if len(args) < 3 {
 		return nil, fmt.Errorf(usage)
@@ -214,13 +255,46 @@ func bulkJobRequest(args []string) (map[string]any, error) {
 		return nil, fmt.Errorf("%s: unsupported operation %s", usage, operation)
 	}
 	format := "json"
+	chunkSize := 0
+	wait := false
+	pollInterval := time.Second
+	outputDir := ""
 	for i := 3; i < len(args); i++ {
-		if args[i] == "--format" {
+		switch args[i] {
+		case "--format":
 			i++
 			if i >= len(args) {
 				return nil, fmt.Errorf("%s: --format requires json, ndjson, or csv", usage)
 			}
 			format = strings.ToLower(strings.TrimSpace(args[i]))
+		case "--chunk-size":
+			i++
+			if i >= len(args) {
+				return nil, fmt.Errorf("%s: --chunk-size requires a positive integer", usage)
+			}
+			n, err := strconv.Atoi(strings.TrimSpace(args[i]))
+			if err != nil || n <= 0 {
+				return nil, fmt.Errorf("%s: --chunk-size requires a positive integer", usage)
+			}
+			chunkSize = n
+		case "--wait":
+			wait = true
+		case "--poll-interval-ms":
+			i++
+			if i >= len(args) {
+				return nil, fmt.Errorf("%s: --poll-interval-ms requires a positive integer", usage)
+			}
+			n, err := strconv.Atoi(strings.TrimSpace(args[i]))
+			if err != nil || n <= 0 {
+				return nil, fmt.Errorf("%s: --poll-interval-ms requires a positive integer", usage)
+			}
+			pollInterval = time.Duration(n) * time.Millisecond
+		case "--output-dir":
+			i++
+			if i >= len(args) || strings.TrimSpace(args[i]) == "" {
+				return nil, fmt.Errorf("%s: --output-dir requires a directory", usage)
+			}
+			outputDir = strings.TrimSpace(args[i])
 		}
 	}
 	payload, err := readBulkValue(args[2], format, usage)
@@ -250,6 +324,9 @@ func bulkJobRequest(args []string) (map[string]any, error) {
 			if i >= len(args) || !contains([]string{"json", "ndjson", "csv"}, strings.ToLower(args[i])) {
 				return nil, fmt.Errorf("%s: --format requires json, ndjson, or csv", usage)
 			}
+		case "--chunk-size", "--poll-interval-ms", "--output-dir":
+			i++
+		case "--wait":
 		default:
 			return nil, fmt.Errorf("%s: unsupported option %s", usage, args[i])
 		}
@@ -259,7 +336,10 @@ func bulkJobRequest(args []string) (map[string]any, error) {
 			return nil, fmt.Errorf("%s: --external-key-field is required for UPSERT_BY_EXTERNAL_KEY", usage)
 		}
 	}
-	return body, nil
+	return &bulkCommand{
+		body: body, records: records, chunkSize: chunkSize, wait: wait, pollInterval: pollInterval,
+		outputDir: outputDir, operation: operation, objectName: objectName, autoChunk: chunkSize == 0,
+	}, nil
 }
 
 func readBulkValue(value string, format string, label string) (any, error) {
@@ -332,6 +412,243 @@ func readBulkValue(value string, format string, label string) (any, error) {
 		records = append(records, record)
 	}
 	return records, nil
+}
+
+func (c *client) runBulk(stdout io.Writer, command *bulkCommand) error {
+	if command.chunkSize <= 0 && !command.wait && strings.TrimSpace(command.outputDir) == "" &&
+		len(command.records) <= 200 {
+		return c.writeJSON(stdout, http.MethodPost, "/metadata/v1/data/bulk/jobs", command.body)
+	}
+	limit := command.chunkSize
+	if limit <= 0 {
+		if schema, err := c.requestJSONMap(http.MethodGet,
+			"/metadata/v1/data/objects/"+url.PathEscape(command.objectName)+"/write-schema", nil); err == nil {
+			limit = intFromAny(schema["maxInlineRecords"])
+		}
+	}
+	if limit <= 0 {
+		limit = 200
+	}
+	if len(command.records) <= limit && !command.wait && strings.TrimSpace(command.outputDir) == "" {
+		return c.writeJSON(stdout, http.MethodPost, "/metadata/v1/data/bulk/jobs", command.body)
+	}
+	if len(command.records) > limit {
+		command.wait = true
+	}
+	started := time.Now()
+	var jobs []map[string]any
+	for first := 0; first < len(command.records); first += limit {
+		last := first + limit
+		if last > len(command.records) {
+			last = len(command.records)
+		}
+		body := map[string]any{
+			"object":    command.body["object"],
+			"operation": command.body["operation"],
+			"records":   command.records[first:last],
+		}
+		if externalKey, ok := command.body["externalKeyField"]; ok {
+			body["externalKeyField"] = externalKey
+		}
+		job, err := c.requestJSONMap(http.MethodPost, "/metadata/v1/data/bulk/jobs", body)
+		if err != nil {
+			return err
+		}
+		job["chunkFirstRow"] = first + 1
+		job["chunkLastRow"] = last
+		jobs = append(jobs, job)
+	}
+	statuses := jobs
+	if command.wait {
+		finalStatuses, err := c.waitBulkJobs(jobs, command.pollInterval)
+		if err != nil {
+			return err
+		}
+		statuses = finalStatuses
+	}
+	summary, results, err := c.bulkSummary(command, statuses, started)
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(command.outputDir) != "" {
+		if err := c.writeBulkOutputFiles(command, summary, results); err != nil {
+			return err
+		}
+	}
+	return writePrettyJSON(stdout, summary)
+}
+
+func (c *client) waitBulkJobs(jobs []map[string]any, interval time.Duration) ([]map[string]any, error) {
+	if interval <= 0 {
+		interval = time.Second
+	}
+	statuses := make([]map[string]any, len(jobs))
+	for {
+		allTerminal := true
+		for i, job := range jobs {
+			jobId := stringFromAny(job["jobId"])
+			if jobId == "" {
+				return nil, fmt.Errorf("Bulk job response did not include jobId")
+			}
+			status, err := c.requestJSONMap(http.MethodGet, "/metadata/v1/data/bulk/jobs/"+url.PathEscape(jobId), nil)
+			if err != nil {
+				return nil, err
+			}
+			status["chunkFirstRow"] = job["chunkFirstRow"]
+			status["chunkLastRow"] = job["chunkLastRow"]
+			statuses[i] = status
+			if !bulkTerminalStatus(stringFromAny(status["status"])) {
+				allTerminal = false
+			}
+		}
+		if allTerminal {
+			return statuses, nil
+		}
+		time.Sleep(interval)
+	}
+}
+
+func (c *client) bulkSummary(command *bulkCommand, statuses []map[string]any, started time.Time) (map[string]any, []any, error) {
+	jobs := make([]map[string]any, 0, len(statuses))
+	total, successful, failed := 0, 0, 0
+	var allResults []any
+	for _, status := range statuses {
+		job := map[string]any{
+			"jobId":             status["jobId"],
+			"status":            status["status"],
+			"totalRecords":      status["totalRecords"],
+			"successfulRecords": status["successfulRecords"],
+			"failedRecords":     status["failedRecords"],
+			"chunkFirstRow":     status["chunkFirstRow"],
+			"chunkLastRow":      status["chunkLastRow"],
+		}
+		jobs = append(jobs, job)
+		total += intFromAny(status["totalRecords"])
+		successful += intFromAny(status["successfulRecords"])
+		failed += intFromAny(status["failedRecords"])
+		if jobId := stringFromAny(status["jobId"]); jobId != "" && bulkTerminalStatus(stringFromAny(status["status"])) {
+			results, err := c.requestJSONValue(http.MethodGet, "/metadata/v1/data/bulk/jobs/"+url.PathEscape(jobId)+"/results", nil)
+			if err != nil {
+				return nil, nil, err
+			}
+			if rows, ok := results.([]any); ok {
+				for _, row := range rows {
+					if m, ok := row.(map[string]any); ok {
+						m["jobId"] = jobId
+						m["absoluteRowNumber"] = intFromAny(status["chunkFirstRow"]) + intFromAny(m["rowNumber"]) - 1
+						allResults = append(allResults, m)
+					} else {
+						allResults = append(allResults, row)
+					}
+				}
+			}
+		}
+	}
+	elapsed := time.Since(started)
+	throughput := 0.0
+	if elapsed > 0 {
+		throughput = float64(total) / elapsed.Seconds()
+	}
+	return map[string]any{
+		"object":            command.objectName,
+		"operation":         command.operation,
+		"submittedJobs":     len(statuses),
+		"totalRecords":      total,
+		"successfulRecords": successful,
+		"failedRecords":     failed,
+		"resultRecords":     len(allResults),
+		"elapsedMs":         elapsed.Milliseconds(),
+		"throughputPerSec":  throughput,
+		"jobs":              jobs,
+	}, allResults, nil
+}
+
+func (c *client) writeBulkOutputFiles(command *bulkCommand, summary map[string]any, results []any) error {
+	dir := strings.TrimSpace(command.outputDir)
+	if dir == "" {
+		return nil
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	prefix := strings.NewReplacer("/", "_", "\\", "_", ":", "_").Replace(command.objectName + "_" + command.operation)
+	if err := writeJSONFile(filepath.Join(dir, prefix+"_summary.json"), summary); err != nil {
+		return err
+	}
+	var succeeded []any
+	var failed []any
+	for _, row := range results {
+		if m, ok := row.(map[string]any); ok && stringFromAny(m["status"]) == "SUCCEEDED" {
+			succeeded = append(succeeded, row)
+		} else {
+			failed = append(failed, row)
+		}
+	}
+	if err := writeJSONFile(filepath.Join(dir, prefix+"_success.json"), succeeded); err != nil {
+		return err
+	}
+	if err := writeJSONFile(filepath.Join(dir, prefix+"_failed.json"), failed); err != nil {
+		return err
+	}
+	return nil
+}
+
+func writeJSONFile(path string, value any) error {
+	b, err := json.MarshalIndent(value, "", "  ")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, append(b, '\n'), 0o600)
+}
+
+func bulkTerminalStatus(status string) bool {
+	switch strings.ToUpper(strings.TrimSpace(status)) {
+	case "SUCCEEDED", "FAILED", "PARTIAL_SUCCESS", "CANCELED":
+		return true
+	default:
+		return false
+	}
+}
+
+func stringFromAny(value any) string {
+	switch v := value.(type) {
+	case string:
+		return v
+	case fmt.Stringer:
+		return v.String()
+	case nil:
+		return ""
+	default:
+		return fmt.Sprint(v)
+	}
+}
+
+func intFromAny(value any) int {
+	switch v := value.(type) {
+	case int:
+		return v
+	case int64:
+		return int(v)
+	case float64:
+		return int(v)
+	case json.Number:
+		n, _ := v.Int64()
+		return int(n)
+	case string:
+		n, _ := strconv.Atoi(strings.TrimSpace(v))
+		return n
+	default:
+		return 0
+	}
+}
+
+func writePrettyJSON(stdout io.Writer, value any) error {
+	b, err := json.MarshalIndent(value, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Fprintln(stdout, string(b))
+	return nil
 }
 
 func contains(values []string, requested string) bool {
@@ -511,6 +828,27 @@ func accessToken(projectPath string) (string, error) {
 		config.String(cfg, "accessToken"),
 		config.String(cfg, "token"),
 	)), nil
+}
+
+func (c *client) ensureCloudccAccessToken() error {
+	if strings.TrimSpace(c.token) != "" {
+		return nil
+	}
+	refreshed, err := config.RefreshAccessToken(c.projectPath)
+	if err != nil {
+		return err
+	}
+	token := trimBearer(firstString(
+		config.String(refreshed, "metadataServiceAccessToken"),
+		config.String(refreshed, "accessToken"),
+		config.String(refreshed, "token"),
+	))
+	if token == "" {
+		return fmt.Errorf("CloudCC accessToken refresh did not return a usable token")
+	}
+	c.token = token
+	c.cloudccUserToken = token
+	return nil
 }
 
 func cloudccUserToken(projectPath string) (string, error) {
@@ -1311,6 +1649,17 @@ func (c *client) writeJSON(stdout io.Writer, method string, path string, body an
 }
 
 func (c *client) requestJSONMap(method string, path string, body any) (map[string]any, error) {
+	value, err := c.requestJSONValue(method, path, body)
+	if err != nil {
+		return nil, err
+	}
+	if out, ok := value.(map[string]any); ok {
+		return out, nil
+	}
+	return nil, fmt.Errorf("metadata service response is not a JSON object")
+}
+
+func (c *client) requestJSONValue(method string, path string, body any) (any, error) {
 	var payload []byte
 	if body != nil {
 		b, err := json.Marshal(body)
@@ -1340,7 +1689,7 @@ func (c *client) requestJSONMap(method string, path string, body any) (map[strin
 	if len(strings.TrimSpace(string(resBody))) == 0 {
 		return map[string]any{}, nil
 	}
-	var out map[string]any
+	var out any
 	if err := json.Unmarshal(resBody, &out); err != nil {
 		return nil, err
 	}

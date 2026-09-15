@@ -392,7 +392,8 @@ func handleObjectReadShortcut(action string, projectPath string, args []string, 
 	if err != nil {
 		return err
 	}
-	if action == "getList" || action == "newInfo" || len(args) == 0 || strings.TrimSpace(args[0]) == "" {
+	if action == "getList" || action == "newInfo" || len(args) == 0 || strings.TrimSpace(args[0]) == "" ||
+		strings.EqualFold(strings.TrimSpace(args[0]), "standard") {
 		return c.getJSON(stdout, "/metadata/v1/scans/standard-catalog")
 	}
 	if len(args) > 1 {
