@@ -3,6 +3,7 @@ package msapi
 import (
 	"bufio"
 	"bytes"
+	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -44,6 +45,31 @@ func Handle(action string, resource string, args []string, stdout io.Writer, cwd
 	switch action {
 	case "capabilities", "capability":
 		return c.getJSON(stdout, "/metadata/v1/capabilities")
+	case "bulk":
+		body, err := bulkJobRequest(remaining)
+		if err != nil {
+			return err
+		}
+		return c.writeJSON(stdout, http.MethodPost, "/metadata/v1/data/bulk/jobs", body)
+	case "bulk-status":
+		if len(remaining) < 1 || strings.TrimSpace(remaining[0]) == "" {
+			return fmt.Errorf("cloudcc bulk-status %s <jobId>", resource)
+		}
+		return c.getJSON(stdout, "/metadata/v1/data/bulk/jobs/"+url.PathEscape(remaining[0]))
+	case "bulk-results":
+		if len(remaining) < 1 || strings.TrimSpace(remaining[0]) == "" {
+			return fmt.Errorf("cloudcc bulk-results %s <jobId>", resource)
+		}
+		return c.getJSON(stdout, "/metadata/v1/data/bulk/jobs/"+url.PathEscape(remaining[0])+"/results")
+	case "bulk-resume", "bulk-retry-failed", "bulk-cancel":
+		if len(remaining) < 1 || strings.TrimSpace(remaining[0]) == "" {
+			return fmt.Errorf("cloudcc %s %s <jobId>", action, resource)
+		}
+		suffix := map[string]string{
+			"bulk-resume": ":resume", "bulk-retry-failed": ":retryFailed", "bulk-cancel": ":cancel",
+		}[action]
+		return c.writeJSON(stdout, http.MethodPost,
+			"/metadata/v1/data/bulk/jobs/"+url.PathEscape(remaining[0])+suffix, nil)
 	case "scan":
 		return c.scan(stdout, remaining)
 	case "resolve", "references":
@@ -172,6 +198,168 @@ func Handle(action string, resource string, args []string, stdout io.Writer, cwd
 	default:
 		return fmt.Errorf("unsupported MetadataService command: cloudcc %s %s", action, resource)
 	}
+}
+
+func bulkJobRequest(args []string) (map[string]any, error) {
+	const usage = "cloudcc bulk msapi <object> <operation> <recordsJson|@file> [--format json|ndjson|csv] [--external-key-field <apiName>]"
+	if len(args) < 3 {
+		return nil, fmt.Errorf(usage)
+	}
+	objectName := strings.TrimSpace(args[0])
+	operation := strings.ToUpper(strings.ReplaceAll(strings.TrimSpace(args[1]), "-", "_"))
+	if objectName == "" || operation == "" {
+		return nil, fmt.Errorf(usage)
+	}
+	if !contains([]string{"INSERT", "UPDATE_BY_ID", "UPSERT_BY_ID", "UPSERT_BY_EXTERNAL_KEY", "DELETE_BY_ID"}, operation) {
+		return nil, fmt.Errorf("%s: unsupported operation %s", usage, operation)
+	}
+	format := "json"
+	for i := 3; i < len(args); i++ {
+		if args[i] == "--format" {
+			i++
+			if i >= len(args) {
+				return nil, fmt.Errorf("%s: --format requires json, ndjson, or csv", usage)
+			}
+			format = strings.ToLower(strings.TrimSpace(args[i]))
+		}
+	}
+	payload, err := readBulkValue(args[2], format, usage)
+	if err != nil {
+		return nil, err
+	}
+	records, ok := payload.([]any)
+	if !ok {
+		if wrapper, wrapped := payload.(map[string]any); wrapped {
+			records, ok = wrapper["records"].([]any)
+		}
+	}
+	if !ok || len(records) == 0 {
+		return nil, fmt.Errorf("%s: records payload must be a non-empty JSON array or an object containing records[]", usage)
+	}
+	body := map[string]any{"object": objectName, "operation": operation, "records": records}
+	for i := 3; i < len(args); i++ {
+		switch args[i] {
+		case "--external-key-field":
+			i++
+			if i >= len(args) || strings.TrimSpace(args[i]) == "" {
+				return nil, fmt.Errorf("%s: --external-key-field requires a field API name", usage)
+			}
+			body["externalKeyField"] = strings.TrimSpace(args[i])
+		case "--format":
+			i++
+			if i >= len(args) || !contains([]string{"json", "ndjson", "csv"}, strings.ToLower(args[i])) {
+				return nil, fmt.Errorf("%s: --format requires json, ndjson, or csv", usage)
+			}
+		default:
+			return nil, fmt.Errorf("%s: unsupported option %s", usage, args[i])
+		}
+	}
+	if operation == "UPSERT_BY_EXTERNAL_KEY" {
+		if _, ok := body["externalKeyField"]; !ok {
+			return nil, fmt.Errorf("%s: --external-key-field is required for UPSERT_BY_EXTERNAL_KEY", usage)
+		}
+	}
+	return body, nil
+}
+
+func readBulkValue(value string, format string, label string) (any, error) {
+	if !contains([]string{"json", "ndjson", "csv"}, format) {
+		return nil, fmt.Errorf("%s: unsupported format %s", label, format)
+	}
+	value = strings.TrimSpace(value)
+	var raw []byte
+	var err error
+	if strings.HasPrefix(value, "@") {
+		raw, err = os.ReadFile(strings.TrimPrefix(value, "@"))
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		raw = []byte(value)
+	}
+	if format == "json" {
+		var out any
+		if err := json.Unmarshal(raw, &out); err != nil {
+			return nil, fmt.Errorf("%s: JSON is invalid: %w", label, err)
+		}
+		return out, nil
+	}
+	if format == "ndjson" {
+		var records []any
+		scanner := bufio.NewScanner(bytes.NewReader(raw))
+		line := 0
+		for scanner.Scan() {
+			line++
+			if strings.TrimSpace(scanner.Text()) == "" {
+				continue
+			}
+			var record map[string]any
+			if err := json.Unmarshal(scanner.Bytes(), &record); err != nil {
+				return nil, fmt.Errorf("%s: invalid NDJSON object at line %d: %w", label, line, err)
+			}
+			records = append(records, record)
+		}
+		if err := scanner.Err(); err != nil {
+			return nil, err
+		}
+		return records, nil
+	}
+	reader := csv.NewReader(bytes.NewReader(raw))
+	rows, err := reader.ReadAll()
+	if err != nil {
+		return nil, fmt.Errorf("%s: CSV is invalid: %w", label, err)
+	}
+	if len(rows) < 2 {
+		return nil, fmt.Errorf("%s: CSV must contain a header and at least one record", label)
+	}
+	headers := rows[0]
+	records := make([]any, 0, len(rows)-1)
+	for rowIndex, row := range rows[1:] {
+		if len(row) != len(headers) {
+			return nil, fmt.Errorf("%s: CSV row %d has %d columns; expected %d", label, rowIndex+2, len(row), len(headers))
+		}
+		record := map[string]any{}
+		for column, header := range headers {
+			header = strings.TrimSpace(header)
+			if header == "" {
+				return nil, fmt.Errorf("%s: CSV header contains a blank field name", label)
+			}
+			if _, duplicate := record[header]; duplicate {
+				return nil, fmt.Errorf("%s: CSV header contains duplicate field %s", label, header)
+			}
+			record[header] = row[column]
+		}
+		records = append(records, record)
+	}
+	return records, nil
+}
+
+func contains(values []string, requested string) bool {
+	for _, value := range values {
+		if value == requested {
+			return true
+		}
+	}
+	return false
+}
+
+func readJSONValue(value string, label string) (any, error) {
+	value = strings.TrimSpace(value)
+	var raw []byte
+	if strings.HasPrefix(value, "@") {
+		var err error
+		raw, err = os.ReadFile(strings.TrimPrefix(value, "@"))
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		raw = []byte(value)
+	}
+	var out any
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil, fmt.Errorf("%s: JSON is invalid: %w", label, err)
+	}
+	return out, nil
 }
 
 func newClient(args []string, cwd string) (*client, []string, error) {

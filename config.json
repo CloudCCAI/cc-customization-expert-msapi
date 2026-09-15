@@ -1,7 +1,7 @@
 {
     "packageName":  "cc-customization-expert-msapi",
-    "version":  "2.2.61-msapi",
-    "releaseDate":  "2026-09-11",
+    "version":  "2.2.63-msapi",
+    "releaseDate":  "2026-09-14",
     "compatCloudccCliVersion":  "2.5.3",
     "runtime":  "go",
     "projectOutputs":  {
@@ -56,6 +56,24 @@
                                          "sourceOfTruth":  "cc-customization-expert-go/config.json",
                                          "policy":  "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
                                          "minimumByCapability":  [
+                                                                     {
+                                                                         "capability":  "msapi.businessData.bulk",
+                                                                         "label":  "Isolated business-data Bulk API",
+                                                                         "introducedInSkillVersion":  "2.2.62-msapi",
+                                                                         "minimumMetadataServiceVersion":  "1.1.59",
+                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.59",
+                                                                         "domains":  [
+                                                                                         "business-data-bulk"
+                                                                                     ],
+                                                                         "operations":  [
+                                                                                            "insert",
+                                                                                            "update-by-id",
+                                                                                            "upsert-by-id",
+                                                                                            "upsert-by-external-key",
+                                                                                            "logical-delete-by-id"
+                                                                                        ],
+                                                                         "reason":  "Requires the default-off isolated direct-write Bulk API, physical-table writer, independent job ledger, and data:bulk security scopes."
+                                                                     },
                                                                      {
                                                                          "capability":  "msapi.buttons.urlFieldNormalization",
                                                                          "label":  "Button URL field normalization for single and batch create",
