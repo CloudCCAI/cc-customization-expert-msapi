@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.65-msapi
+# cc-customization-expert-msapi v2.2.66-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -38,6 +38,8 @@ Strict MetadataService package: low-code operations require MetadataService.
 从技能 `2.2.64` 开始，Java 高代码统一由包内 `google-java-format 1.29.0 --aosp` 执行 4 空格确定性格式化。`cloudcc format <classes|trigger|timer> <name> [projectPath] --write` 显式修复单个资源，`--check` 和 `cloudcc format highcode [projectPath] --check` 只读复核；validate/publish 在远程请求前阻断非规范源码并返回修复命令，不静默改写文件。格式化器需要 JDK 21。
 
 从技能 `2.2.65` 开始，Lightning 仪表板通过 MetadataService `1.1.60` 创建完整聚合：可选的 `lightningdashboard` 文件夹、仪表板根、最多 15 个组件及筛选条件。`get/getList/detail dashboard` 使用专用元数据读取接口，`runtime dashboard` 只读核验目录可见性；`recentDashboard` 为空不代表仪表板不存在。
+
+从技能 `2.2.66` 开始，简档标准创建通过 MetadataService `1.1.61` 从真实回读的来源简档复制；有意创建空白简档必须显式传 `blank=true`。更新只修改目标简档下已有 infoset 的状态，缺失权限不会自动补建，旧 UI 字符串和关系身份变更会在计划阶段被拒绝。
 
 从技能 `2.2.38` 开始，classes/triggers/timer 创建默认按 setup-svc 新版自定义代码语义发送 `version=3`；更新会先读取目标 detail，优先沿用线上记录的 version，线上 version 为空按旧版 `2` 处理，保存后再把线上 ID/version 写回本地 `config.json`。
 

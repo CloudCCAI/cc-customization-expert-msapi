@@ -34,6 +34,55 @@ cloudcc delete profile <projectPath> <id|name|apiName>
 cloudcc apply msapi <projectPath> <planId>
 ```
 
+## 创建契约
+
+`profiles.create` 默认与 setup-web `/api/profile/newProfile` 和 setup-svc `ProfileService.copyProfile` 对齐，必须提供 `copyFromId`（兼容别名 `copyFromProfileId`）。创建计划会：
+
+1. 新建 `tp_sys_profile` 和当前语言 `tp_sys_multi_lang`。
+2. 复制来源简档除 `afe0000102`、`afe01002` 外的全部 `tp_sys_profile_infoset`。
+3. 复制来源简档全部 `tp_sys_profile_field` 和 `tp_sys_profile_layout`。
+
+这表示复制来源子图及其状态，不表示扫描权限定义表并生成租户所有权限。
+
+```json
+{
+  "newProfileName": "销售经理简档",
+  "copyFromId": "aaa000003",
+  "type": "cloudcc"
+}
+```
+
+显式空白创建使用 `blank: true`。它与 `copyFromId` 互斥，且不会产生任何默认权限关系：
+
+```json
+{
+  "newProfileName": "空白集成简档",
+  "blank": true,
+  "type": "cloudcc"
+}
+```
+
+没有 `copyFromId` 且没有 `blank: true`，或同时提供两者，计划阶段即失败。
+
+## 更新契约
+
+`profiles.update` 是 existing-row-only 操作：每个 `infosetUpdates`、`objectPermissions`、`tabPermissions`、`systemPermissions` 或 `loginRestrictions` 元素必须携带已有 `id`/`profileInfosetId`。服务端校验该行确实属于目标 profile，然后只生成 `UPDATE`。
+
+允许修改的状态列为：
+
+- `isenable` / `enabled`
+- `appState`
+- `tabState`
+- `objOperateType` / `objectOperateType` / `operateType` / `crud`
+- `assignDispatch`
+- `ismobiletab` / `mobileTab`
+
+关系身份和内容字段不可通过 update 修改：`profileId`、`category/infoCategory`、`relateId/relatedId`、信息集 `description` 均被拒绝。缺失行不会 upsert。
+
+旧 setup-web 保存载荷中的 `appEnable`、`appState`、`tab`、`tabMoblieInfo`、`permission`、`objPermission`、`appMainpageid`、`aboutmeid`、`aboutmeremark`、`mobilecolleagueshowmanage`、`mailchimp`、`assignDispatch` 在 update 中会明确报错，不能再被静默忽略。先读取 detail 中的关系 ID，再提交结构化 existing-row update。
+
+字段权限、布局分配、记录类型权限和权限定义不是本 update 的新增入口；使用相应领域命令维护。
+
 历史 URI 编码 JSON 查询仍可作为单参数传入；CLI 会从 `selector`、`id`、`profileId`、`apiName`、`profilename`、`profileName`、`name` 或 `filter` 中提取明确值。新脚本建议直接传普通文本参数。
 
 ## 删除保护

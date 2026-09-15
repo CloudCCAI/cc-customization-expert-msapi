@@ -1,6 +1,6 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.2.65-msapi",
+  "version": "2.2.66-msapi",
   "releaseDate": "2026-09-15",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
@@ -64,6 +64,21 @@
     "sourceOfTruth": "cc-customization-expert-go/config.json",
     "policy": "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
     "minimumByCapability": [
+      {
+        "capability": "msapi.profiles.copyCreateExistingStateUpdate",
+        "label": "Profile source-copy create and existing-infoset state update",
+        "introducedInSkillVersion": "2.2.66-msapi",
+        "minimumMetadataServiceVersion": "1.1.61",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.61",
+        "domains": [
+          "profiles"
+        ],
+        "operations": [
+          "create",
+          "update"
+        ],
+        "reason": "Requires standard profile create to clone a read-back source unless blank=true is explicit, and update to fail closed unless each permission change targets an existing infoset row owned by the profile while changing state fields only."
+      },
       {
         "capability": "msapi.dashboards.lightningAggregateRuntimeRead",
         "label": "Lightning dashboard aggregate create and runtime visibility readback",

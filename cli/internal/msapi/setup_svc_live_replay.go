@@ -10246,7 +10246,7 @@ func setupSvcLiveReplayMetadataServiceCreateSpec(domain string) map[string]any {
 	case "layouts":
 		return map[string]any{"id": "layout_cc_replay", "objectId": "obj_cc_replay", "name": "回放布局", "sections": []any{map[string]any{"id": "sect_cc_replay", "name": "基本信息", "fields": []any{map[string]any{"id": "sf_cc_replay_name", "fieldId": "field_cc_replay_text"}}}}}
 	case "profiles":
-		return map[string]any{"id": "profile_cc_replay", "name": "回放简档", "objectPermissions": []any{map[string]any{"objectId": "obj_cc_replay", "readable": true, "editable": true}}, "fieldPermissions": []any{map[string]any{"fieldId": "field_cc_replay_text", "readable": true, "editable": true}}, "layouts": []any{map[string]any{"objectId": "obj_cc_replay", "layoutId": "layout_cc_replay"}}}
+		return map[string]any{"id": "profile_cc_replay", "name": "回放简档", "blank": true, "objectPermissions": []any{map[string]any{"objectId": "obj_cc_replay", "readable": true, "editable": true}}, "fieldPermissions": []any{map[string]any{"fieldId": "field_cc_replay_text", "readable": true, "editable": true}}, "layouts": []any{map[string]any{"objectId": "obj_cc_replay", "layoutId": "layout_cc_replay"}}}
 	case "permissions":
 		return map[string]any{"id": "permset_cc_replay", "name": "回放权限集", "permissions": []any{map[string]any{"permission": "cc_replay_permission", "enabled": true}}, "fieldPermissions": []any{map[string]any{"fieldId": "field_cc_replay_text", "readable": true, "editable": true}}}
 	case "roles":

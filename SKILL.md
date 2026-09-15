@@ -1,12 +1,12 @@
 ---
 name: cc-customization-expert-msapi
-version: 2.2.65-msapi
+version: 2.2.66-msapi
 description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService."
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.2.65-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.2.66-msapi
 
-当前技能版本：`2.2.65-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.2.66-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
 
@@ -49,6 +49,7 @@ description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict Metad
 - 从技能 `2.2.61` 开始，高代码 Java 源码实行一个文件一个顶级资源类：自定义类只能包含与资源同名的一个 `public class`，禁止在其后追加包级 `class` / `interface` / `enum` / `record`；触发器和定时类 SOURCE 片段不得声明命名局部类型。同一职责优先拆为私有方法，独立或可复用职责必须通过 `cloudcc create classes <ClassName>` 创建新的 CloudCC 自定义类。小型 `private static` 嵌套数据载体可以保留，但默认不生成，不能承载查询、写入、远程调用或完整业务流程。`validate classes` 和 publish 本地门禁会阻断不合规结构并报告类型名与行号。
 - 从技能 `2.2.64` 开始，所有 AI 生成或修改的 classes、trigger、timer Java 源码必须先执行确定性格式化：采用内置 `google-java-format 1.29.0 --aosp` 的 4 空格风格，禁止 Tab 和压缩成单行的多条普通语句。编辑后先运行 `cloudcc format <classes|trigger|timer> <name> [projectPath] --write`，再 validate/publish；只读复核使用 `--check`，项目级只读扫描使用 `cloudcc format highcode [projectPath] --check`。validate/publish 在任何远程请求前阻断非规范源码并返回修复命令，不会静默改写用户文件。格式化器需 JDK 21，触发器和定时类纯 SOURCE 片段由 CLI 临时包装后格式化并安全提取。
 - 从技能 `2.2.65` 开始，Lightning 仪表板创建按完整聚合处理：可在一个 MetadataService `dashboards create` 计划中写入可选的 `lightningdashboard` 文件夹、仪表板根、最多 15 个组件及筛选条件；`get/getList/detail dashboard` 固定读取 MetadataService 仪表板端点，`runtime dashboard` 只读核验指定用户/角色/简档的目录可见性。该能力要求 MetadataService `1.1.60` 或更高版本；`recentDashboard` 为空只代表最近访问状态，不能作为创建失败依据。
+- 从技能 `2.2.66` 开始，简档标准创建必须使用真实回读的 `copyFromId` / `copyFromProfileId` 复制来源简档；只有明确需要无权限模板时才使用互斥的 `blank=true`。简档更新只允许通过目标简档下已存在的 infoset ID 修改状态，不补建缺失权限，也不接受旧 UI 字符串或关系身份字段。该能力要求 MetadataService `1.1.61` 或更高版本。
 - 从技能 `2.2.62` 开始，`cloudcc bulk msapi` 调用独立业务数据 Bulk API；当前实现要求 MetadataService `1.1.59` 或更高版本，按对象/字段元数据直接写物理表，不暴露也不执行验证规则、触发器、查重过滤器、共享规则或工作流，自动编号仍由系统管理。
 - 从技能 `2.2.53` 开始，验证规则 CLI 用户级文档明确列出全部已确认可执行全局变量：`$User.id`、`$User.name`、`$User.roleId`、`$User.roleName`、`$User.profileId`、`$User.profileName`、`$User.department`、`$User.title`、`$User.email`、`$User.phone`、`$User.mobilePhone`；同时说明 setup-web / setup-service 中 `$User.<用户对象字段API>` 动态选择项的边界，以及源码未确认 `$Profile`、`$Organization`、`$Permission` 等独立命名空间。
 - 从技能 `2.2.50` 开始，记录类型详情的选项列表值分配纳入 MetadataService：`saveDependency/assignPicklistValues recordType` 生成 `record-types save-dependency` 计划，对齐 setup-svc `/api/recordType/saveDependency` 的所选值全量替换、未选旧值删除和默认值设置语义，要求 MetadataService `1.1.52` 或更高版本。
