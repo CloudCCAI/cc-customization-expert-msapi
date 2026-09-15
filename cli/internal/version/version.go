@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.64"
+const Version = "2.2.65"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -34,6 +34,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	case "changelog":
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
+		fmt.Fprintln(stderr, "- Lightning dashboard create now plans the optional lightningdashboard folder, root, up to 15 components, and filters as one MetadataService aggregate; dashboard list/detail use dedicated endpoints and runtime provides read-only folder visibility diagnostics without fabricating recent-item state.")
 		fmt.Fprintln(stderr, "- Skill release packaging now removes and rejects every .claw-local directory so local Bulk test executables, input data, result files, and other development evidence cannot enter expanded distributions or archives.")
 		fmt.Fprintln(stderr, "- High-code Java formatting now uses packaged google-java-format 1.29.0 in AOSP four-space mode; explicit format check/write commands support classes, triggers, timers, and read-only project scans, while validate/publish block noncanonical source before remote requests with a repair command.")
 		fmt.Fprintln(stderr, "- Business-data bulk import calls the isolated MetadataService direct-write API without validation-rule, trigger, duplicate-filter, sharing-rule, or workflow execution; automatic numbering remains system-managed.")

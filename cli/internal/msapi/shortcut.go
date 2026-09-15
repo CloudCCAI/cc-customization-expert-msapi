@@ -127,6 +127,7 @@ var lowCodeShortcutActions = map[string]bool{
 	"activate":               true,
 	"deactivate":             true,
 	"purge":                  true,
+	"runtime":                true,
 }
 
 // IsLowCodeShortcut returns true for legacy low-code metadata CLI shortcuts that
@@ -217,6 +218,9 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 	if resource == "reportFolder" {
 		return handleReportFolderShortcut(action, projectPath, rest, stdout, cwd)
 	}
+	if resource == "dashboard" && isShortcutRead(action) {
+		return handleDashboardReadShortcut(action, projectPath, rest, stdout, cwd)
+	}
 	if isShortcutRead(action) {
 		return Handle("scan", "msapi", []string{projectPath, "standard-catalog"}, stdout, cwd)
 	}
@@ -258,6 +262,71 @@ func handleObjectViewReadShortcut(action string, projectPath string, args []stri
 		}
 	}
 	return c.writeJSON(stdout, http.MethodPost, "/metadata/v1/object-views:query", body)
+}
+
+func handleDashboardReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
+	action = strings.TrimSpace(action)
+	c, _, err := newClient([]string{projectPath}, cwd)
+	if err != nil {
+		return err
+	}
+	if action == "detail" || action == "editInfo" {
+		if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
+			return fmt.Errorf("cloudcc %s dashboard <projectPath> <dashboard-id>", action)
+		}
+		return c.getJSON(stdout, "/metadata/v1/dashboards/"+url.PathEscape(strings.TrimSpace(args[0])))
+	}
+	values := url.Values{}
+	if action == "runtime" {
+		if len(args) > 0 && looksLikeJSONArg(args[0]) {
+			options, parseErr := parseObject(args[0], "cloudcc runtime dashboard")
+			if parseErr != nil {
+				return parseErr
+			}
+			for _, key := range []string{"userId", "roleId", "profileId", "folderId", "filter"} {
+				if value := strings.TrimSpace(fmt.Sprint(options[key])); value != "" && value != "<nil>" {
+					values.Set(key, value)
+				}
+			}
+		} else {
+			if len(args) > 5 {
+				return fmt.Errorf("cloudcc runtime dashboard <projectPath> [userId] [roleId] [profileId] [folderId] [filter]")
+			}
+			keys := []string{"userId", "roleId", "profileId", "folderId", "filter"}
+			for index, value := range args {
+				if strings.TrimSpace(value) != "" {
+					values.Set(keys[index], strings.TrimSpace(value))
+				}
+			}
+		}
+		path := "/metadata/v1/dashboards/runtime-visible"
+		if len(values) > 0 {
+			path += "?" + values.Encode()
+		}
+		return c.getJSON(stdout, path)
+	}
+	if len(args) > 1 {
+		return fmt.Errorf("cloudcc %s dashboard <projectPath> [filter-or-json-options]", action)
+	}
+	if len(args) == 1 && strings.TrimSpace(args[0]) != "" {
+		if looksLikeJSONArg(args[0]) {
+			options, parseErr := parseObject(args[0], "cloudcc "+action+" dashboard")
+			if parseErr != nil {
+				return parseErr
+			}
+			for _, key := range []string{"filter", "selector", "folderId", "lightning"} {
+				if value := strings.TrimSpace(fmt.Sprint(options[key])); value != "" && value != "<nil>" {
+					values.Set(key, value)
+				}
+			}
+		} else {
+			values.Set("filter", strings.TrimSpace(args[0]))
+		}
+	}
+	if values.Get("lightning") == "" {
+		values.Set("lightning", "true")
+	}
+	return c.getJSON(stdout, "/metadata/v1/dashboards?"+values.Encode())
 }
 
 func handleFiscalYearReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
@@ -1730,7 +1799,7 @@ func (c *client) resolveUniqueProfile(selector string) (map[string]any, error) {
 
 func isShortcutRead(action string) bool {
 	switch strings.TrimSpace(action) {
-	case "get", "detail", "getList", "newInfo", "editInfo", "validDelete":
+	case "get", "detail", "getList", "newInfo", "editInfo", "validDelete", "runtime":
 		return true
 	default:
 		return false
