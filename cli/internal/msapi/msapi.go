@@ -231,10 +231,12 @@ type bulkCommand struct {
 	operation    string
 	objectName   string
 	autoChunk    bool
+	format       string
+	sourcePath   string
 }
 
 func bulkJobRequest(args []string) (map[string]any, error) {
-	command, err := bulkJobCommand(args)
+	command, err := bulkJobCommandWithMode(args, true)
 	if err != nil {
 		return nil, err
 	}
@@ -242,6 +244,10 @@ func bulkJobRequest(args []string) (map[string]any, error) {
 }
 
 func bulkJobCommand(args []string) (*bulkCommand, error) {
+	return bulkJobCommandWithMode(args, false)
+}
+
+func bulkJobCommandWithMode(args []string, eager bool) (*bulkCommand, error) {
 	const usage = "cloudcc bulk msapi <object> <operation> <recordsJson|@file> [--format json|ndjson|csv] [--external-key-field <apiName>]"
 	if len(args) < 3 {
 		return nil, fmt.Errorf(usage)
@@ -297,18 +303,28 @@ func bulkJobCommand(args []string) (*bulkCommand, error) {
 			outputDir = strings.TrimSpace(args[i])
 		}
 	}
-	payload, err := readBulkValue(args[2], format, usage)
-	if err != nil {
-		return nil, err
-	}
-	records, ok := payload.([]any)
-	if !ok {
-		if wrapper, wrapped := payload.(map[string]any); wrapped {
-			records, ok = wrapper["records"].([]any)
+	sourcePath := ""
+	var records []any
+	if strings.HasPrefix(strings.TrimSpace(args[2]), "@") && contains([]string{"ndjson", "csv"}, format) && chunkSize <= 0 && !eager {
+		sourcePath = strings.TrimPrefix(strings.TrimSpace(args[2]), "@")
+		if strings.TrimSpace(sourcePath) == "" {
+			return nil, fmt.Errorf("%s: @file path is required", usage)
 		}
-	}
-	if !ok || len(records) == 0 {
-		return nil, fmt.Errorf("%s: records payload must be a non-empty JSON array or an object containing records[]", usage)
+	} else {
+		payload, err := readBulkValue(args[2], format, usage)
+		if err != nil {
+			return nil, err
+		}
+		var ok bool
+		records, ok = payload.([]any)
+		if !ok {
+			if wrapper, wrapped := payload.(map[string]any); wrapped {
+				records, ok = wrapper["records"].([]any)
+			}
+		}
+		if !ok || len(records) == 0 {
+			return nil, fmt.Errorf("%s: records payload must be a non-empty JSON array or an object containing records[]", usage)
+		}
 	}
 	body := map[string]any{"object": objectName, "operation": operation, "records": records}
 	for i := 3; i < len(args); i++ {
@@ -339,6 +355,7 @@ func bulkJobCommand(args []string) (*bulkCommand, error) {
 	return &bulkCommand{
 		body: body, records: records, chunkSize: chunkSize, wait: wait, pollInterval: pollInterval,
 		outputDir: outputDir, operation: operation, objectName: objectName, autoChunk: chunkSize == 0,
+		format: format, sourcePath: sourcePath,
 	}, nil
 }
 
@@ -415,6 +432,9 @@ func readBulkValue(value string, format string, label string) (any, error) {
 }
 
 func (c *client) runBulk(stdout io.Writer, command *bulkCommand) error {
+	if strings.TrimSpace(command.sourcePath) != "" {
+		return c.runStreamingBulk(stdout, command)
+	}
 	if command.chunkSize <= 0 && !command.wait && strings.TrimSpace(command.outputDir) == "" &&
 		len(command.records) <= 200 {
 		return c.writeJSON(stdout, http.MethodPost, "/metadata/v1/data/bulk/jobs", command.body)
@@ -461,6 +481,50 @@ func (c *client) runBulk(stdout io.Writer, command *bulkCommand) error {
 	statuses := jobs
 	if command.wait {
 		finalStatuses, err := c.waitBulkJobs(jobs, command.pollInterval)
+		if err != nil {
+			return err
+		}
+		statuses = finalStatuses
+	}
+	summary, results, err := c.bulkSummary(command, statuses, started)
+	if err != nil {
+		return err
+	}
+	if strings.TrimSpace(command.outputDir) != "" {
+		if err := c.writeBulkOutputFiles(command, summary, results); err != nil {
+			return err
+		}
+	}
+	return writePrettyJSON(stdout, summary)
+}
+
+func (c *client) runStreamingBulk(stdout io.Writer, command *bulkCommand) error {
+	started := time.Now()
+	contentType := "application/x-ndjson"
+	endpoint := "ndjson"
+	if command.format == "csv" {
+		contentType = "text/csv"
+		endpoint = "csv"
+	}
+	query := url.Values{}
+	query.Set("object", command.objectName)
+	query.Set("operation", command.operation)
+	if externalKey, ok := command.body["externalKeyField"]; ok && strings.TrimSpace(stringFromAny(externalKey)) != "" {
+		query.Set("externalKeyField", stringFromAny(externalKey))
+	}
+	job, err := c.requestFileJSONMap(
+		http.MethodPost,
+		"/metadata/v1/data/bulk/jobs/stream/"+endpoint+"?"+query.Encode(),
+		command.sourcePath,
+		contentType)
+	if err != nil {
+		return err
+	}
+	job["chunkFirstRow"] = 1
+	job["chunkLastRow"] = job["totalRecords"]
+	statuses := []map[string]any{job}
+	if command.wait || strings.TrimSpace(command.outputDir) != "" {
+		finalStatuses, err := c.waitBulkJobs(statuses, command.pollInterval)
 		if err != nil {
 			return err
 		}
@@ -1659,6 +1723,32 @@ func (c *client) requestJSONMap(method string, path string, body any) (map[strin
 	return nil, fmt.Errorf("metadata service response is not a JSON object")
 }
 
+func (c *client) requestFileJSONMap(method string, path string, filePath string, contentType string) (map[string]any, error) {
+	resBody, statusCode, err := c.doFile(method, path, filePath, contentType)
+	if err != nil {
+		return nil, err
+	}
+	if statusCode < 200 || statusCode >= 300 {
+		if refreshed, refreshErr := c.refreshTokenAfterInvalidToken(statusCode, resBody); refreshErr != nil {
+			return nil, refreshErr
+		} else if refreshed {
+			resBody, statusCode, err = c.doFile(method, path, filePath, contentType)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if statusCode < 200 || statusCode >= 300 {
+			c.clearCacheIfInvalidToken(statusCode, resBody)
+			return nil, fmt.Errorf("metadata service http %d: %s", statusCode, string(resBody))
+		}
+	}
+	var out map[string]any
+	if err := json.Unmarshal(resBody, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *client) requestJSONValue(method string, path string, body any) (any, error) {
 	var payload []byte
 	if body != nil {
@@ -1714,6 +1804,49 @@ func (c *client) doJSON(method string, path string, payload []byte) ([]byte, int
 	}
 	if payload != nil {
 		req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	}
+	if c.token != "" {
+		req.Header.Set("accessToken", c.token)
+		req.Header.Set("Authorization", "Bearer "+c.token)
+	}
+	if c.cloudccUserToken != "" {
+		req.Header.Set("X-CloudCC-User-AccessToken", c.cloudccUserToken)
+	}
+	res, err := c.http.Do(req)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer res.Body.Close()
+	resBody, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, 0, err
+	}
+	return resBody, res.StatusCode, nil
+}
+
+func (c *client) doFile(method string, path string, filePath string, contentType string) ([]byte, int, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer file.Close()
+	return c.doReader(method, path, file, contentType)
+}
+
+func (c *client) doReader(method string, path string, reader io.Reader, contentType string) ([]byte, int, error) {
+	if strings.TrimSpace(c.baseURL) == "" {
+		baseURL, err := serviceURL(c.projectPath)
+		if err != nil {
+			return nil, 0, err
+		}
+		c.baseURL = strings.TrimRight(baseURL, "/")
+	}
+	req, err := http.NewRequest(method, c.baseURL+path, reader)
+	if err != nil {
+		return nil, 0, err
+	}
+	if contentType != "" {
+		req.Header.Set("Content-Type", contentType)
 	}
 	if c.token != "" {
 		req.Header.Set("accessToken", c.token)
