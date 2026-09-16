@@ -1433,11 +1433,16 @@ func publishJavaResource(dir string, apiName string, args []string, stdout io.Wr
 	if violations := javaFragmentTypePolicyViolations(source, "timer"); len(violations) > 0 {
 		return fmt.Errorf("timer source violates CloudCC policy: %s", strings.Join(violations, "; "))
 	}
-	formatResult, formatErr := requireJavaFileFormatted(sourceFile, "timer", args[0], projectPath)
+	formatResult, formatErr := formatJavaFileBeforePublish(sourceFile, "timer", args[0], projectPath)
 	if formatErr != nil {
 		_ = writeJSON(stdout, formatResult)
-		return fmt.Errorf("timer source formatting blocked publish: %w", formatErr)
+		return fmt.Errorf("timer source auto-format failed before publish: %w", formatErr)
 	}
+	source, err = readMarkedSource(sourceFile)
+	if err != nil {
+		return err
+	}
+	source = strings.TrimSpace(source)
 	cfgContent, _ := jsonx.ReadObjectFile(filepath.Join(srcDir, "config.json"))
 	if cfgContent == nil {
 		cfgContent = map[string]any{}
@@ -1488,7 +1493,7 @@ func publishJavaResource(dir string, apiName string, args []string, stdout io.Wr
 		}
 		_ = jsonx.WriteObjectFile(filepath.Join(srcDir, "config.json"), cfgContent)
 	}
-	return writeJSON(stdout, map[string]any{"status": "published", "resource": "timer", "name": name, "remoteValidation": remoteValidation, "saveResponse": saveResponse})
+	return writeJSON(stdout, map[string]any{"status": "published", "resource": "timer", "name": name, "localFormat": formatResult, "remoteValidation": remoteValidation, "saveResponse": saveResponse})
 }
 
 func publishClassResource(args []string, stdout io.Writer, stderr io.Writer, cwd string) error {
@@ -1516,11 +1521,16 @@ func publishClassResource(args []string, stdout io.Writer, stderr io.Writer, cwd
 		_ = writeJSON(stdout, map[string]any{"status": "blocked_local_validation", "validation": validation})
 		return fmt.Errorf("class source violates CloudCC policy: %s", strings.Join(structureViolations, "; "))
 	}
-	formatResult, formatErr := requireJavaFileFormatted(sourceFile, "classes", name, opts.ProjectPath)
+	formatResult, formatErr := formatJavaFileBeforePublish(sourceFile, "classes", name, opts.ProjectPath)
 	if formatErr != nil {
 		_ = writeJSON(stdout, formatResult)
-		return fmt.Errorf("class source formatting blocked publish: %w", formatErr)
+		return fmt.Errorf("class source auto-format failed before publish: %w", formatErr)
 	}
+	source, err = readMarkedSource(sourceFile)
+	if err != nil {
+		return err
+	}
+	source = strings.TrimSpace(source)
 	validation := classValidationResult{}
 	if opts.ValidationEvidence != "" {
 		b, readErr := os.ReadFile(opts.ValidationEvidence)
@@ -1626,6 +1636,7 @@ func publishClassResource(args []string, stdout io.Writer, stderr io.Writer, cwd
 		"className":            name,
 		"publishGateway":       publishURL,
 		"sourceSha256":         validation.SourceSHA256,
+		"localFormat":          formatResult,
 		"localValidation":      validation,
 		"remoteValidation":     remoteValidation,
 		"saveResponse":         saveResponse,

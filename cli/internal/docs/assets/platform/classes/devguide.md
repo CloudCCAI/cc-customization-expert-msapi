@@ -359,7 +359,7 @@ cloudcc format classes <ClassName> <projectPath> --check
 cloudcc format highcode <projectPath> --check
 ```
 
-`--write` 是唯一会改写本地源码的格式化入口；`--check` 和项目级 highcode 扫描只读。`validate classes` 与 `publish classes` 都会在编译或远程请求前执行格式门禁，失败状态为 `blocked_local_format`，并返回可复制的修复命令。格式化必须发生在生成之后、validate 之前，因为 validation evidence 的源码摘要会在格式化后变化。格式化器需要 JDK 21。
+`--check` 和项目级 highcode 扫描只读，`validate classes` 也不会改写源码。从 CLI `2.2.69` 开始，`publish classes` 会在本地自动执行等价于 `--write` 的格式化，写回成功后使用格式化后的源码继续本地编译、远程 validate 和 save；只有格式器自身失败才会以 `blocked_local_format` 在远程请求前终止。发布结果的 `localFormat` 会说明源码是 `formatted` 还是 `format_clean`。格式化发生在 validation evidence 摘要校验之前，因此 evidence 必须对应格式化后的源码。格式化器需要 JDK 21。
 
 ### 5.7 必须显式处理异常
 

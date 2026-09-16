@@ -118,6 +118,24 @@ func formatJavaFile(sourceFile string, resource string, name string, projectPath
 		result.Issues = []javaFormatIssue{{Line: 1, Rule: "formatter_error", Message: err.Error()}}
 		return result, err
 	}
+	const maxFormatPasses = 5
+	stable := false
+	for pass := 1; pass <= maxFormatPasses; pass++ {
+		next, nextErr := formatJavaSource(formatted, projectPath)
+		if nextErr != nil {
+			result.Issues = []javaFormatIssue{{Line: 1, Rule: "formatter_error", Message: nextErr.Error()}}
+			return result, nextErr
+		}
+		if next == formatted {
+			stable = true
+			break
+		}
+		formatted = next
+	}
+	if !stable {
+		result.Issues = []javaFormatIssue{{Line: 1, Rule: "formatter_nonconvergent", Message: "Java formatter did not converge to a stable result"}}
+		return result, fmt.Errorf("Java formatter did not converge after %d passes", maxFormatPasses)
+	}
 	result.Changed = !bytes.Equal(original, []byte(formatted))
 	if result.Changed {
 		result.Issues = javaFormatDiffIssues(string(original), formatted)
@@ -126,10 +144,6 @@ func formatJavaFile(sourceFile string, resource string, name string, projectPath
 		}
 		if err := os.WriteFile(sourceFile, []byte(formatted), 0o644); err != nil {
 			return result, err
-		}
-		second, secondErr := formatJavaSource(formatted, projectPath)
-		if secondErr != nil || second != formatted {
-			return result, fmt.Errorf("Java formatter did not produce an idempotent result")
 		}
 		result.Written = true
 		result.Status = "formatted"
@@ -384,6 +398,16 @@ func requireJavaFileFormatted(sourceFile string, resource string, namePath strin
 	result.RepairCommand = javaFormatRepairCommand(resource, namePath, projectPath)
 	if err != nil {
 		result.Status = "blocked_local_format"
+	}
+	return result, err
+}
+
+func formatJavaFileBeforePublish(sourceFile string, resource string, namePath string, projectPath string) (javaFormatResult, error) {
+	name := filepath.Base(namePath)
+	result, err := formatJavaFile(sourceFile, resource, name, projectPath, true)
+	if err != nil {
+		result.Status = "blocked_local_format"
+		result.RepairCommand = javaFormatRepairCommand(resource, namePath, projectPath)
 	}
 	return result, err
 }

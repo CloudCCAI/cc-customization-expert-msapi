@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.68"
+const Version = "2.2.69"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -32,6 +32,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		Help(stdout, stderr)
 		return nil
 	case "changelog":
+		fmt.Fprintln(stderr, "- High-code publish now auto-formats classes, triggers, and timers in the local project before validation and remote requests; successfully formatted source continues through publish, while formatter failures still stop locally with structured diagnostics.")
 		fmt.Fprintln(stderr, "- Page layout create/clone now defaults to all-profile assignment unless explicit assignments or autoAssignProfiles=false are supplied; standalone assign remains available, and layout JSON/docs now cover sections, detail buttons, related lists, related-list fields, and related-list buttons end to end through MetadataService 1.1.62.")
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")

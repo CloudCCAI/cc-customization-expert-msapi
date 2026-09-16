@@ -166,11 +166,16 @@ func publishTrigger(args []string, stdout io.Writer, stderr io.Writer, cwd strin
 	if len(structureViolations) > 0 {
 		return fmt.Errorf("trigger source violates CloudCC policy: %s", strings.Join(structureViolations, "; "))
 	}
-	formatResult, formatErr := requireJavaFileFormatted(sourceFile, "trigger", namePath, projectPath)
+	formatResult, formatErr := formatJavaFileBeforePublish(sourceFile, "trigger", namePath, projectPath)
 	if formatErr != nil {
 		_ = writeJSON(stdout, formatResult)
-		return fmt.Errorf("trigger source formatting blocked publish: %w", formatErr)
+		return fmt.Errorf("trigger source auto-format failed before publish: %w", formatErr)
 	}
+	source, err = readMarkedSource(sourceFile)
+	if err != nil {
+		return err
+	}
+	source = strings.TrimSpace(source)
 	configPath := filepath.Join(srcDir, "config.json")
 	cfgContent, _ := jsonx.ReadObjectFile(configPath)
 	if cfgContent == nil {
@@ -236,7 +241,7 @@ func publishTrigger(args []string, stdout io.Writer, stderr io.Writer, cwd strin
 			return writeErr
 		}
 	}
-	return writeJSON(stdout, map[string]any{"status": "published", "resource": "trigger", "name": name, "remoteValidation": remoteValidation, "saveResponse": res})
+	return writeJSON(stdout, map[string]any{"status": "published", "resource": "trigger", "name": name, "localFormat": formatResult, "remoteValidation": remoteValidation, "saveResponse": res})
 }
 
 func resolveTriggerID(projectPath string, cfg config.Config, selector string) (string, error) {
