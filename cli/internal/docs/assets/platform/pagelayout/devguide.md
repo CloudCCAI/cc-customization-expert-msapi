@@ -94,7 +94,7 @@ cloudcc create pagelayout . 20267D1465464C5OB6m5 "课程表2"
 - 传入 `assignments[]`：只按显式简档/记录类型范围分配，不再额外展开全部简档。
 - 确实只想创建未分配草稿：设置 `autoAssignProfiles=false`，即在 JSON spec 中显式写 `"autoAssignProfiles": false`，之后再使用独立的 `assign pagelayout` 完成分配。
 
-创建成功不等于用户已经能看到布局；验收必须同时检查布局内容和 `tp_sys_profile_layout` 分配结果。
+创建成功不等于用户已经能看到布局；验收必须同时检查布局内容和布局分配结果。
 
 **参数说明：**
 
@@ -234,7 +234,7 @@ cloudcc plan msapi . layouts @layout-assignments.json assign
 cloudcc apply msapi . <planId>
 ```
 
-同一“简档 + 对象 + 记录类型”是一个分配范围；再次分配时应复用既有关系并把 `LAYOUT_ID` 改为目标布局，而不是为不同布局保留多条冲突关系。验收时回读 `tp_sys_profile_layout`，确认 `PROFILE_ID`、`OBJ_ID`、`RECORDTYPE_ID`、`LAYOUT_ID` 分别对应目标简档、对象、记录类型和页面布局。不要只看页面布局是否创建成功。
+同一“简档 + 对象 + 记录类型”是一个分配范围；再次分配时应把该范围的 `layoutId` 更新为目标布局，而不是为不同布局保留多条冲突分配。验收时执行 `detail pagelayout` 并检查 `content.assignments[]`，确认 `profileId`、`objectId`、`recordTypeId`、`layoutId` 分别对应目标简档、对象、记录类型和页面布局。不要只看页面布局是否创建成功。
 
 ## 完整页面布局 JSON
 
@@ -317,7 +317,7 @@ cloudcc detail pagelayout . obj_contract layout_contract_sales
 | `sections[]` | `id/name/columns[][]` | 页面字段分组；`columns` 第一层是列，第二层是该列字段。 |
 | `sections[].columns[][]` | `fieldId/required/readonly` | `fieldId` 必须来自目标对象字段回读；不要使用标签代替字段 ID。 |
 | `buttons[]` | `buttonId/seq` | 挂载已经存在的详情页按钮；按钮定义本身先通过 `buttons` domain 创建。 |
-| `relatedLists[]` | `name/objectId/fieldId/seq/show` | `objectId` 是子对象，`fieldId` 是子对象上指向当前父对象的查找/主详关系字段。 |
+| `relatedLists[]` | `name/objectId/fieldId/relatedListType/seq/show` | `objectId` 是子对象；普通业务列表的 `fieldId` 是子对象上指向当前父对象的查找/主详关系字段；系统列表按下文固定参数填写。 |
 | `relatedLists[].fields[]` | `fieldId/seq/fieldStyle` | 相关列表显示列，字段来自子对象；首列应是可点击名称/编号字段。 |
 | `relatedLists[].buttons[]` | `buttonId/seq` | 挂载已经存在且适用于该相关列表的按钮。 |
 | `assignments[]` | `profileId/recordTypeId` | 显式限定布局分配；省略整个数组才触发全部简档默认分配。 |
@@ -480,7 +480,7 @@ data
 
 ### 保存前建议
 
-- 从 `detail` 的 `data.sections` 复制现有结构，尽量只调整需要变更的分组、列或字段顺序。
+- 从 `detail` 的 `content.sections` 复制现有结构，尽量只调整需要变更的分组、列或字段顺序。
 - 保留每个 section 的 `sectionId`，否则 `update` 会拒绝提交。
 - 不要手工保留运行时控制字段；CLI 保存前会移除 `sortOrder`、`categoriesAllowed`、`canChangeColumns`、`canDeleteSection`。
 - 如果需要移动字段，优先在同一个 `columns` 二维数组内调整字段对象的位置，避免重写整份布局。
@@ -489,7 +489,7 @@ data
 
 创建或补齐自定义字段时，技能应先主动设计布局落位；MetadataService 的自动摆放只能作为兜底。只要能读取到对象布局详情，就在字段计划中显式给出 `layoutPlacements`，或通过 `pagelayout update` 同步调整 PC / mobile 布局。
 
-对象创建 spec 内嵌 `fields[]` 时，MetadataService 会把业务字段落入本次计划生成的默认 PC/mobile 布局：短字段按 PC 双列平衡，长文本按 PC 整行，mobile 单列。字段单独创建时，仍会读取数据库已有 root/mobile 布局并自动摆放；如果目标布局还不存在，应改用对象内完整编排或显式 `layoutPlacements`，不要把普通 warning 当成交付完成。
+对象创建 spec 内嵌 `fields[]` 时，MetadataService 会把业务字段落入本次计划生成的默认 PC/mobile 布局：短字段按 PC 双列平衡，长文本按 PC 整行，mobile 单列。字段单独创建时，仍会读取当前对象已有的 PC/mobile 布局并自动摆放；如果目标布局还不存在，应改用对象内完整编排或显式 `layoutPlacements`，不要把普通 warning 当成交付完成。
 
 ### 输入信息
 
@@ -615,9 +615,9 @@ data
 1. 查找关系或主详关系字段定义“子记录如何关联父记录”。
 2. 页面布局的 `relatedLists[]` 定义“在哪个父对象布局展示、展示哪些子对象字段、按什么顺序以及提供哪些按钮”。
 
-不要只创建 `tp_sys_relatedlist` 外观而没有真实关系字段。以“合同—回款明细”为例，`field_payment_contract` 必须是回款对象上指向合同对象的查找或主详字段；相关列表中的 `fields[]` 也必须是回款对象字段。
+不要只提交相关列表配置而没有真实关系字段。以“合同—回款明细”为例，`field_payment_contract` 必须是回款对象上指向合同对象的查找或主详字段；相关列表中的 `fields[]` 也必须是回款对象字段。
 
-只有当用户在父记录详情页需要浏览、创建或追踪子记录时，才挂载相关列表。以下情况不应挂载：只是暴露数据库关系但没有父记录内操作场景、与已有列表重复、子对象数据量过大且页面列表无法提供有效筛选或摘要、仅供技术集成使用且没有业务可读价值。
+只有当用户在父记录详情页需要浏览、创建或追踪子记录时，才挂载相关列表。以下情况不应挂载：只是存在技术关系但没有父记录内操作场景、与已有列表重复、子对象数据量过大且页面列表无法提供有效筛选或摘要、仅供技术集成使用且没有业务可读价值。
 
 相关列表名称使用子记录集合的业务称谓，例如 `联系人`、`销售订单`、`回款明细`，不要使用对象 API 名或关系字段名。
 
@@ -643,6 +643,86 @@ data
 6. 短备注，仅在列表中确有辨识价值时放在最后。
 
 避免展示父记录回查字段、内部 ID、长文本、图片、公式明细、重复含义字段和对判断无帮助的审计字段。批准历史、字段跟踪等平台系统列表允许空字段配置；自定义业务列表没有显式字段配置时必须复核是否漏配。
+
+#### 平台系统相关列表
+
+CLI/MSAPI JSON 只使用本节列出的参数名，不需要、也不应填写数据库表名或数据库列名。标准写法统一使用 `objectId`、`fieldId`、`relatedListType`、`show` 和 `seq`；不要把内部存储名称混入 spec。
+
+平台系统相关列表不是普通“子对象 + 关系字段”列表，必须使用平台约定的固定标识：
+
+| 系统相关列表 | `objectId` | `fieldId` | `relatedListType` | 默认 `show` |
+|---|---|---|---|---|
+| 未处理活动 | `activity` | `none` | `openActivities` | `true` |
+| 活动历史 | `activity` | `none` | `activityHistory` | `true` |
+| 审批历史 | `fff000abe` | `none` | `approvalHistory` | `false` |
+| 备注和附件 | `attachement` | `none` | `attachement` | `false` |
+| 字段跟踪 | `track` | `none` | `track` | `false` |
+| 邮件 | `emailobject` | `none` | `emailobject` | `false` |
+
+对于能够由 `objectId` 唯一识别的审批历史、备注和附件、字段跟踪、邮件，省略 `fieldId`、`relatedListType` 和 `show` 时，MetadataService 会按上表补齐平台默认值。`activity` 同时对应“未处理活动”和“活动历史”，因此必须显式传 `relatedListType=openActivities` 或 `relatedListType=activityHistory`。如果系统列表的 `objectId`、`fieldId`、`relatedListType` 相互冲突，计划阶段会直接报错，不会把它当成普通 `object` 类型入库。为了让配置意图清晰，完整配置或跨环境迁移时仍建议显式填写上表参数。
+
+例如，把“审批历史”加入布局并保持平台默认隐藏：
+
+```json
+{
+  "contentMode": "explicit",
+  "relatedLists": [
+    {
+      "name": "审批历史",
+      "objectId": "fff000abe",
+      "fieldId": "none",
+      "relatedListType": "approvalHistory",
+      "show": false,
+      "seq": 1
+    }
+  ]
+}
+```
+
+需要直接显示时才把 `show` 改为 `true`。审批历史由平台渲染，不需要配置普通业务相关列表使用的 `fields[]` 或 `buttons[]`。`attachement` 是平台约定的固定拼写，调用时不要自行改成 `attachment`。
+
+#### 页面布局详情回读字段
+
+```bash
+cloudcc detail pagelayout . <objectId|apiName|prefix> <layoutId|apiName|name>
+```
+
+详情响应中的 `content` 是面向 CLI/MSAPI 用户的规范化布局内容，也是更新前应读取和复用的部分。它与创建/更新 spec 使用同一套参数名：
+
+| 回读路径 | 返回字段 |
+|---|---|
+| `content` | `id/objectId/layoutName/apiName/sections/buttons/relatedLists/assignments` |
+| `content.sections[]` | `id/name/seq/showDetailHeader/showEditHeader/show/columns` |
+| `content.sections[].columns[][]` | `id/fieldId/required/readonly/seq/rowIndex/colIndex` |
+| `content.buttons[]` | `rowId/buttonId/seq` |
+| `content.relatedLists[]` | `id/name/objectId/fieldId/relatedListType/show/seq/fields/buttons` |
+| `content.relatedLists[].fields[]` | `rowId/fieldId/seq/fieldStyle` |
+| `content.relatedLists[].buttons[]` | `rowId/buttonId/seq` |
+| `content.assignments[]` | `id/profileId/objectId/recordTypeId/layoutId` |
+
+审批历史的规范化回读示例：
+
+```json
+{
+  "content": {
+    "relatedLists": [
+      {
+        "id": "<真实相关列表ID>",
+        "name": "审批历史",
+        "objectId": "fff000abe",
+        "fieldId": "none",
+        "relatedListType": "approvalHistory",
+        "show": false,
+        "seq": 1,
+        "fields": [],
+        "buttons": []
+      }
+    ]
+  }
+}
+```
+
+`show` 回读为 JSON 布尔值，不是 `0/1` 字符串。更新布局时只从 `content` 复制 `sections`、`buttons`、`relatedLists` 等用户参数；响应中的其他诊断信息不是 CLI spec，不要复制到 plan 文件。
 
 #### 创建关系字段时显式生成相关列表
 
@@ -695,7 +775,7 @@ cloudcc apply msapi . <planId>
 - 提供非空 `relatedLists[]`：以提交数组完整替换该布局的相关列表、显示列和列表按钮。
 - 提供 `"relatedLists": []`：清空该布局的全部相关列表。
 
-因此更新前必须先执行 `detail pagelayout` 回读完整 `sections`，并把希望保留的相关列表全部放回 JSON：
+因此更新前必须先执行 `detail pagelayout`，从 `content.sections` 回读完整分区，并把 `content.relatedLists` 中希望保留的相关列表全部放回 JSON：
 
 ```json
 {
@@ -737,7 +817,7 @@ cloudcc apply msapi . <planId>
 cloudcc detail pagelayout . obj_contract layout_contract_sales
 ```
 
-回读时至少核对相关列表名称、`seq`、关系字段、显示列顺序、按钮顺序和 PC/mobile 所属布局。不要只验证 `tp_sys_relatedlist` 根记录存在。
+回读时至少核对 `content.relatedLists[]` 中的名称、`seq`、`objectId`、`fieldId`、`relatedListType`、`show`、显示列顺序和按钮顺序，并确认 PC/mobile 所属布局。不要只验证相关列表根配置存在。
 
 ### 智能体执行流程
 
@@ -782,7 +862,7 @@ cloudcc update pagelayout <projectPath> hover <layoutId> <fieldIds> [miniRelatio
 
 说明：
 
-- `encodedLayoutJSON` 需要是 URL 编码后的 JSON，且必须包含 `sections` 字段（通常从 `detail` 返回的 `data.sections` 构造）
+- `encodedLayoutJSON` 需要是 URL 编码后的 JSON，且必须包含 `sections` 字段（通常从 `detail` 返回的 `content.sections` 构造）
 - CLI 提交前会清理每个 section 上的 `sortOrder`、`categoriesAllowed`、`canChangeColumns`、`canDeleteSection`
 - 最终提交体使用 `{ "layoutId": "...", "layoutJson": "<string>" }` 并调用 `saveLayout`
 - MetadataService JSON 更新同样要求完整 `sections[]`；`buttons` / `relatedLists` 省略时保留，显式数组时完整替换，空数组表示清空
@@ -802,7 +882,7 @@ cloudcc update pagelayout . hover add100000001328m7xZh 'name,phone,email'
 
 ### 行式布局
 
-行式布局是列表行/摘要行中显示的字段集合。setup-svc 保存时会先删除目标布局的既有 `tp_sys_multilayout` 行，再按顺序插入：
+行式布局是列表行/摘要行中显示的字段集合。保存时会以本次参数按顺序替换目标行式布局的既有字段集合：
 
 | 参数 | 说明 |
 |------|------|
@@ -811,7 +891,7 @@ cloudcc update pagelayout . hover add100000001328m7xZh 'name,phone,email'
 
 ### 悬停布局
 
-悬停布局是 lookup、引用字段或详情悬停卡片中展示的简要字段集合。setup-svc 保存时会替换目标布局的 `tp_sys_minilayout` 字段行：
+悬停布局是 lookup、引用字段或详情悬停卡片中展示的简要字段集合。保存时会以本次参数替换目标悬停布局的既有字段集合：
 
 | 参数 | 说明 |
 |------|------|
@@ -852,7 +932,7 @@ cloudcc update pagelayout <projectPath> dynamic-second-condition <encodedConditi
 cloudcc delete pagelayout <projectPath> dynamic-second-condition <secondConditionId>
 ```
 
-二级条件 JSON 常用字段：`id`、`mainConditionId`、`label`、`seq`、`fields[]`。`fields[]` 中每项使用 `fieldId`、`operator`、`value`、`BoolFilter`、`seq`，保存为二级条件下属 `tp_sys_condition` 行。
+二级条件 JSON 常用字段：`id`、`mainConditionId`、`label`、`seq`、`fields[]`。`fields[]` 中每项使用 `fieldId`、`operator`、`value`、`BoolFilter`、`seq`，并作为该二级条件的下属条件项保存。
 
 触发动作：
 
