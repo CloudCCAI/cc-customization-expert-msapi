@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.67-msapi
+# cc-customization-expert-msapi v2.2.68-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -83,7 +83,7 @@ Bulk API 按 MetadataService 的对象/字段到物理表映射直接写业务�
 
 从技能 `2.2.41` 开始，`cloudcc get/getList view` 统一作为对象视图列表查询，可传对象 ID/API 名/前缀或 JSON filter；`detail/editInfo view` 才按 viewId 查详情。字段文档明确 `P`、`c`、`N`、`LT` 的 create/update/upsert 精度规则为 `length + decimalPlaces <= 18`，历史非法字段需要先修复字段定义，CLI 不自动缩短字段。
 
-从技能 `2.2.42` 开始，页面布局创建可显式携带 `assignments[]` 或 `--profile/--record-type` 同步写入 `tp_sys_profile_layout`，也可用 `cloudcc assign pagelayout` 单独分配布局；未传分配参数时仍保持 setup-svc 的“只创建/复制布局，不自动分配记录类型布局”语义。
+从技能 `2.2.68` 开始，创建页面布局不传源布局和内容时会根据对象元数据自动生成字段分区、详情页按钮和真实入向关系相关列表，基础短字段优先进入双列 `基本信息` 并均衡排布。`contentMode=auto|explicit|clone|blank` 控制自动设计、手工内容、精确复制和真正空白；显式空数组禁止该类别自动补齐。创建/复制仍默认分配给当前租户全部简档；显式 `assignments[]` 限定简档/记录类型，`autoAssignProfiles=false` 创建未分配草稿，`assign pagelayout` 保留为独立改配能力，要求 MetadataService `1.1.62` 或更高版本。
 
 从技能 `2.2.43` 开始，币种管理进入 MetadataService 低代码域：`currencies` 支持币种列表、详情、可新增币种、高级汇率读取，固定币种新增/修改/启停/汇率维护，高级多币种开关，dated rate 新增/修改/删除，以及要求显式重算 `rates[]` 的公司本位币变更计划。
 

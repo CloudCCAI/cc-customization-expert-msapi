@@ -48,13 +48,23 @@
 
 | 值            | 说明                   |
 |---------------|------------------------|
-| `URL`         | 跳转到指定 URL         |
-| `JavaScript`  | 执行 JavaScript 代码   |
+| `lightning` | PC 端脚本模板按钮；界面显示为 `template` |
+| `lightning-script` | PC 与移动端脚本按钮 |
+| `lightning-url` | PC 与移动端页面或链接按钮 |
+| `URL` | 普通 URL 跳转按钮；界面显示为 `url` |
+
+完整创建字段、JSON 示例和兼容别名以 `cloudcc doc platform/button devguide` 为准；不要再使用旧的 `JavaScript` event 值。
 
 ---
 
 ## 5. 如何将按钮添加到页面
 
-- **详细信息页**：编辑页面布局，将按钮拖入布局
-- **相关列表**：在页面布局中找到相关列表，编辑其属性
+- **详细信息页**：先创建按钮，再在页面布局 JSON 的 `buttons[]` 中使用真实回读的 `buttonId` 挂载
+- **相关列表**：先创建按钮，再在页面布局 `relatedLists[].buttons[]` 中使用真实回读的 `buttonId` 挂载
 - **列表视图**：在"搜索布局"中编辑列表视图布局
+
+页面布局中的按钮只是引用关系，不会隐式创建按钮定义。完整页面布局示例见：
+
+```bash
+cloudcc doc platform/pagelayout devguide
+```

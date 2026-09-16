@@ -62,7 +62,39 @@ cloudcc get pagelayout . 001
 cloudcc create pagelayout <projectPath> <objId> <layoutName> [sourceLayoutId] [isCloneDynamic]
 ```
 
-`create pagelayout` 默认只创建或复制页面布局，不会自动改变任何简档或记录类型的默认页面布局。要让新布局在某个记录类型下生效，必须同时提供 `assignments[]`，或创建后执行 `assign pagelayout`。
+`create pagelayout` 创建或复制布局后必须同时形成可用内容和布局分配。使用 MetadataService `1.1.62+` 时，最简单的命令会自动读取对象字段、详情按钮和入向查找/主详关系并设计布局：
+
+```bash
+cloudcc create pagelayout . 20267D1465464C5OB6m5 "课程表2"
+```
+
+该命令不需要调用方传字段、按钮或相关列表，也不会暗中选择“第一个布局”复制。计划的 `contentMode=auto`，并返回 `autoDesigned=true`、字段/按钮/相关列表计数；确认 plan 后仍需显式执行 `apply`。
+
+内容来源按以下规则确定：
+
+| `contentMode` | 触发方式 | 行为 |
+|---|---|---|
+| `auto` | 没有 `sourceLayoutId`，且完全没有 `sections` / `buttons` / `layoutButtons` / `relatedLists` 或旧式 `nameFieldId` 等默认分区字段；也可显式填写 | 从对象元数据自动生成内容。显式 `contentMode=auto` 时，已经出现的数组优先，缺少的内容类别才自动补齐；显式空数组表示不要该类别。 |
+| `explicit` | 提供任一内容数组且未写 `contentMode`，或显式填写 | 只使用调用方提交的布局内容，不自动补齐遗漏类别。 |
+| `clone` | 提供 `sourceLayoutId`，或显式填写并同时提供源布局 | 完整复制指定源布局的部分、字段、按钮、相关列表及子布局；不会默认选择第一个布局。 |
+| `blank` | 必须显式填写 | 创建真正的空白布局；不能同时提交内容数组或 `sourceLayoutId`。 |
+
+自动设计规则：
+
+- 基础短字段最先进入 `基本信息`，名称/编号、类型/状态、主关联、负责人优先，并在两列间交替平衡。
+- 金额、地址、时间、状态等字段只有形成稳定主题时才建立对应业务部分；零散字段仍归入双列 `基本信息`。
+- 长文本、富文本、说明和备注进入单列 `备注信息`。
+- 创建人、修改人、所有人、记录类型等系统字段进入末尾双列 `系统信息`，并按只读处理。
+- 详情按钮只从当前对象可见的 `detailBtn` 中选择，标准按钮优先，隐藏按钮和列表按钮不进入详情布局。
+- 相关列表只从真实的入向查找/主详关系生成；显示列优先名称/编号、状态、金额/数量、日期、负责人，最多 7 列；列表按钮只从子对象可见 `listBtn` 中选择。
+
+布局分配规则独立于内容模式：
+
+- 未传 `assignments[]`：默认把新布局作为对象默认布局分配给当前租户全部简档，`recordTypeId` 为空。
+- 传入 `assignments[]`：只按显式简档/记录类型范围分配，不再额外展开全部简档。
+- 确实只想创建未分配草稿：设置 `autoAssignProfiles=false`，即在 JSON spec 中显式写 `"autoAssignProfiles": false`，之后再使用独立的 `assign pagelayout` 完成分配。
+
+创建成功不等于用户已经能看到布局；验收必须同时检查布局内容和 `tp_sys_profile_layout` 分配结果。
 
 **参数说明：**
 
@@ -71,13 +103,13 @@ cloudcc create pagelayout <projectPath> <objId> <layoutName> [sourceLayoutId] [i
 | `projectPath` | 否 | 项目路径，`.` 表示当前目录 |
 | `objId` | 是 | 对象 ID |
 | `layoutName` | 是 | 新页面布局名称 |
-| `sourceLayoutId` | 否 | 要复制的源布局 ID，不传则使用默认第一个 |
+| `sourceLayoutId` | 否 | 要复制的真实源布局 ID；只有传入时才进入 `clone` 模式，不传时默认自动设计 |
 | `isCloneDynamic` | 否 | 是否复制动态布局规则，默认 `true` |
 
 **示例：**
 
 ```bash
-# 创建页面布局（自动使用默认布局作为模板）
+# 自动设计字段、按钮和相关列表，并默认分配给全部简档
 cloudcc create pagelayout . 20267D1465464C5OB6m5 "课程表2"
 
 # 指定源布局 ID 进行复制
@@ -90,13 +122,55 @@ cloudcc create pagelayout . 20267D1465464C5OB6m5 "课程表2" add20261DA7347CZPA
 cloudcc create pagelayout . 20267D1465464C5OB6m5 "课程表2" add20261DA7347CZPAUz false --profile aaa000001 --record-type rt_course_domestic
 ```
 
-使用 MetadataService JSON 时，可以在创建布局的同一个 plan 中写 `assignments[]`：
+自动模式也可以使用 MetadataService JSON，并在 plan 阶段查看设计结果：
+
+```json
+{
+  "objectId": "20267D1465464C5OB6m5",
+  "layoutName": "课程自动布局",
+  "contentMode": "auto"
+}
+```
+
+```bash
+cloudcc plan msapi . layouts @layout-auto.json create
+# 检查 contentMode、autoDesigned、sectionCount、autoDesignFieldCount、
+# layoutButtonCount、relatedListCount 和 warnings 后再执行
+cloudcc apply msapi . <planId>
+cloudcc detail pagelayout . 20267D1465464C5OB6m5 <layoutId>
+```
+
+显式 `auto` 可按类别覆盖自动结果。例如保留自动字段和相关列表、但明确不要任何按钮：
+
+```json
+{
+  "objectId": "20267D1465464C5OB6m5",
+  "layoutName": "无按钮自动布局",
+  "contentMode": "auto",
+  "buttons": []
+}
+```
+
+创建空白布局必须显式声明，不能依赖省略内容：
+
+```json
+{
+  "objectId": "20267D1465464C5OB6m5",
+  "layoutName": "课程空白布局",
+  "contentMode": "blank"
+}
+```
+
+完整手工设计使用 `contentMode=explicit` 和后文的完整页面布局 JSON。只要任一内容数组已经出现且没有显式写 `contentMode=auto`，系统就按 `explicit` 处理，不会猜测遗漏的按钮或相关列表。
+
+复制现有布局时，可以在创建布局的同一个 plan 中显式限定分配范围：
 
 ```json
 {
   "id": "layout_course_sales",
   "objectId": "20267D1465464C5OB6m5",
   "layoutName": "课程销售布局",
+  "contentMode": "clone",
   "sourceLayoutId": "add20261DA7347CZPAUz",
   "assignments": [
     {
@@ -107,11 +181,22 @@ cloudcc create pagelayout . 20267D1465464C5OB6m5 "课程表2" add20261DA7347CZPA
 }
 ```
 
-`assignments[].layoutId` 在创建布局时不要传；MetadataService 会使用本次创建的布局 ID。`recordTypeId` 不传表示对象默认布局分配，传入记录类型 ID 表示记录类型页面布局分配。
+`assignments[].layoutId` 在创建布局时不要传；MetadataService 会使用本次创建的布局 ID。`recordTypeId` 不传表示该简档的对象默认布局，传入记录类型 ID 表示该简档下特定记录类型的页面布局。
+
+如果只创建未分配草稿，必须明确表达，而不是依赖省略参数；内容是否自动设计由 `contentMode` 单独决定：
+
+```json
+{
+  "objectId": "20267D1465464C5OB6m5",
+  "layoutName": "课程草稿布局",
+  "contentMode": "auto",
+  "autoAssignProfiles": false
+}
+```
 
 ### 页面布局分配
 
-已有页面布局需要补做或调整记录类型分配时，使用 `assign pagelayout`：
+已有页面布局需要补做、改配或增加记录类型分配时，使用独立的 `assign pagelayout`。该操作只写布局分配，不重写 sections、按钮或相关列表：
 
 ```bash
 cloudcc assign pagelayout <projectPath> <objectId|apiName|prefix> <layoutId> --profile <profileId> [--record-type <recordTypeId>]
@@ -149,7 +234,93 @@ cloudcc plan msapi . layouts @layout-assignments.json assign
 cloudcc apply msapi . <planId>
 ```
 
-验收时回读 `tp_sys_profile_layout`，确认同一行中 `PROFILE_ID`、`OBJ_ID`、`RECORDTYPE_ID`、`LAYOUT_ID` 分别对应目标简档、对象、记录类型和页面布局。不要只看页面布局是否创建成功。
+同一“简档 + 对象 + 记录类型”是一个分配范围；再次分配时应复用既有关系并把 `LAYOUT_ID` 改为目标布局，而不是为不同布局保留多条冲突关系。验收时回读 `tp_sys_profile_layout`，确认 `PROFILE_ID`、`OBJ_ID`、`RECORDTYPE_ID`、`LAYOUT_ID` 分别对应目标简档、对象、记录类型和页面布局。不要只看页面布局是否创建成功。
+
+## 完整页面布局 JSON
+
+下面示例在一次 MetadataService 计划中创建布局字段、详情页按钮、相关列表、相关列表显示列、相关列表按钮，并显式分配给一个简档和记录类型：
+
+```json
+{
+  "id": "layout_contract_sales",
+  "objectId": "obj_contract",
+  "layoutName": "合同销售布局",
+  "contentMode": "explicit",
+  "apiName": "contract_sales_layout",
+  "sections": [
+    {
+      "id": "section_contract_basic",
+      "name": "基本信息",
+      "showDetailHeader": true,
+      "showEditHeader": true,
+      "columns": [
+        [
+          {"fieldId": "field_contract_name", "required": true, "readonly": false},
+          {"fieldId": "field_contract_customer"}
+        ],
+        [
+          {"fieldId": "field_contract_status"},
+          {"fieldId": "field_contract_amount"}
+        ]
+      ]
+    }
+  ],
+  "buttons": [
+    {"buttonId": "button_contract_submit", "seq": 1},
+    {"buttonId": "button_contract_clone", "seq": 2}
+  ],
+  "relatedLists": [
+    {
+      "id": "related_contract_payments",
+      "name": "回款明细",
+      "objectId": "obj_payment",
+      "fieldId": "field_payment_contract",
+      "seq": 1,
+      "show": true,
+      "orderField": "field_payment_date",
+      "orderDir": "desc",
+      "fields": [
+        {"fieldId": "field_payment_name", "seq": 1},
+        {"fieldId": "field_payment_status", "seq": 2},
+        {"fieldId": "field_payment_amount", "seq": 3},
+        {"fieldId": "field_payment_date", "seq": 4},
+        {"fieldId": "ownerid", "seq": 5}
+      ],
+      "buttons": [
+        {"buttonId": "button_payment_new", "seq": 1}
+      ]
+    }
+  ],
+  "assignments": [
+    {
+      "profileId": "aaa_sales",
+      "recordTypeId": "rt_contract_domestic"
+    }
+  ]
+}
+```
+
+执行：
+
+```bash
+cloudcc plan msapi . layouts @contract-sales-layout.json create
+cloudcc apply msapi . <planId>
+cloudcc detail pagelayout . obj_contract layout_contract_sales
+```
+
+如果省略上例的 `assignments[]`，新布局默认分配给全部简档；如果不希望自动分配，必须显式写 `"autoAssignProfiles": false`。
+
+### 完整 JSON 字段说明
+
+| 节点 | 关键字段 | 说明 |
+|------|----------|------|
+| `sections[]` | `id/name/columns[][]` | 页面字段分组；`columns` 第一层是列，第二层是该列字段。 |
+| `sections[].columns[][]` | `fieldId/required/readonly` | `fieldId` 必须来自目标对象字段回读；不要使用标签代替字段 ID。 |
+| `buttons[]` | `buttonId/seq` | 挂载已经存在的详情页按钮；按钮定义本身先通过 `buttons` domain 创建。 |
+| `relatedLists[]` | `name/objectId/fieldId/seq/show` | `objectId` 是子对象，`fieldId` 是子对象上指向当前父对象的查找/主详关系字段。 |
+| `relatedLists[].fields[]` | `fieldId/seq/fieldStyle` | 相关列表显示列，字段来自子对象；首列应是可点击名称/编号字段。 |
+| `relatedLists[].buttons[]` | `buttonId/seq` | 挂载已经存在且适用于该相关列表的按钮。 |
+| `assignments[]` | `profileId/recordTypeId` | 显式限定布局分配；省略整个数组才触发全部简档默认分配。 |
 
 ### 批量创建页面布局
 
@@ -165,6 +336,7 @@ cloudcc apply msapi . <planId>
     {
       "id": "layout_contract_default",
       "layoutName": "合同默认布局",
+      "assignments": [{"profileId": "aaa_contract_admin"}],
       "sections": [
         {
           "label": "基本信息",
@@ -176,7 +348,8 @@ cloudcc apply msapi . <planId>
       "targetLayoutId": "layout_contract_channel",
       "layoutName": "渠道合同布局",
       "sourceLayoutId": "layout_contract_default",
-      "isCloneDynamic": "true"
+      "isCloneDynamic": "true",
+      "assignments": [{"profileId": "aaa_channel_sales", "recordTypeId": "rt_contract_channel"}]
     }
   ]
 }
@@ -192,6 +365,8 @@ cloudcc get pagelayout <projectPath> <prefix>
 ```
 
 `pagelayout` / `layouts` 都可作为 `plan msapi` 的 domain 参数。批量计划会逐项检查同批重复、目标对象已有同 ID / API 名 / 名称布局、数组项是否声明了其它对象。复制布局时，`sourceLayoutId` / `cloneFromLayoutId` / 复制形态下的 `layoutId` 必须属于同一个根对象，跨对象源布局会标记为 `FAILED_PRECHECK`。
+
+批量创建多个布局时，每个 `layouts[]` 项必须显式提供自己的 `assignments[]`，或者写 `"autoAssignProfiles": false` 表示该项暂不分配。多个布局不能同时成为全部简档的对象默认布局；省略这两个字段会标记为 `FAILED_PRECHECK`，避免数组最后一项意外覆盖前面布局的默认分配。
 
 `onExisting` 支持：
 
@@ -435,6 +610,13 @@ data
 
 ### 相关列表
 
+相关列表由两个层次组成：
+
+1. 查找关系或主详关系字段定义“子记录如何关联父记录”。
+2. 页面布局的 `relatedLists[]` 定义“在哪个父对象布局展示、展示哪些子对象字段、按什么顺序以及提供哪些按钮”。
+
+不要只创建 `tp_sys_relatedlist` 外观而没有真实关系字段。以“合同—回款明细”为例，`field_payment_contract` 必须是回款对象上指向合同对象的查找或主详字段；相关列表中的 `fields[]` 也必须是回款对象字段。
+
 只有当用户在父记录详情页需要浏览、创建或追踪子记录时，才挂载相关列表。以下情况不应挂载：只是暴露数据库关系但没有父记录内操作场景、与已有列表重复、子对象数据量过大且页面列表无法提供有效筛选或摘要、仅供技术集成使用且没有业务可读价值。
 
 相关列表名称使用子记录集合的业务称谓，例如 `联系人`、`销售订单`、`回款明细`，不要使用对象 API 名或关系字段名。
@@ -461,6 +643,101 @@ data
 6. 短备注，仅在列表中确有辨识价值时放在最后。
 
 避免展示父记录回查字段、内部 ID、长文本、图片、公式明细、重复含义字段和对判断无帮助的审计字段。批准历史、字段跟踪等平台系统列表允许空字段配置；自定义业务列表没有显式字段配置时必须复核是否漏配。
+
+#### 创建关系字段时显式生成相关列表
+
+创建查找关系（`Y`）或主详关系（`M`）字段时，可以在字段 spec 中显式为父对象的一个或多个布局生成相关列表：
+
+```json
+{
+  "objectId": "obj_payment",
+  "apiName": "contract_id",
+  "label": "合同",
+  "type": "Y",
+  "lookupObjectId": "obj_contract",
+  "childrelationName": "回款明细",
+  "relatedLists": [
+    {
+      "id": "related_contract_payments",
+      "layoutId": "layout_contract_sales",
+      "name": "回款明细",
+      "objectId": "obj_payment",
+      "seq": 1,
+      "show": true,
+      "orderField": "field_payment_date",
+      "orderDir": "desc",
+      "fields": [
+        {"fieldId": "field_payment_name", "seq": 1},
+        {"fieldId": "field_payment_status", "seq": 2},
+        {"fieldId": "field_payment_amount", "seq": 3},
+        {"fieldId": "field_payment_date", "seq": 4},
+        {"fieldId": "ownerid", "seq": 5}
+      ]
+    }
+  ]
+}
+```
+
+执行：
+
+```bash
+cloudcc plan msapi . fields @payment-contract-field.json create
+cloudcc apply msapi . <planId>
+```
+
+字段 spec 中每个 `relatedLists[]` 项的 `layoutId` 是父对象布局 ID；根级 `objectId` 是子对象 ID；`lookupObjectId` 是父对象 ID。显式写 `"relatedLists": []` 表示不要自动生成相关列表。完全省略 `relatedLists` 时，MetadataService 会按 `lookupObjectId` 查找父对象布局并依据 `mainlayoutIds` 自动生成默认相关列表。
+
+#### 在已有布局中调整相关列表
+
+布局更新采用显式完整替换语义：
+
+- 省略 `relatedLists`：保留现有相关列表。
+- 提供非空 `relatedLists[]`：以提交数组完整替换该布局的相关列表、显示列和列表按钮。
+- 提供 `"relatedLists": []`：清空该布局的全部相关列表。
+
+因此更新前必须先执行 `detail pagelayout` 回读完整 `sections`，并把希望保留的相关列表全部放回 JSON：
+
+```json
+{
+  "id": "layout_contract_sales",
+  "sections": [
+    {
+      "sectionId": "section_contract_basic",
+      "sectionName": "基本信息",
+      "columns": [
+        [{"fieldId": "field_contract_name"}],
+        [{"fieldId": "field_contract_status"}]
+      ]
+    }
+  ],
+  "relatedLists": [
+    {
+      "id": "related_contract_payments",
+      "name": "回款明细",
+      "objectId": "obj_payment",
+      "fieldId": "field_payment_contract",
+      "seq": 1,
+      "show": true,
+      "fields": [
+        "field_payment_name",
+        "field_payment_status",
+        "field_payment_amount",
+        "field_payment_date",
+        "ownerid"
+      ],
+      "buttons": ["button_payment_new"]
+    }
+  ]
+}
+```
+
+```bash
+cloudcc plan msapi . layouts @contract-layout-update.json update
+cloudcc apply msapi . <planId>
+cloudcc detail pagelayout . obj_contract layout_contract_sales
+```
+
+回读时至少核对相关列表名称、`seq`、关系字段、显示列顺序、按钮顺序和 PC/mobile 所属布局。不要只验证 `tp_sys_relatedlist` 根记录存在。
 
 ### 智能体执行流程
 
@@ -508,6 +785,7 @@ cloudcc update pagelayout <projectPath> hover <layoutId> <fieldIds> [miniRelatio
 - `encodedLayoutJSON` 需要是 URL 编码后的 JSON，且必须包含 `sections` 字段（通常从 `detail` 返回的 `data.sections` 构造）
 - CLI 提交前会清理每个 section 上的 `sortOrder`、`categoriesAllowed`、`canChangeColumns`、`canDeleteSection`
 - 最终提交体使用 `{ "layoutId": "...", "layoutJson": "<string>" }` 并调用 `saveLayout`
+- MetadataService JSON 更新同样要求完整 `sections[]`；`buttons` / `relatedLists` 省略时保留，显式数组时完整替换，空数组表示清空
 
 示例（仅示意）：
 
