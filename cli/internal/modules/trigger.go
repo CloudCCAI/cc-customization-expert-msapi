@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -162,7 +163,7 @@ func publishTrigger(args []string, stdout io.Writer, stderr io.Writer, cwd strin
 		return err
 	}
 	source = strings.TrimSpace(source)
-	structureViolations, _ := javaOptionalResourceClassPolicy(source, name)
+	structureViolations := javaFragmentTypePolicyViolations(source, "trigger")
 	if len(structureViolations) > 0 {
 		return fmt.Errorf("trigger source violates CloudCC policy: %s", strings.Join(structureViolations, "; "))
 	}
@@ -180,6 +181,16 @@ func publishTrigger(args []string, stdout io.Writer, stderr io.Writer, cwd strin
 	cfgContent, _ := jsonx.ReadObjectFile(configPath)
 	if cfgContent == nil {
 		cfgContent = map[string]any{}
+	}
+	missingBinding := make([]string, 0, 2)
+	for _, key := range []string{"targetObjectId", "triggerTime"} {
+		value := strings.TrimSpace(fmt.Sprint(cfgContent[key]))
+		if value == "" || value == "<nil>" {
+			missingBinding = append(missingBinding, key)
+		}
+	}
+	if len(missingBinding) > 0 {
+		return fmt.Errorf("trigger %s is an unbound local scaffold: config.json is missing %s; targetObjectId and triggerTime, not the directory name, define the trigger object and timing", name, strings.Join(missingBinding, ", "))
 	}
 	cfg, err := config.Load(projectPath)
 	if err != nil {
@@ -411,11 +422,48 @@ func looksLikeTriggerSpec(value string) bool {
 
 func createTriggerResource(args []string, stderr io.Writer, cwd string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("cloudcc create trigger <name> [projectPath]")
+		return fmt.Errorf("cloudcc create trigger <TriggerName|objectApi/TriggerName> [projectPath]")
 	}
 	projectPath := cwd
 	if len(args) > 1 && strings.TrimSpace(args[1]) != "" && !looksLikeTriggerSpec(args[1]) {
 		projectPath = args[1]
 	}
-	return createJavaResource("triggers", "trigger", args[:1], stderr, projectPath)
+	namePath := filepath.Clean(strings.TrimSpace(args[0]))
+	objectPath := filepath.Dir(namePath)
+	if namePath == "." || filepath.IsAbs(namePath) || (objectPath != "." && filepath.Dir(objectPath) != ".") {
+		return fmt.Errorf("cloudcc create trigger requires <TriggerName> or <objectApi/TriggerName>")
+	}
+	name := filepath.Base(namePath)
+	if name == "." || name == "" {
+		return fmt.Errorf("cloudcc create trigger requires <TriggerName> or <objectApi/TriggerName>")
+	}
+
+	target := backendResourcePath(projectPath, "triggers", namePath)
+	if err := os.MkdirAll(target, 0o755); err != nil {
+		return err
+	}
+	packageName := "triggers." + name
+	if objectPath != "." {
+		packageName = "triggers." + strings.ToLower(filepath.Base(objectPath)) + "." + name
+	}
+	source := fmt.Sprintf("package %s;\n\nimport com.cloudcc.core.*;\n\npublic class %s extends CCTrigger {\n    public %s() {\n        super(userInfo);\n        // @SOURCE_CONTENT_START\n        // TODO: implement trigger logic\n        // @SOURCE_CONTENT_END\n    }\n}\n", packageName, name, name)
+	if err := os.WriteFile(filepath.Join(target, name+".java"), []byte(source), 0o644); err != nil {
+		return err
+	}
+	test := fmt.Sprintf("package %s;\n\npublic class %sTest {\n}\n", packageName, name)
+	if err := os.WriteFile(filepath.Join(target, name+"Test.java"), []byte(test), 0o644); err != nil {
+		return err
+	}
+	if err := jsonx.WriteObjectFile(filepath.Join(target, "config.json"), map[string]any{
+		"interface":       true,
+		"name":            name,
+		"schemetableName": "",
+		"targetObjectId":  "",
+		"triggerTime":     "",
+		"version":         highCodeDefaultVersion,
+	}); err != nil {
+		return err
+	}
+	fmt.Fprintf(stderr, "Created trigger resource: %s\n", target)
+	return nil
 }

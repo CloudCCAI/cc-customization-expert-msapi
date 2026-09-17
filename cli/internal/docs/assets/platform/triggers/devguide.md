@@ -12,7 +12,7 @@
 ## 2. 开发规范
 
 - 一个对象的一个触发时机，只创建一个触发器
-- 创建本地触发器骨架使用：`cloudcc create trigger <objectApi/TriggerName> [projectPath]`。
+- 创建本地触发器骨架使用：`cloudcc create trigger <TriggerName> [projectPath]`；已有迁移项目需要保留对象分组目录时也兼容 `<objectApi/TriggerName>`。目录只用于本地组织，不能作为对象绑定事实源。
 - 直接保存线上元数据使用：`cloudcc create trigger <projectPath> <triggerJson|@file>`。
 - 尽量不要在触发器中直接开发业务逻辑
 - 需要复用、编排、扩展的逻辑，统一下沉到自定义类
@@ -67,8 +67,8 @@ trigger.addErrorMessage("提示内容");
 触发器中只保留入口逻辑：
 
 ```java
-public class MyTriggerService extends CCTrigger {
-    public MyTriggerService() {
+public class MyTrigger extends CCTrigger {
+    public MyTrigger() {
         super(userInfo);
         // @SOURCE_CONTENT_START
         try {
@@ -173,8 +173,8 @@ cloudcc save trigger <projectPath> <triggerJson|@file>
 创建本地骨架与发布：
 
 ```bash
-cloudcc create trigger <objectApi/TriggerName> [projectPath]
-cloudcc publish trigger <objectApi/TriggerName> [projectPath]
+cloudcc create trigger <TriggerName|objectApi/TriggerName> [projectPath]
+cloudcc publish trigger <TriggerName|objectApi/TriggerName> [projectPath]
 ```
 
 `publish trigger` 的发布顺序固定为：
@@ -183,6 +183,8 @@ cloudcc publish trigger <objectApi/TriggerName> [projectPath]
 2. 远程 validate，调用 `POST /api/trigger/validate`。
 3. 保存，调用 `POST /api/triggerSetup/saveTrigger`。
 4. 保存后再次读取 detail，并把线上 ID、API 名和版本写回本地 `config.json`。
+
+发布前会从本地 `config.json` 读取 `targetObjectId` 和 `triggerTime`。`targetObjectId` 才是触发器所属对象的权威标识，`triggerTime` 是触发时机；`schemetableName` 是对象表/API 辅助信息。`cloudcc create trigger <TriggerName>` 只创建尚未绑定对象的本地源码骨架，这些字段为空时 publish 会在任何网络请求前明确阻断。`objectApi/TriggerName` 中的目录名也不会被推断为对象 ID。
 
 
 远程 validate 失败时，CLI 必须返回 setup-svc 的 `returnInfo`、`data.errors`、`data.warnings` 和原始 `responseBody`，并且不能继续 save。
@@ -217,15 +219,19 @@ cloudcc doc platform/triggers devguide
 
 ### 10.1 触发器不是普通 Java 类容器
 
-根据当前项目的实际文件结构，触发器目录位于：
+根据当前项目的实际文件结构，触发器目录可能是：
 
-- `triggers/<对象 API 名小写>/<触发器名>/`
+- 新建本地骨架默认使用 `backend/triggers/<触发器名>/`
+- 历史抽取/迁移项目也可能使用 `backend/triggers/<对象 API 名小写>/<触发器名>/`
 
-主类通常形如：
+两种目录的主类都形如：
 
-- `package triggers.<对象小写>.<触发器名>;`
+- 一级目录使用 `package triggers.<触发器名>;`
+- 对象分组目录使用 `package triggers.<对象小写>.<触发器名>;`
 - `public class Xxx extends CCTrigger`
 - SOURCE 区域位于构造函数中
+
+目录层级不是对象归属协议。发布时始终以 `config.json.targetObjectId` 为准，禁止从文件夹名称猜测或合成对象 ID。
 
 这意味着：
 
@@ -261,7 +267,7 @@ AI 修改已有触发器时，只能修改：
 
 触发器 SOURCE 区域必须保持薄入口；如果业务实现预计让触发器或单个服务类超过 1500 行，AI 必须先拆分为多个自定义类，再由触发器调用入口服务。禁止生成超过 2000 行的触发器或单个自定义类源码。
 
-触发器源码兼容两种历史形态：纯可执行片段可以不声明类型；CLI 脚手架生成的完整形态只能包含一个与触发器资源同名的顶级 `public class`。两种形态都禁止追加第二个 `class`、`interface`、`enum` 或 `record`，也不得通过局部类型把复杂业务继续塞回触发器。同一职责优先提取为入口类中的私有方法；独立或可复用职责必须通过 `cloudcc create classes <ClassName> <projectPath>` 创建单独的 CloudCC 自定义类，再由触发器做薄编排。publish 会在任何远程 validate/save 请求前阻断不合规类型并报告行号。
+触发器文件的外层框架由 CLI 生成，`SOURCE_CONTENT` 标记必须位于 `CCTrigger` 构造函数内；发布到 `triggerSource` 的内容只能是薄入口可执行片段，不能声明 `class`、`interface`、`enum` 或 `record`。同一职责优先提取为调用的自定义类方法；独立或可复用职责必须通过 `cloudcc create classes <ClassName> <projectPath>` 创建单独的 CloudCC 自定义类，再由触发器做薄编排。publish 会在任何远程 validate/save 请求前阻断 SOURCE 中的命名类型并报告行号。
 
 触发器生成或修改后可运行 `cloudcc format trigger <object/TriggerName> <projectPath> --write` 显式整理，并用 `--check` 只读复核。CLI 使用内置 Go 轻量格式器单次处理 4 空格缩进和同一行的普通语句，不启动 JVM，也不需要临时包装 SOURCE 片段。publish 会自动整理并写回本地触发器源码后继续远程 validate/save；格式整理异常仅以 `format_warning` 报告，不会替代或阻断真正的远程验证。
 

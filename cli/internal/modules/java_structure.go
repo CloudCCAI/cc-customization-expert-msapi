@@ -59,13 +59,6 @@ func javaFragmentTypePolicyViolations(source string, resource string) []string {
 	return violations
 }
 
-func javaOptionalResourceClassPolicy(source string, expectedClass string) ([]string, []string) {
-	if len(javaNamedTypeDeclarations(source)) == 0 {
-		return nil, nil
-	}
-	return javaSourceStructurePolicy(source, expectedClass)
-}
-
 func javaNamedTypeDeclarations(source string) []javaTypeDeclaration {
 	tokens := lexJavaStructureTokens(source)
 	declarations := []javaTypeDeclaration{}

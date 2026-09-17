@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.71"
+const Version = "2.2.72"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -32,6 +32,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		Help(stdout, stderr)
 		return nil
 	case "changelog":
+		fmt.Fprintln(stderr, "- Trigger local scaffolding now creates a real CCTrigger wrapper with constructor-scoped SOURCE markers; flat backend/triggers/<TriggerName> is canonical, objectApi/TriggerName remains an organizational compatibility path, object ownership comes from config.json targetObjectId, and unbound scaffolds fail before publish networking. Timers are selected by scheduleJob prgid and are not object-owned.")
 		fmt.Fprintln(stderr, "- High-code Java layout cleanup now runs as a lightweight single-pass Go formatter with no JVM or formatter JAR; publish reports formatting problems as warnings and continues to the existing structure, compile, remote validation, save, and readback gates.")
 		fmt.Fprintln(stderr, "- High-code publish auto-formats classes, triggers, and timers in the local project before validation and remote requests; release 2.2.71 changes formatter failures from local blockers to structured warnings.")
 		fmt.Fprintln(stderr, "- Page layout create/clone now defaults to all-profile assignment unless explicit assignments or autoAssignProfiles=false are supplied; standalone assign remains available, and layout JSON/docs now cover sections, detail buttons, related lists, related-list fields, and related-list buttons end to end through MetadataService 1.1.62.")

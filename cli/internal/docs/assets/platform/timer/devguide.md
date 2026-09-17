@@ -30,6 +30,8 @@
 - 业务代码只写在 `SOURCE_CONTENT` 区域内
 - 不要手工创建目录或修改 `config.json` 关键内容
 
+定时类不归属于某个业务对象。它是组织级可执行程序，发布后由定时作业通过 `scheduleJob.prgid` 绑定定时类 ID，并由定时作业配置频率、日期和执行时间；`backend/schedule/<类名>/` 目录和 timer `config.json` 不保存对象归属。
+
 ## 4. 可直接使用的上下文
 
 - `userInfo`
