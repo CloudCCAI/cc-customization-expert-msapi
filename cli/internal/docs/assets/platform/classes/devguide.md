@@ -351,7 +351,7 @@ class PriceApprovalWorkbenchContextHelper {
 
 ### 5.6 Java 格式必须通过本地门禁
 
-所有新生成或修改的自定义类统一使用内置 `google-java-format 1.29.0` 的 AOSP 风格：4 个空格缩进、禁止 Tab、普通语句一行一条、LF 换行、无行尾空白，并保留一个文件末尾换行。不要为了减少行数把多个调用、赋值或控制语句压缩到同一行。
+所有新生成或修改的自定义类使用 CLI 内置的 Go 轻量格式整理：4 个空格缩进、禁止 Tab、普通语句尽量一行一条、LF 换行、无行尾空白，并保留一个文件末尾换行。它不启动 JVM，不调整 import、Javadoc 或复杂表达式换行。不要为了减少行数把多个调用、赋值或控制语句压缩到同一行。
 
 ```bash
 cloudcc format classes <ClassName> <projectPath> --write
@@ -359,7 +359,7 @@ cloudcc format classes <ClassName> <projectPath> --check
 cloudcc format highcode <projectPath> --check
 ```
 
-`--check` 和项目级 highcode 扫描只读，`validate classes` 也不会改写源码。从 CLI `2.2.69` 开始，`publish classes` 会在本地自动执行等价于 `--write` 的格式化，写回成功后使用格式化后的源码继续本地编译、远程 validate 和 save；只有格式器自身失败才会以 `blocked_local_format` 在远程请求前终止。发布结果的 `localFormat` 会说明源码是 `formatted` 还是 `format_clean`。格式化发生在 validation evidence 摘要校验之前，因此 evidence 必须对应格式化后的源码。格式化器需要 JDK 21。
+`--check` 和项目级 highcode 扫描只读；`validate classes` 也不会改写源码，发现版式差异时只给出 warning 并继续编译。`publish classes` 会在本地单次整理并写回源码，然后使用整理后的源码继续本地编译、远程 validate 和 save。格式整理是尽力而为的辅助步骤：异常以 `format_warning` 返回，但不替代也不阻断结构、编译和远程验证门禁。发布结果的 `localFormat` 会说明源码是 `formatted`、`format_clean` 还是 `format_warning`。格式化发生在 validation evidence 摘要校验之前，因此 evidence 必须对应格式化后的源码；格式整理本身不需要 JDK。
 
 ### 5.7 必须显式处理异常
 

@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.70-msapi
+# cc-customization-expert-msapi v2.2.71-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -35,7 +35,7 @@ Strict MetadataService package: low-code operations require MetadataService.
 
 调用方通过 `cloudcc doc platform/classes|triggers|timer devguide` 或 `cloudcc doc platform/almRelease devguide` 认识高代码发布命令；这些文档说明了 classes 本地编译、setup-svc validate、save 的顺序，以及 triggers/timer 远程 validate 后 save、失败返回和源码编码规则。从技能 `2.2.7` 开始，高代码发布建议 setup-svc `19.3.R20` 或更高版本，不要求 MetadataService 版本门槛；setup-svc 分支版本只做提醒，不按字符串直接阻断。
 
-从技能 `2.2.64` 开始，Java 高代码统一由包内 `google-java-format 1.29.0 --aosp` 执行 4 空格确定性格式化。`cloudcc format <classes|trigger|timer> <name> [projectPath] --write` 可显式修复单个资源，`--check` 和 `cloudcc format highcode [projectPath] --check` 只读复核。从技能 `2.2.69` 开始，publish 会先在本地自动格式化并写回 classes、trigger、timer 源码，成功后继续 validate/save；只有格式器失败才会在远程请求前终止，`validate classes` 仍保持只读。格式化器需要 JDK 21。
+Java 高代码由 CLI 内置 Go 轻量格式器单次整理 4 空格缩进、Tab、LF、行尾空白和安全的同一行普通语句，不启动 JVM，也不携带 formatter JAR。`cloudcc format <classes|trigger|timer> <name> [projectPath] --write` 可显式整理单个资源，`--check` 和 `cloudcc format highcode [projectPath] --check` 只读复核。publish 会尽力整理并写回源码后继续 validate/save；整理异常只报告 `format_warning`，真正的结构、编译和远程验证仍保持严格。
 
 从技能 `2.2.65` 开始，Lightning 仪表板通过 MetadataService `1.1.60` 创建完整聚合：可选的 `lightningdashboard` 文件夹、仪表板根、最多 15 个组件及筛选条件。`get/getList/detail dashboard` 使用专用元数据读取接口，`runtime dashboard` 只读核验目录可见性；`recentDashboard` 为空不代表仪表板不存在。
 

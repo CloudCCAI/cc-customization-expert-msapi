@@ -126,15 +126,7 @@ func handleClassDev(action string, args []string, stdout io.Writer, _ io.Writer,
 		}
 		env := discoverClassDevEnvironment(opts)
 		gates := discoverClassWorkflowGates(opts, env)
-		formatterPath := discoverJavaFormatterJar(opts.ProjectPath)
-		formatterError := ""
-		if formatterPath == "" {
-			formatterError = "packaged Java formatter is missing"
-		} else if verifyErr := verifyJavaFormatterJar(formatterPath); verifyErr != nil {
-			formatterError = verifyErr.Error()
-		}
-		gates.FormatterReady = formatterError == "" && isExecutableFile(env.Java)
-		gates.PublishReady = gates.PublishReady && gates.FormatterReady
+		gates.FormatterReady = true
 		status := "blocked"
 		if env.Ready {
 			status = "compile_ready"
@@ -147,9 +139,9 @@ func handleClassDev(action string, args []string, stdout io.Writer, _ io.Writer,
 			"environment": env,
 			"gates":       gates,
 			"javaFormatter": map[string]any{
-				"name": javaFormatterJarName, "version": javaFormatterVersion,
-				"style": "aosp", "indentSpaces": 4, "path": formatterPath,
-				"ready": gates.FormatterReady, "error": formatterError,
+				"name": javaFormatterName, "version": javaFormatterVersion,
+				"style": javaFormatterStyle, "indentSpaces": 4,
+				"runtime": "builtin-go", "ready": true,
 			},
 			"standalone": map[string]any{
 				"platformSourceRequired": false,
@@ -528,11 +520,11 @@ func validateClass(name string, opts classDevOptions) (classValidationResult, er
 	if len(result.PolicyViolations) > 0 {
 		return result, fmt.Errorf("class source violates CloudCC policy: %s", strings.Join(result.PolicyViolations, "; "))
 	}
-	formatResult, formatErr := requireJavaFileFormatted(sourceFile, "classes", name, opts.ProjectPath)
+	formatResult, formatErr := formatJavaFile(sourceFile, "classes", name, opts.ProjectPath, false)
+	formatResult.RepairCommand = javaFormatRepairCommand("classes", name, opts.ProjectPath)
+	result.FormatValidation = &formatResult
 	if formatErr != nil {
-		result.FormatValidation = &formatResult
-		result.PolicyViolations = append(result.PolicyViolations, "source is not canonically formatted: "+formatResult.RepairCommand)
-		return result, formatErr
+		result.PolicyWarnings = append(result.PolicyWarnings, "source layout can be improved: "+formatResult.RepairCommand)
 	}
 	env := discoverClassDevEnvironment(opts)
 	result.CompilerHome = env.CompilerHome

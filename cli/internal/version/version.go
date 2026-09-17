@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.70"
+const Version = "2.2.71"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -32,7 +32,8 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		Help(stdout, stderr)
 		return nil
 	case "changelog":
-		fmt.Fprintln(stderr, "- High-code publish now auto-formats classes, triggers, and timers in the local project before validation and remote requests; successfully formatted source continues through publish, while formatter failures still stop locally with structured diagnostics.")
+		fmt.Fprintln(stderr, "- High-code Java layout cleanup now runs as a lightweight single-pass Go formatter with no JVM or formatter JAR; publish reports formatting problems as warnings and continues to the existing structure, compile, remote validation, save, and readback gates.")
+		fmt.Fprintln(stderr, "- High-code publish auto-formats classes, triggers, and timers in the local project before validation and remote requests; release 2.2.71 changes formatter failures from local blockers to structured warnings.")
 		fmt.Fprintln(stderr, "- Page layout create/clone now defaults to all-profile assignment unless explicit assignments or autoAssignProfiles=false are supplied; standalone assign remains available, and layout JSON/docs now cover sections, detail buttons, related lists, related-list fields, and related-list buttons end to end through MetadataService 1.1.62.")
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
@@ -40,7 +41,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		fmt.Fprintln(stderr, "- Profile creation now requires a read-back source profile through copyFromId unless blank=true is explicitly requested; profile updates accept state changes only for existing infoset rows owned by the target profile and reject legacy UI string or relationship-creation payloads.")
 		fmt.Fprintln(stderr, "- Lightning dashboard create now plans the optional lightningdashboard folder, root, up to 15 components, and filters as one MetadataService aggregate; dashboard list/detail use dedicated endpoints and runtime provides read-only folder visibility diagnostics without fabricating recent-item state.")
 		fmt.Fprintln(stderr, "- Skill release packaging now removes and rejects every .claw-local directory so local Bulk test executables, input data, result files, and other development evidence cannot enter expanded distributions or archives.")
-		fmt.Fprintln(stderr, "- High-code Java formatting now uses packaged google-java-format 1.29.0 in AOSP four-space mode; explicit format check/write commands support classes, triggers, timers, and read-only project scans, while validate/publish block noncanonical source before remote requests with a repair command.")
+		fmt.Fprintln(stderr, "- High-code Java format check/write commands support classes, triggers, timers, and read-only project scans; the original parser-backed implementation was replaced by the lightweight built-in formatter in 2.2.71.")
 		fmt.Fprintln(stderr, "- Business-data bulk import calls the isolated MetadataService direct-write API without validation-rule, trigger, duplicate-filter, sharing-rule, or workflow execution; automatic numbering remains system-managed.")
 		fmt.Fprintln(stderr, "- High-code Java structure validation now enforces one matching top-level public class per custom-class source, rejects additional package-level types and named trigger/timer fragment types before remote requests, and advises on the exceptional use of small private static nested data holders.")
 		fmt.Fprintln(stderr, "- High-code publish keeps current id authoritative, falls back to legacy devid/devId only when id is absent or blank, and treats the resource as new only when no valid identifier exists; this prevents copied legacy trigger/class/timer packages from being inserted again under an existing API name.")

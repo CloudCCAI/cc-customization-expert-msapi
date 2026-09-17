@@ -79,7 +79,7 @@ public class MyTimerService{
 - 业务逻辑写入自定义类
 - 复杂流程通过自定义类继续拆分和编排
 - 定时器源码和它调用的自定义类都必须遵守单个 Java 文件低于 2000 行的限制；复杂定时任务应拆分为多个自定义类
-- 定时类生成或修改后可运行 `cloudcc format timer <TimerName> <projectPath> --write` 显式修复，并用 `--check` 只读复核。内置 `google-java-format 1.29.0 --aosp` 使用 4 空格缩进并拆分同一行的普通语句；SOURCE 构造器片段通过临时包装格式化。从 CLI `2.2.69` 开始，publish 会自动格式化并写回本地定时类源码，成功后继续远程 validate/save；只有格式器失败才会在远程请求前以 `blocked_local_format` 终止，发布结果通过 `localFormat` 报告是否发生写回
+- 定时类生成或修改后可运行 `cloudcc format timer <TimerName> <projectPath> --write` 显式整理，并用 `--check` 只读复核。内置 Go 轻量格式器单次处理 4 空格缩进和同一行的普通语句，不启动 JVM，也不包装 SOURCE 构造器片段。publish 会自动整理并写回本地定时类源码后继续远程 validate/save；格式整理异常仅以 `format_warning` 报告，不阻断真正的远程验证
 
 定时任务通常会处理批量数据，因此查询必须显式收敛：
 
