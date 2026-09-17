@@ -32,7 +32,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		Help(stdout, stderr)
 		return nil
 	case "changelog":
-		fmt.Fprintln(stderr, "- Trigger local scaffolding now creates a real CCTrigger wrapper with constructor-scoped SOURCE markers; flat backend/triggers/<TriggerName> is canonical, objectApi/TriggerName remains an organizational compatibility path, object ownership comes from config.json targetObjectId, and unbound scaffolds fail before publish networking. Timers are selected by scheduleJob prgid and are not object-owned.")
+		fmt.Fprintln(stderr, "- Trigger local scaffolding now prefers objectApi/TriggerName and records the object API name in config.json schemetableName; flat TriggerName remains compatible, targetObjectId remains the authoritative binding, and both layouts create real CCTrigger wrappers with constructor-scoped SOURCE markers.")
 		fmt.Fprintln(stderr, "- High-code Java layout cleanup now runs as a lightweight single-pass Go formatter with no JVM or formatter JAR; publish reports formatting problems as warnings and continues to the existing structure, compile, remote validation, save, and readback gates.")
 		fmt.Fprintln(stderr, "- High-code publish auto-formats classes, triggers, and timers in the local project before validation and remote requests; release 2.2.71 changes formatter failures from local blockers to structured warnings.")
 		fmt.Fprintln(stderr, "- Page layout create/clone now defaults to all-profile assignment unless explicit assignments or autoAssignProfiles=false are supplied; standalone assign remains available, and layout JSON/docs now cover sections, detail buttons, related lists, related-list fields, and related-list buttons end to end through MetadataService 1.1.62.")
@@ -356,7 +356,8 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc create reportFolder <projectPath> <name> [encodedOptionsJson]")
 	fmt.Fprintln(stdout, "  cloudcc update reportFolder <projectPath> <folderId> <encodedOptionsJson>")
 	fmt.Fprintln(stdout, "  cloudcc delete reportFolder <projectPath> <folderId>")
-	fmt.Fprintln(stdout, "  cloudcc publish trigger <objectApi/TriggerName> [projectPath]")
+	fmt.Fprintln(stdout, "  cloudcc create trigger <objectApi/TriggerName> [projectPath]  # recommended; flat TriggerName remains compatible")
+	fmt.Fprintln(stdout, "  cloudcc publish trigger <objectApi/TriggerName|TriggerName> [projectPath]")
 	fmt.Fprintln(stdout, "  cloudcc doctor classes [projectPath] [--java-home <path>] [--compiler-home <path>]")
 	fmt.Fprintln(stdout, "  cloudcc prepare classes [projectPath]  # compatibility alias: verify packaged compiler")
 	fmt.Fprintln(stdout, "  cloudcc validate classes <ClassName> [projectPath]")

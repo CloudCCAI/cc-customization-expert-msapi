@@ -422,7 +422,7 @@ func looksLikeTriggerSpec(value string) bool {
 
 func createTriggerResource(args []string, stderr io.Writer, cwd string) error {
 	if len(args) == 0 {
-		return fmt.Errorf("cloudcc create trigger <TriggerName|objectApi/TriggerName> [projectPath]")
+		return fmt.Errorf("cloudcc create trigger <objectApi/TriggerName|TriggerName> [projectPath]")
 	}
 	projectPath := cwd
 	if len(args) > 1 && strings.TrimSpace(args[1]) != "" && !looksLikeTriggerSpec(args[1]) {
@@ -431,11 +431,11 @@ func createTriggerResource(args []string, stderr io.Writer, cwd string) error {
 	namePath := filepath.Clean(strings.TrimSpace(args[0]))
 	objectPath := filepath.Dir(namePath)
 	if namePath == "." || filepath.IsAbs(namePath) || (objectPath != "." && filepath.Dir(objectPath) != ".") {
-		return fmt.Errorf("cloudcc create trigger requires <TriggerName> or <objectApi/TriggerName>")
+		return fmt.Errorf("cloudcc create trigger requires <objectApi/TriggerName> (recommended) or <TriggerName> (compatibility)")
 	}
 	name := filepath.Base(namePath)
 	if name == "." || name == "" {
-		return fmt.Errorf("cloudcc create trigger requires <TriggerName> or <objectApi/TriggerName>")
+		return fmt.Errorf("cloudcc create trigger requires <objectApi/TriggerName> (recommended) or <TriggerName> (compatibility)")
 	}
 
 	target := backendResourcePath(projectPath, "triggers", namePath)
@@ -443,8 +443,10 @@ func createTriggerResource(args []string, stderr io.Writer, cwd string) error {
 		return err
 	}
 	packageName := "triggers." + name
+	objectAPIName := ""
 	if objectPath != "." {
-		packageName = "triggers." + strings.ToLower(filepath.Base(objectPath)) + "." + name
+		objectAPIName = filepath.Base(objectPath)
+		packageName = "triggers." + strings.ToLower(objectAPIName) + "." + name
 	}
 	source := fmt.Sprintf("package %s;\n\nimport com.cloudcc.core.*;\n\npublic class %s extends CCTrigger {\n    public %s() {\n        super(userInfo);\n        // @SOURCE_CONTENT_START\n        // TODO: implement trigger logic\n        // @SOURCE_CONTENT_END\n    }\n}\n", packageName, name, name)
 	if err := os.WriteFile(filepath.Join(target, name+".java"), []byte(source), 0o644); err != nil {
@@ -457,7 +459,7 @@ func createTriggerResource(args []string, stderr io.Writer, cwd string) error {
 	if err := jsonx.WriteObjectFile(filepath.Join(target, "config.json"), map[string]any{
 		"interface":       true,
 		"name":            name,
-		"schemetableName": "",
+		"schemetableName": objectAPIName,
 		"targetObjectId":  "",
 		"triggerTime":     "",
 		"version":         highCodeDefaultVersion,

@@ -12,7 +12,7 @@
 ## 2. 开发规范
 
 - 一个对象的一个触发时机，只创建一个触发器
-- 创建本地触发器骨架使用：`cloudcc create trigger <TriggerName> [projectPath]`；已有迁移项目需要保留对象分组目录时也兼容 `<objectApi/TriggerName>`。目录只用于本地组织，不能作为对象绑定事实源。
+- 创建本地触发器骨架主用：`cloudcc create trigger <objectApi/TriggerName> [projectPath]`，例如 `cloudcc create trigger Account/AccountBeforeUpdate .`，生成 `backend/triggers/Account/AccountBeforeUpdate/`，并将 `Account` 写入 `config.json.schemetableName`。扁平 `<TriggerName>` 仅作为兼容入口。目录只用于本地组织，不能作为对象绑定事实源。
 - 直接保存线上元数据使用：`cloudcc create trigger <projectPath> <triggerJson|@file>`。
 - 尽量不要在触发器中直接开发业务逻辑
 - 需要复用、编排、扩展的逻辑，统一下沉到自定义类
@@ -173,8 +173,8 @@ cloudcc save trigger <projectPath> <triggerJson|@file>
 创建本地骨架与发布：
 
 ```bash
-cloudcc create trigger <TriggerName|objectApi/TriggerName> [projectPath]
-cloudcc publish trigger <TriggerName|objectApi/TriggerName> [projectPath]
+cloudcc create trigger <objectApi/TriggerName|TriggerName> [projectPath]
+cloudcc publish trigger <objectApi/TriggerName|TriggerName> [projectPath]
 ```
 
 `publish trigger` 的发布顺序固定为：
@@ -184,7 +184,7 @@ cloudcc publish trigger <TriggerName|objectApi/TriggerName> [projectPath]
 3. 保存，调用 `POST /api/triggerSetup/saveTrigger`。
 4. 保存后再次读取 detail，并把线上 ID、API 名和版本写回本地 `config.json`。
 
-发布前会从本地 `config.json` 读取 `targetObjectId` 和 `triggerTime`。`targetObjectId` 才是触发器所属对象的权威标识，`triggerTime` 是触发时机；`schemetableName` 是对象表/API 辅助信息。`cloudcc create trigger <TriggerName>` 只创建尚未绑定对象的本地源码骨架，这些字段为空时 publish 会在任何网络请求前明确阻断。`objectApi/TriggerName` 中的目录名也不会被推断为对象 ID。
+发布前会从本地 `config.json` 读取 `targetObjectId` 和 `triggerTime`。`targetObjectId` 才是触发器所属对象的权威标识，`triggerTime` 是触发时机；`schemetableName` 是对象 API 辅助信息。推荐的 `objectApi/TriggerName` 创建方式会从目录参数填写 `schemetableName`，但不会把 API Name 冒充对象 ID；创建后仍需填写真实 `targetObjectId` 和 `triggerTime`，否则 publish 会在任何网络请求前明确阻断。扁平 `<TriggerName>` 只创建未记录对象 API 的兼容骨架。
 
 
 远程 validate 失败时，CLI 必须返回 setup-svc 的 `returnInfo`、`data.errors`、`data.warnings` 和原始 `responseBody`，并且不能继续 save。
@@ -221,8 +221,8 @@ cloudcc doc platform/triggers devguide
 
 根据当前项目的实际文件结构，触发器目录可能是：
 
-- 新建本地骨架默认使用 `backend/triggers/<触发器名>/`
-- 历史抽取/迁移项目也可能使用 `backend/triggers/<对象 API 名小写>/<触发器名>/`
+- 主用和历史抽取/迁移布局均为 `backend/triggers/<对象 API 名>/<触发器名>/`
+- 扁平兼容布局为 `backend/triggers/<触发器名>/`
 
 两种目录的主类都形如：
 
