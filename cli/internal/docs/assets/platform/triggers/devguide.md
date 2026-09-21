@@ -11,6 +11,8 @@
 
 ## 2. 开发规范
 
+本文档中的 `CCService`、`DevLogger` 和 `UserInfo` 使用平台提供的类型名，示例不依赖具体包路径。
+
 - 一个对象的一个触发时机，只创建一个触发器
 - 创建本地触发器骨架主用：`cloudcc create trigger <objectApi/TriggerName> [projectPath]`，例如 `cloudcc create trigger Account/AccountBeforeUpdate .`，生成 `backend/triggers/Account/AccountBeforeUpdate/`，并将 `Account` 写入 `config.json.schemetableName`。扁平 `<TriggerName>` 仅作为兼容入口。目录只用于本地组织，不能作为对象绑定事实源。
 - 直接保存线上元数据使用：`cloudcc create trigger <projectPath> <triggerJson|@file>`。
@@ -64,6 +66,8 @@ trigger.addErrorMessage("提示内容");
 
 ## 8. 推荐写法
 
+CLI 生成的触发器外层会提供当前 `userInfo` 和 `cclogger` 上下文；SOURCE 区域只编排自定义类，不要重新声明同名类型或包级辅助类。
+
 触发器中只保留入口逻辑：
 
 ```java
@@ -71,6 +75,7 @@ public class MyTrigger extends CCTrigger {
     public MyTrigger() {
         super(userInfo);
         // @SOURCE_CONTENT_START
+        cclogger.devLogInfo("MyTrigger start");
         try {
             MyTriggerService service = new MyTriggerService(userInfo,(CCService)this);
             service.execute(record_old, record_new);
@@ -101,7 +106,8 @@ public class MyTriggerService {
     }
 
     public void execute(Map<String, Object> record_old, Map<String, Object> record_new) {
-            // 在这里编写业务逻辑
+        logger.devLogInfo("MyTriggerService.execute start");
+        // 在这里编写业务逻辑
     }
 }
 // @SOURCE_CONTENT_END

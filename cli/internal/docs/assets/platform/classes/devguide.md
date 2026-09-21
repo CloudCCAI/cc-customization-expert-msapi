@@ -395,9 +395,10 @@ AI 编写代码时，凡是时间写库、时间比较、格式化、Calendar
 使用原则：
 
 - 若某能力不在该公开文档中，不得编造参数或返回结构；可先搜本仓库同类实现再决定
-- `ServiceResult`
-  已文档化的用法：`isSuccess()`、`getMessage()`、`getId()`；其它键（如
-  `insertNoException` 的 `resultlist`）以公开文档为准，未文档化的不得猜字段名
+- 本文档中的 `CCService`、`DevLogger`、`ServiceResult` 和 `UserInfo` 使用平台提供的类型名；源码示例不依赖具体包路径
+- `ServiceResult` 的平台标准判断方法是
+  `isSuccess()`、`getErrorMessage()`、`getRtnCode()`、`getRtnInfo()`、
+  `getRtnPage()` 和 `getString(String)`；未文档化的返回键不得猜字段名
 - 遇到未文档化能力时，先参考当前仓库相邻类的现有写法，再决定是否使用
 
 ### 6.1 CCObject 详细说明
@@ -1049,7 +1050,9 @@ ServiceResult insert(CCObject ccobj, boolean isRight, boolean isWorkFlow,
 
 **返回值**
 
-`ServiceResult`：操作结果，调用 `result.isSuccess()` 判断是否成功，`result.getId()` 获取新记录 ID。
+`ServiceResult`：操作结果，调用 `result.isSuccess()` 判断是否成功；失败原因使用
+`result.getErrorMessage()`。返回数据是 Map 结构，只有在平台响应明确包含 `id` 时才能用
+`result.getString("id")` 读取记录 ID。
 
 **示例**
 
@@ -1063,10 +1066,10 @@ account.put("status__c", "启用");
 // 标准新增
 ServiceResult result = ccService.insert(account);
 if (result.isSuccess()) {
-    String newId = result.getId();
+    String newId = result.getString("id");
     System.out.println("新增成功，ID：" + newId);
 } else {
-    System.out.println("新增失败：" + result.getMessage());
+    System.out.println("新增失败：" + result.getErrorMessage());
 }
 
 // 完整控制参数（触发器中防递归：关闭所有开关）
@@ -1114,9 +1117,9 @@ contact.put("accountid__c", "001000001AbCdEfGh");
 ServiceResult result = ccService.insertWithRoleRight(contact);
 if (result == null || !result.isSuccess()) {
     throw new BusiException("创建联系人失败：" +
-        (result != null ? result.getMessage() : "未知错误"));
+        (result != null ? result.getErrorMessage() : "未知错误"));
 }
-String contactId = result.getId();
+String contactId = result.getString("id");
 ```
 
 ---
@@ -1207,7 +1210,7 @@ account.put("phone__c", "400-123-4567");
 ServiceResult result = ccService.insertWithValidationAndDuplication(account);
 if (!result.isSuccess()) {
     // 校验失败或查重命中
-    System.out.println("提示：" + result.getMessage());
+    System.out.println("提示：" + result.getErrorMessage());
 }
 ```
 
@@ -1295,7 +1298,7 @@ account.put("name__c", "更新后的公司名");
 
 ServiceResult result = ccService.upsert(account);
 if (result.isSuccess()) {
-    String id = result.getId(); // 新增时返回新 ID，更新时返回原 ID
+    String id = result.getString("id"); // 仅当平台响应包含 id 时读取
 }
 ```
 
@@ -1430,7 +1433,7 @@ account.put("name__c", "可能重复的公司名");
 
 ServiceResult result = ccService.updateWithValidationAndDuplication(account);
 if (!result.isSuccess()) {
-    System.out.println("校验失败：" + result.getMessage());
+    System.out.println("校验失败：" + result.getErrorMessage());
 }
 ```
 
@@ -2723,10 +2726,10 @@ ServiceResult result = ccService.upsert(obj);
 ```java
 ServiceResult result = ccService.insertWithRoleRight(obj);
 if (result == null || !result.isSuccess()) {
-    String msg = (result != null) ? result.getMessage() : "操作返回为空";
+    String msg = (result != null) ? result.getErrorMessage() : "操作返回为空";
     throw new BusiException("保存失败：" + msg);
 }
-String newId = result.getId();
+String newId = result.getString("id");
 ```
 
 ---

@@ -1389,9 +1389,9 @@ func createJavaResource(dir string, resource string, args []string, stderr io.Wr
 	if dir == "schedule" {
 		pkg = "schedule"
 	}
-	source := fmt.Sprintf("package %s.%s;\n\n// Local editor package only; CloudCC injects the runtime package and imports at publish time.\n// @SOURCE_CONTENT_START\npublic class %s {\n    private final UserInfo userInfo;\n\n    public %s(UserInfo userInfo) {\n        this.userInfo = userInfo;\n    }\n\n    public Object execute() {\n        // TODO: implement business logic\n        return null;\n    }\n}\n// @SOURCE_CONTENT_END\n", pkg, name, name, name)
+	source := fmt.Sprintf("package %s.%s;\n\nimport com.cloudcc.core.*;\n\n// Local editor package only; CloudCC injects the runtime package and imports at publish time.\n// @SOURCE_CONTENT_START\npublic class %s {\n    private final UserInfo userInfo;\n    private final CCService cs;\n    private final DevLogger logger;\n\n    public %s(UserInfo userInfo) {\n        this(userInfo, new CCService(userInfo));\n    }\n\n    public %s(UserInfo userInfo, CCService cs) {\n        this.userInfo = userInfo;\n        this.cs = cs;\n        this.logger = new DevLogger(userInfo);\n    }\n\n    public Object execute() {\n        logger.devLogInfo(\"%s.execute start\");\n        // TODO: implement business logic\n        return null;\n    }\n}\n// @SOURCE_CONTENT_END\n", pkg, name, name, name, name, name)
 	if resource == "timer" {
-		source = fmt.Sprintf("package schedule.%s;\n\nimport com.cloudcc.core.*;\n\npublic class %s extends CCSchedule {\n    public %s() {\n        // @SOURCE_CONTENT_START\n        // TODO: implement schedule logic\n        // @SOURCE_CONTENT_END\n    }\n}\n", name, name, name)
+		source = fmt.Sprintf("package schedule.%s;\n\nimport com.cloudcc.core.*;\n\npublic class %s extends CCSchedule {\n    private final UserInfo userInfo;\n    private final DevLogger cclogger;\n\n    public %s() {\n        this.userInfo = new UserInfo();\n        this.cclogger = new DevLogger(userInfo);\n        // @SOURCE_CONTENT_START\n        cclogger.devLogInfo(\"%s timer start\");\n        // TODO: implement schedule logic\n        // @SOURCE_CONTENT_END\n    }\n}\n", name, name, name, name)
 	}
 	if err := os.WriteFile(filepath.Join(target, name+".java"), []byte(source), 0644); err != nil {
 		return err

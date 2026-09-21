@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.72-msapi
+# cc-customization-expert-msapi v2.2.73-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -68,6 +68,7 @@ Java 高代码由 CLI 内置 Go 轻量格式器单次整理 4 空格缩进、Tab
 从技能 `2.2.61` 开始，高代码 Java 资源遵守一个文件一个顶级资源类。自定义类必须且只能声明与资源同名的 `public class`；第二个包级类型、触发器/定时类 SOURCE 中的命名局部类型会在远程请求前被阻断。生成代码时，同一职责优先拆为私有方法，独立或可复用职责通过 `cloudcc create classes` 创建单独资源；小型 `private static` 嵌套数据载体仅作为例外并产生本地校验提示。
 
 从技能 `2.2.72` 开始，`cloudcc create trigger <objectApi/TriggerName>` 是主用方式，使用 `backend/triggers/<objectApi>/<TriggerName>` 目录，生成继承 `CCTrigger` 的正确本地骨架，并把对象 API Name 写入 `config.json.schemetableName`；扁平 `<TriggerName>` 继续兼容。SOURCE 标记只包构造函数里的可执行片段，触发器仍以真实 `targetObjectId` 和 `triggerTime` 确定对象与时机，定时类则由 `scheduleJob.prgid` 绑定运行，不属于业务对象。
+从技能 `2.2.73` 开始，触发器和定时类本地骨架提供与平台一致的 `userInfo`/`cclogger` 日志上下文。
 
 从技能 `2.2.62` 开始，`cloudcc bulk msapi` 调用独立业务数据 Bulk API；当前实现要求 MetadataService `1.1.59` 或更高版本，按对象/字段元数据直接写物理表，不暴露也不执行验证规则、触发器、查重过滤器、共享规则或工作流，自动编号仍由系统管理。
 

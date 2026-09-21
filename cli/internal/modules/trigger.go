@@ -448,7 +448,7 @@ func createTriggerResource(args []string, stderr io.Writer, cwd string) error {
 		objectAPIName = filepath.Base(objectPath)
 		packageName = "triggers." + strings.ToLower(objectAPIName) + "." + name
 	}
-	source := fmt.Sprintf("package %s;\n\nimport com.cloudcc.core.*;\n\npublic class %s extends CCTrigger {\n    public %s() {\n        super(userInfo);\n        // @SOURCE_CONTENT_START\n        // TODO: implement trigger logic\n        // @SOURCE_CONTENT_END\n    }\n}\n", packageName, name, name)
+	source := fmt.Sprintf("package %s;\n\nimport com.cloudcc.core.*;\n\npublic class %s extends CCTrigger {\n    private final DevLogger cclogger;\n\n    public %s() {\n        super(userInfo);\n        this.cclogger = new DevLogger(userInfo);\n        // @SOURCE_CONTENT_START\n        cclogger.devLogInfo(\"%s trigger start\");\n        // TODO: implement trigger logic\n        // @SOURCE_CONTENT_END\n    }\n}\n", packageName, name, name, name)
 	if err := os.WriteFile(filepath.Join(target, name+".java"), []byte(source), 0o644); err != nil {
 		return err
 	}

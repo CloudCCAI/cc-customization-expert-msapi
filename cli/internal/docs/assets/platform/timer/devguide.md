@@ -11,6 +11,8 @@
 
 ## 2. 开发规范
 
+本文档中的 `CCService`、`DevLogger` 和 `UserInfo` 使用平台提供的类型名，示例不依赖具体包路径。
+
 - 一个定时任务对应一个定时器类
 - 创建定时器时，推荐使用自动创建自定义类模式：`cloudcc create timer <name> true`
 - 发业务逻辑需要在创建的自定义类中实现
@@ -38,11 +40,13 @@
 
 ## 5. 推荐写法
 
+CLI 生成的定时类外层会提供当前 `userInfo` 和 `cclogger` 上下文；SOURCE 区域只编排自定义类，不要重新声明同名类型或包级辅助类。
+
 定时器中只保留入口逻辑：
 
 ```java
-UserInfo userInfo = new UserInfo();
 // @SOURCE_CONTENT_START
+cclogger.devLogInfo("MyTimer start");
 MyTimerService service = new MyTimerService(userInfo);
 service.execute();
 // @SOURCE_CONTENT_END
@@ -55,6 +59,7 @@ service.execute();
 public class MyTimerService{
     private UserInfo userInfo;
     private CCService cs;
+    private DevLogger logger;
 
     public MyTimerService(UserInfo userInfo){
         this(userInfo,new CCService(userInfo));
@@ -62,9 +67,11 @@ public class MyTimerService{
     public MyTimerService(UserInfo userInfo,CCService cs){
         this.userInfo = userInfo;
         this.cs=cs;
+        this.logger = new DevLogger(userInfo);
     }
     
     public void execute(String str){
+       logger.devLogInfo("MyTimerService.execute start");
        // 在这里编写业务逻辑
     }
 }
