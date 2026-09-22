@@ -1,12 +1,12 @@
 ---
 name: cc-customization-expert-msapi
-version: 2.2.73-msapi
+version: 2.2.74-msapi
 description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService."
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.2.73-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.2.74-msapi
 
-当前技能版本：`2.2.73-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.2.74-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
 
@@ -36,6 +36,7 @@ description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict Metad
 - 从技能 `2.2.43` 开始，币种管理 `currencies` 纳入 MetadataService 低代码域：支持币种列表/详情/可新增币种/高级汇率读取，固定币种新增/修改/启停/汇率维护，高级多币种开关，dated rate 新增/修改/删除，以及要求显式 `rates[]` 的公司本位币变更计划。
 - 从技能 `2.2.44` 开始，验证规则 CLI 用户级文档按 setup-service `validateFunction` 实际函数补充运算符和函数说明，示例使用服务端实际存在的 `ISNULL`，不把 `ISBLANK` 或前端面板中未确认的 `PRECISE*` 函数作为验证规则能力承诺。
 - 从技能 `2.2.45` 开始，公式字段 CLI 用户级文档补充创建公式字段自己的返回类型、运算符和完整平台公式函数说明，并提示 `^`、`&` 必须以目标环境字段公式校验通过为准。
+- 从技能 `2.2.74` 开始，公式字段 CLI 用户级文档明确支持目标数据库函数，并以 MySQL 为例说明 `LEAST`、`GREATEST`、`TRIM`、`ABS`、`CEILING`、`FLOOR`、`MOD`、`ROUND`、`SQRT`、`POWER`、`LOG`、`LN`、`EXP` 及其作用；数据库函数是否可用仍以目标环境字段公式校验结果为准。
 - 从技能 `2.2.47` 开始，公式字段创建要求 MetadataService `1.1.51` 或更高版本：调用方只传 `formulaText` / `formulaType`，MetadataService 按目标对象字段元数据生成 `executeExpression`，自动派生跨对象公式依赖写入 `tp_sys_relevance`，并在缺对象、缺字段、缺 `$User` 字段或关系字段缺 lookup 目标时于计划阶段返回明确原因。
 - 从技能 `2.2.51` 开始，接口注册器运行态 `debug`、`logs`、`logDetail` 的 CLI 输出会在展示前脱敏常见 Token、Authorization、Cookie、Secret、Password、API Key 等敏感值，包括字符串形式请求/响应体中的常见鉴权片段。
 - 从技能 `2.2.52` 开始，CLI 对 `/api/cauth/token` 获取的 CloudCC `accessToken` 增加过期前缓存失效、token 错误识别、自动刷新和原请求重试；setup-svc/api-svc、customPage/pagecomponent devconsole envelope、triggers/classes/timer 发布辅助调用、high-code scan 和 MetadataService 401/invalid_token 都会在 token 被拒绝时给出明确刷新结果或配置检查提示。

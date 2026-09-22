@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.73"
+const Version = "2.2.74"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -32,6 +32,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		Help(stdout, stderr)
 		return nil
 	case "changelog":
+		fmt.Fprintln(stderr, "- Formula field user docs now distinguish platform functions from target-database functions and document common MySQL LEAST, GREATEST, TRIM, ABS, CEILING, FLOOR, MOD, ROUND, SQRT, POWER, LOG, LN, and EXP functions with target-validation guidance.")
 		fmt.Fprintln(stderr, "- Trigger local scaffolding now prefers objectApi/TriggerName and records the object API name in config.json schemetableName; flat TriggerName remains compatible, targetObjectId remains the authoritative binding, and both layouts create real CCTrigger wrappers with constructor-scoped SOURCE markers.")
 		fmt.Fprintln(stderr, "- High-code Java layout cleanup now runs as a lightweight single-pass Go formatter with no JVM or formatter JAR; publish reports formatting problems as warnings and continues to the existing structure, compile, remote validation, save, and readback gates.")
 		fmt.Fprintln(stderr, "- High-code publish auto-formats classes, triggers, and timers in the local project before validation and remote requests; release 2.2.71 changes formatter failures from local blockers to structured warnings.")

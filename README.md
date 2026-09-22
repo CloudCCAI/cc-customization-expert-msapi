@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.73-msapi
+# cc-customization-expert-msapi v2.2.74-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -93,6 +93,8 @@ Bulk API 按 MetadataService 的对象/字段到物理表映射直接写业务�
 从技能 `2.2.44` 开始，验证规则 CLI 用户级文档按 setup-service `validateFunction` 实际函数补充运算符和函数说明，示例使用服务端实际存在的 `ISNULL`，不把 `ISBLANK` 或前端面板中未确认的 `PRECISE*` 函数作为验证规则能力承诺。
 
 从技能 `2.2.45` 开始，公式字段 CLI 用户级文档补充创建公式字段自己的返回类型、运算符和完整平台公式函数说明，并提示 `^`、`&` 必须以目标环境字段公式校验通过为准。
+
+从技能 `2.2.74` 开始，公式字段 CLI 用户级文档明确支持目标数据库函数，并以 MySQL 为例说明 `LEAST`、`GREATEST`、`TRIM`、`ABS`、`CEILING`、`FLOOR`、`MOD`、`ROUND`、`SQRT`、`POWER`、`LOG`、`LN`、`EXP` 及其作用；数据库函数是否可用仍以目标环境字段公式校验结果为准。
 
 从技能 `2.2.47` 开始，公式字段创建要求 MetadataService `1.1.51` 或更高版本：调用方只传 `formulaText` / `formulaType`，MetadataService 按目标对象字段元数据生成 `executeExpression`，自动派生跨对象公式依赖写入 `tp_sys_relevance`，并在缺对象、缺字段、缺 `$User` 字段或关系字段缺 lookup 目标时于计划阶段返回明确原因。
 
