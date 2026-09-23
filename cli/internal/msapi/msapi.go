@@ -104,11 +104,29 @@ func Handle(action string, resource string, args []string, stdout io.Writer, cwd
 		if err != nil {
 			return err
 		}
+		var formulaValidation *validationRuleFormulaResult
+		if action != "normalize" {
+			formulaValidation, err = c.validateValidationRuleRequest(body)
+			if err != nil {
+				return err
+			}
+		}
 		path := "/metadata/v1/plans"
 		if action == "normalize" {
 			path = "/metadata/v1/intents:normalize"
 		} else if action == "validate" {
 			path = "/metadata/v1/intents:validate"
+		}
+		if action == "validate" && formulaValidation != nil {
+			metadataValidation, err := c.requestJSONMap(http.MethodPost, path, body)
+			if err != nil {
+				return err
+			}
+			return writePrettyJSON(stdout, map[string]any{
+				"valid":              metadataValidation["valid"] != false,
+				"formulaValidation":  formulaValidation,
+				"metadataValidation": metadataValidation,
+			})
 		}
 		return c.writeJSON(stdout, http.MethodPost, path, body)
 	case "apply":

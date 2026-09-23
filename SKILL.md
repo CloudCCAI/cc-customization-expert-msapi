@@ -1,12 +1,12 @@
 ---
 name: cc-customization-expert-msapi
-version: 2.2.74-msapi
+version: 2.2.75-msapi
 description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService."
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.2.74-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.2.75-msapi
 
-当前技能版本：`2.2.74-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.2.75-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
 
@@ -37,6 +37,7 @@ description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict Metad
 - 从技能 `2.2.44` 开始，验证规则 CLI 用户级文档按 setup-service `validateFunction` 实际函数补充运算符和函数说明，示例使用服务端实际存在的 `ISNULL`，不把 `ISBLANK` 或前端面板中未确认的 `PRECISE*` 函数作为验证规则能力承诺。
 - 从技能 `2.2.45` 开始，公式字段 CLI 用户级文档补充创建公式字段自己的返回类型、运算符和完整平台公式函数说明，并提示 `^`、`&` 必须以目标环境字段公式校验通过为准。
 - 从技能 `2.2.74` 开始，公式字段 CLI 用户级文档明确支持目标数据库函数，并以 MySQL 为例说明 `LEAST`、`GREATEST`、`TRIM`、`ABS`、`CEILING`、`FLOOR`、`MOD`、`ROUND`、`SQRT`、`POWER`、`LOG`、`LN`、`EXP` 及其作用；数据库函数是否可用仍以目标环境字段公式校验结果为准。
+- 从技能 `2.2.75` 开始，验证规则创建、计划和显式校验会在提交计划前读取目标字段及动态 `$User.<schemefieldName>` 用户字段，并使用技能包内置 cceg 编译表达式；失败时不创建计划。`platform/validationRule` 用户文档只描述 CLI 能力和使用方法，不再暴露内部实现说明。
 - 从技能 `2.2.47` 开始，公式字段创建要求 MetadataService `1.1.51` 或更高版本：调用方只传 `formulaText` / `formulaType`，MetadataService 按目标对象字段元数据生成 `executeExpression`，自动派生跨对象公式依赖写入 `tp_sys_relevance`，并在缺对象、缺字段、缺 `$User` 字段或关系字段缺 lookup 目标时于计划阶段返回明确原因。
 - 从技能 `2.2.51` 开始，接口注册器运行态 `debug`、`logs`、`logDetail` 的 CLI 输出会在展示前脱敏常见 Token、Authorization、Cookie、Secret、Password、API Key 等敏感值，包括字符串形式请求/响应体中的常见鉴权片段。
 - 从技能 `2.2.52` 开始，CLI 对 `/api/cauth/token` 获取的 CloudCC `accessToken` 增加过期前缓存失效、token 错误识别、自动刷新和原请求重试；setup-svc/api-svc、customPage/pagecomponent devconsole envelope、triggers/classes/timer 发布辅助调用、high-code scan 和 MetadataService 401/invalid_token 都会在 token 被拒绝时给出明确刷新结果或配置检查提示。
@@ -54,7 +55,7 @@ description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict Metad
 - 从技能 `2.2.65` 开始，Lightning 仪表板创建按完整聚合处理：可在一个 MetadataService `dashboards create` 计划中写入可选的 `lightningdashboard` 文件夹、仪表板根、最多 15 个组件及筛选条件；`get/getList/detail dashboard` 固定读取 MetadataService 仪表板端点，`runtime dashboard` 只读核验指定用户/角色/简档的目录可见性。该能力要求 MetadataService `1.1.60` 或更高版本；`recentDashboard` 为空只代表最近访问状态，不能作为创建失败依据。
 - 从技能 `2.2.66` 开始，简档标准创建必须使用真实回读的 `copyFromId` / `copyFromProfileId` 复制来源简档；只有明确需要无权限模板时才使用互斥的 `blank=true`。简档更新只允许通过目标简档下已存在的 infoset ID 修改状态，不补建缺失权限，也不接受旧 UI 字符串或关系身份字段。该能力要求 MetadataService `1.1.61` 或更高版本。
 - 从技能 `2.2.62` 开始，`cloudcc bulk msapi` 调用独立业务数据 Bulk API；当前实现要求 MetadataService `1.1.59` 或更高版本，按对象/字段元数据直接写物理表，不暴露也不执行验证规则、触发器、查重过滤器、共享规则或工作流，自动编号仍由系统管理。
-- 从技能 `2.2.53` 开始，验证规则 CLI 用户级文档明确列出全部已确认可执行全局变量：`$User.id`、`$User.name`、`$User.roleId`、`$User.roleName`、`$User.profileId`、`$User.profileName`、`$User.department`、`$User.title`、`$User.email`、`$User.phone`、`$User.mobilePhone`；同时说明 setup-web / setup-service 中 `$User.<用户对象字段API>` 动态选择项的边界，以及源码未确认 `$Profile`、`$Organization`、`$Permission` 等独立命名空间。
+- 从技能 `2.2.53` 开始，验证规则 CLI 用户级文档说明 `$User.id`、`$User.name`、角色、简档和联系信息等常用属性，并保留 `$User.<schemefieldName>` 动态用户对象字段能力。
 - 从技能 `2.2.50` 开始，记录类型详情的选项列表值分配纳入 MetadataService：`saveDependency/assignPicklistValues recordType` 生成 `record-types save-dependency` 计划，对齐 setup-svc `/api/recordType/saveDependency` 的所选值全量替换、未选旧值删除和默认值设置语义，要求 MetadataService `1.1.52` 或更高版本。
 - 高代码发布前先读 `cloudcc doc platform/classes|triggers|timer devguide` 或 `platform/almRelease devguide`；从技能 `2.2.7` 开始，classes/triggers/timer 的 publish 建议 setup-svc `19.3.R20` 或更高版本，不要求 MetadataService 版本门槛。classes 固定执行本地编译、目标 setup-svc validate、最后 save；triggers/timer 执行目标 setup-svc validate、最后 save；并把 validate 失败详情返回调用方。
 - 从技能 `2.2.38` 开始，classes/triggers/timer 创建时默认发送 setup-svc 自定义代码 `version=3`；更新时先读取目标 detail，优先沿用线上记录的 version，线上 version 为空按旧版 `2` 处理，再 validate/save，并在保存后把线上 ID/version 写回本地 `config.json`，避免旧本地配置把线上版本 3 降级。

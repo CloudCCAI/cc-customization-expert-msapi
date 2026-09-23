@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.74-msapi
+# cc-customization-expert-msapi v2.2.75-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -49,7 +49,7 @@ Java 高代码由 CLI 内置 Go 轻量格式器单次整理 4 空格缩进、Tab
 
 从技能 `2.2.52` 开始，CLI 对 `/api/cauth/token` 获取的 CloudCC `accessToken` 增加过期前缓存失效、token 错误识别、自动刷新和原请求重试；setup-svc/api-svc、customPage/pagecomponent devconsole envelope、triggers/classes/timer 发布辅助调用、high-code scan 和 MetadataService 401/invalid_token 都会在 token 被拒绝时给出明确刷新结果或配置检查提示。
 
-从技能 `2.2.53` 开始，验证规则 CLI 用户级文档明确列出全部已确认可执行全局变量：`$User.id`、`$User.name`、`$User.roleId`、`$User.roleName`、`$User.profileId`、`$User.profileName`、`$User.department`、`$User.title`、`$User.email`、`$User.phone`、`$User.mobilePhone`；同时说明 setup-web / setup-service 中 `$User.<用户对象字段API>` 动态选择项的边界，以及源码未确认 `$Profile`、`$Organization`、`$Permission` 等独立命名空间。
+从技能 `2.2.53` 开始，验证规则 CLI 用户级文档说明 `$User.id`、`$User.name`、角色、简档和联系信息等常用属性，并保留 `$User.<schemefieldName>` 动态用户对象字段能力。
 
 从技能 `2.2.54` 开始，页面布局 CLI/MSAPI 支持 setup-web 详情页的全部布局能力：PC 页面布局、移动页面布局、行式布局、悬停布局和动态页面布局规则；动态布局支持规则、主条件、二级条件、触发动作、启停和删除计划，要求 MetadataService `1.1.54` 或更高版本。
 
@@ -95,6 +95,8 @@ Bulk API 按 MetadataService 的对象/字段到物理表映射直接写业务�
 从技能 `2.2.45` 开始，公式字段 CLI 用户级文档补充创建公式字段自己的返回类型、运算符和完整平台公式函数说明，并提示 `^`、`&` 必须以目标环境字段公式校验通过为准。
 
 从技能 `2.2.74` 开始，公式字段 CLI 用户级文档明确支持目标数据库函数，并以 MySQL 为例说明 `LEAST`、`GREATEST`、`TRIM`、`ABS`、`CEILING`、`FLOOR`、`MOD`、`ROUND`、`SQRT`、`POWER`、`LOG`、`LN`、`EXP` 及其作用；数据库函数是否可用仍以目标环境字段公式校验结果为准。
+
+从技能 `2.2.75` 开始，验证规则创建、计划和显式校验会在提交计划前读取目标字段及动态 `$User.<schemefieldName>` 用户字段，并使用技能包内置 cceg 编译表达式；失败时不创建计划。`platform/validationRule` 用户文档只描述 CLI 能力和使用方法，不再暴露内部实现说明。
 
 从技能 `2.2.47` 开始，公式字段创建要求 MetadataService `1.1.51` 或更高版本：调用方只传 `formulaText` / `formulaType`，MetadataService 按目标对象字段元数据生成 `executeExpression`，自动派生跨对象公式依赖写入 `tp_sys_relevance`，并在缺对象、缺字段、缺 `$User` 字段或关系字段缺 lookup 目标时于计划阶段返回明确原因。
 
