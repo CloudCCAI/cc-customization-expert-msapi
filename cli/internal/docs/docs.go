@@ -64,6 +64,9 @@ func normalizeModule(module string) string {
 	if module == "report" {
 		return "platform/report"
 	}
+	if module == "dashboard" {
+		return "platform/dashboard"
+	}
 	if module == "" {
 		return ""
 	}

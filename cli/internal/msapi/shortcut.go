@@ -83,6 +83,8 @@ var lowCodeShortcutActions = map[string]bool{
 	"create-fiscal-quarter":  true,
 	"register":               true,
 	"update":                 true,
+	"replace":                true,
+	"upsert":                 true,
 	"updateQuarter":          true,
 	"update-quarter":         true,
 	"updateFiscalQuarter":    true,
@@ -218,8 +220,11 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 	if resource == "reportFolder" {
 		return handleReportFolderShortcut(action, projectPath, rest, stdout, cwd)
 	}
-	if resource == "dashboard" && isShortcutRead(action) {
-		return handleDashboardReadShortcut(action, projectPath, rest, stdout, cwd)
+	if resource == "dashboard" {
+		if isShortcutRead(action) {
+			return handleDashboardReadShortcut(action, projectPath, rest, stdout, cwd)
+		}
+		return handleDashboardWriteShortcut(action, projectPath, rest, stdout, cwd)
 	}
 	if isShortcutRead(action) {
 		return Handle("scan", "msapi", []string{projectPath, "standard-catalog"}, stdout, cwd)
@@ -327,6 +332,31 @@ func handleDashboardReadShortcut(action string, projectPath string, args []strin
 		values.Set("lightning", "true")
 	}
 	return c.getJSON(stdout, "/metadata/v1/dashboards?"+values.Encode())
+}
+
+func handleDashboardWriteShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
+	action = strings.TrimSpace(action)
+	operation := ""
+	switch action {
+	case "create", "register":
+		operation = "create"
+	case "update", "save", "modify", "editSave":
+		// Root-only patch. Child collections are deliberately outside this operation.
+		operation = "update"
+	case "replace", "upsert":
+		// Explicit aggregate replacement/upsert. Collection presence controls
+		// preserve (absent), clear (empty), or replace (non-empty) semantics.
+		operation = "upsert"
+	case "delete", "remove":
+		operation = "delete"
+	default:
+		return fmt.Errorf("unsupported dashboard shortcut action: %s", action)
+	}
+	body, _, err := shortcutBodySpec(action, "dashboard", args)
+	if err != nil {
+		return err
+	}
+	return planShortcut(stdout, cwd, projectPath, "dashboards", body, operation)
 }
 
 func handleFiscalYearReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
@@ -1406,8 +1436,8 @@ func validateMatrixReportSpec(body map[string]any) error {
 	if len(rowGroups) == 0 || len(columnGroups) == 0 {
 		return fmt.Errorf("cloudcc reportMatrix requires both row groups and column groups: provide groups.rows/groups.columns or rows/columns")
 	}
-	if len(rowGroups) > 3 {
-		return fmt.Errorf("cloudcc reportMatrix supports up to 3 row groups, matching main-svc transversegroupone/two/three")
+	if len(rowGroups) > 2 {
+		return fmt.Errorf("cloudcc reportMatrix supports up to 2 row groups; a third row group is not persisted by main-svc")
 	}
 	if len(columnGroups) > 2 {
 		return fmt.Errorf("cloudcc reportMatrix supports up to 2 column groups, matching main-svc lengthwaysgroupone/two")
@@ -1711,6 +1741,16 @@ func reportFolderCreateShortcutBody(args []string, requireID bool) (map[string]a
 			}
 		}
 		return body, nil
+	}
+	if len(args) == 1 && looksLikeJSONArg(args[0]) {
+		options, err := parseObject(args[0], "cloudcc create reportFolder")
+		if err != nil {
+			return nil, err
+		}
+		if strings.TrimSpace(firstShortcutValue(options, "name")) == "" {
+			return nil, fmt.Errorf("cloudcc create reportFolder JSON requires name")
+		}
+		return options, nil
 	}
 	if len(args) > 1 && strings.TrimSpace(args[1]) != "" {
 		options, err := parseObject(args[1], "cloudcc create reportFolder")

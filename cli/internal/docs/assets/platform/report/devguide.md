@@ -45,6 +45,7 @@ cloudcc get reportFolder <projectPath> <encodedBodyJson>
 cloudcc detail reportFolder <projectPath> <folderId>
 cloudcc detail reportFolder <projectPath> <encodedBodyJson>
 cloudcc create reportFolder <projectPath> <name> [encodedOptionsJson]
+cloudcc create reportFolder <projectPath> <encodedFolderJson|@file>
 cloudcc update reportFolder <projectPath> <folderId> <encodedOptionsJson>
 cloudcc delete reportFolder <projectPath> <folderId>
 ```
@@ -790,6 +791,7 @@ cloudcc get reportFolder <projectPath> <encodedBodyJson>
 
 ```bash
 cloudcc create reportFolder <projectPath> <name> [encodedOptionsJson]
+cloudcc create reportFolder <projectPath> <encodedFolderJson|@file>
 ```
 
 参数：
@@ -811,7 +813,11 @@ cloudcc create reportFolder <projectPath> <name> [encodedOptionsJson]
 
 ```bash
 cloudcc create reportFolder . "销售报表" "%7B%22viewType%22%3A%222%22%2C%22purview%22%3A%221%22%2C%22reportIds%22%3A%5B%22rpt_sales%22%5D%7D"
+cloudcc create reportFolder . '{"name":"销售报表","viewType":"2","purview":"1"}'
+cloudcc create reportFolder . @report-folder.json
 ```
+
+单参数以 `{`、URL 编码的 JSON 或 `@file` 开头时，CLI 会把它解析为完整文件夹对象；不会把 JSON 原文当作文件夹名称。JSON 中必须包含非空 `name`。
 
 ### 12.3 更新文件夹
 
@@ -924,6 +930,8 @@ cloudcc update report <projectPath> <encodedReportJson>
 
 - 第一种写法会把 `<reportId>` 写入 body 的 `id`。
 - 第二种写法要求 JSON 自身包含 `id`。
+- `fields`、`conditions`/`filters.items`、`summaries`/`gathers`、`groups`/`rows`/`columns`、`objects`、`expressions` 都使用集合三态：省略表示保留旧数据；显式空数组表示清空；非空数组表示完整替换。
+- 更新前应复核 plan 中的 `*.replace-existing` 步骤；只有显式提供相应集合时才应出现该类删除步骤。
 
 ### 14.3 删除
 
@@ -937,6 +945,10 @@ cloudcc delete report <projectPath> <reportId> [confirmdelete]
 | --- | --- | --- | --- |
 | `id` | string | 是 | 报表 ID |
 | `confirmdelete` | string | 否 | 确认删除标记 |
+
+删除计划会先清理报表条件、汇总、分组、字段、公式、对象明细、对象关系和最近访问记录，再删除主记录。MetadataService 在生成计划和执行计划时都会检查仪表板组件引用；存在引用时返回 `report_in_use_by_dashboard`，`confirmdelete` 不能绕过此保护。
+
+默认只删除报表自身拥有的数据，不删除自定义报表类型。只有明确传入 `reportTypeCustomId` 且设置 `deleteOwnedReportType=true` 才申请同时删除该类型；如果还有其他报表引用该类型，服务返回 `report_type_in_use`。
 
 ---
 
@@ -1040,7 +1052,7 @@ cloudcc apply msapi <projectPath> <planId>
 | `islightning` | 默认 `true` | 使用 Lightning 报表模型 |
 | `totalrecord` | 默认 `1` | 默认统计记录数；可同时配置金额等汇总字段 |
 | `scope` | 默认 `user` | 不显式传时默认“我的”数据范围 |
-| `rows` / `groups.rows` | 必须有，最多 3 个 | 行分组业务语义 |
+| `rows` / `groups.rows` | 必须有，最多 2 个 | 行分组业务语义；第 3 个行分组不会被主服务持久化，因此 CLI 和 MetadataService 都会拒绝 |
 | `columns` / `groups.columns` | 必须有，最多 2 个 | 列分组业务语义 |
 | `fields[]` / `mainobjectcolumnid` | 必须有其一 | MetadataService 不能凭空猜测展示字段 |
 | `summaries[]` / `summaryFields[]` / `gathers[]` / `gatherfieldname` / `totalrecord` | 必须有其一 | 统计字段；`totalrecord=1` 表示统计记录数 |
@@ -1094,7 +1106,7 @@ cloudcc apply msapi <projectPath> <planId>
 | `fields[].fieldName` / `label` / `name` | string | 否 | 字段显示名 | 报表字段标签 |
 | `fields[].location` | number/string | 否 | 正整数；默认按数组顺序 | 展示顺序 |
 | `mainobjectcolumnid` / `mainObjectColumnId` | string | `fields[]` 缺失时必填 | 字段 ID CSV，例如 `fieldA,fieldB,totalrecord` | main-svc 运行期字段集合；Matrix 下必须覆盖展示、分组、过滤、日期、统计和图表依赖字段。MetadataService 会基于结构化参数自动补全闭包 |
-| `groups.rows[]` / `rows[]` | array | Summary/Matrix 必填 | 最多 3 个 | 行分组业务语义 |
+| `groups.rows[]` / `rows[]` | array | Summary/Matrix 必填 | Summary 最多 3 个；Matrix 最多 2 个 | 行分组业务语义 |
 | `groups.columns[]` / `columns[]` | array | Matrix 必填 | 最多 2 个 | 列分组业务语义 |
 | `groups.*[].sort` | string | 否 | `asc`、`desc`；默认 `asc` | 分组排序 |
 | `groups.*[].dateType` | string | 日期字段建议填 | `day`、`month`、`year`、`FY`、`FQ`、`CY`、`CQ` | 日期分组粒度 |
@@ -1190,7 +1202,7 @@ cloudcc apply msapi <projectPath> <planId>
 | 参数 | 必填 | 期待值 | 作用 |
 | --- | --- | --- | --- |
 | `reporttype` / `type` | 类型化命令自动补 | `Matrix` | 矩阵式报表 |
-| `groups.rows[]` / `rows[]` | 是 | 最多 3 个 | 业务语义上的行分组 |
+| `groups.rows[]` / `rows[]` | 是 | 最多 2 个 | 业务语义上的行分组；第 3 个会被 CLI 和 MetadataService 拒绝 |
 | `groups.columns[]` / `columns[]` | 是 | 最多 2 个 | 业务语义上的列分组 |
 | `summaryFields[]` / `summaries[]` / `totalrecord` | 是 | 同 Summary | 统计值 |
 
