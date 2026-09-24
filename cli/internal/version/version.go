@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.76"
+const Version = "2.2.77"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -32,6 +32,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		Help(stdout, stderr)
 		return nil
 	case "changelog":
+		fmt.Fprintln(stderr, "- Relationship fields now require childrelationName for automatic inverse lists and require MetadataService 1.1.69 for setup-svc-compatible custom related-list persistence, aee/afa/bcb identities, and natural-key convergence of historical rows.")
 		fmt.Fprintln(stderr, "- Validation-rule validate/plan/create/update now compile expressions locally through packaged cceg, preserve string literals, resolve standard and relationship fields, infer update objects from rule details, type-check dynamic $User.<schemefieldName> values, send shortcut edits as partial UPDATE plans that preserve API and creation audit fields, and block invalid plans with UTF-8 diagnostics.")
 		fmt.Fprintln(stderr, "- Formula field user docs now distinguish platform functions from target-database functions and document common MySQL LEAST, GREATEST, TRIM, ABS, CEILING, FLOOR, MOD, ROUND, SQRT, POWER, LOG, LN, and EXP functions with target-validation guidance.")
 		fmt.Fprintln(stderr, "- Trigger local scaffolding now prefers objectApi/TriggerName and records the object API name in config.json schemetableName; flat TriggerName remains compatible, targetObjectId remains the authoritative binding, and both layouts create real CCTrigger wrappers with constructor-scoped SOURCE markers.")

@@ -190,7 +190,7 @@ apply 阶段会优先批量执行字段主表行，再按既有顺序执行语�
 
 其中 `valfld=value` 使用 `val` 常量；`valfld=field` 使用 `rightvalue=<objectId>-<fieldId>`。重新发布带筛选的字段会先删除该字段的旧条件，再按顺序写入新条件，避免已删除条件继续生效。
 
-查找关系（`Y`）和主详关系（`M`）未显式传 `relatedLists` 时，MetadataService 会按 `lookupObjectId` 查询被关联对象的所有布局并创建相关列表；`childrelationName` 是相关列表标签，`mainlayoutIds` 决定桌面/移动布局是否显示，默认列使用来源对象的名称字段，并同步中文、英文、日文标签。例如：
+查找关系（`Y`）和主详关系（`M`）未显式传 `relatedLists` 时，MetadataService 会按 `lookupObjectId` 查询被关联对象的所有布局并创建相关列表；此时 `childrelationName` 必填，它会原样作为相关列表标签，不能依赖对象名称回退。`mainlayoutIds` 决定桌面/移动布局是否显示，默认列使用来源对象的名称字段，并同步中文、英文、日文标签。例如：
 
 ```json
 {
@@ -205,6 +205,8 @@ apply 阶段会优先批量执行字段主表行，再按既有顺序执行语�
 ```
 
 `lookupObjectId` / `lookupObj` 必须传被关联对象在 `tp_sys_object.ID` 中的对象 ID。不要传对象 API 名（`SCHEMETABLE_NAME`）、物理表名（`DATATABLE_NAME`）或显示名称。标准对象示例中 `account` 可能同时是对象 ID 和 API 名，容易造成误解；自定义对象通常不同，必须先解析出真实对象 ID 再创建查找字段。
+
+从 MetadataService `1.1.69` 开始，字段自动生成的反向相关列表与 setup-svc 入库规则一致：`relatedlist_type=custom`，新建相关列表、默认列和多语言行使用 `aee`、`afa`、`bcb` 前缀。再次计划历史字段时，服务端按布局、来源对象和关系字段自然键复用已有行并修正错误类型，不会通过放宽 setup-svc 查询来掩盖不一致数据。
 
 对象默认搜索布局相关的字段、按钮和 lookup-layout ID 必须保持在平台 `rel_id` 的 20 字符边界内。MetadataService 生成的默认 ID 使用短 ID；不要在 spec 中覆盖为超长 ID，否则旧版 `to_mlang` 查询可能报 `Data too long for column 'rel_id'`。
 

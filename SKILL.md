@@ -1,12 +1,12 @@
 ---
 name: cc-customization-expert-msapi
-version: 2.2.76-msapi
+version: 2.2.77-msapi
 description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService."
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.2.76-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.2.77-msapi
 
-当前技能版本：`2.2.76-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.2.77-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
 
@@ -39,6 +39,7 @@ description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict Metad
 - 从技能 `2.2.74` 开始，公式字段 CLI 用户级文档明确支持目标数据库函数，并以 MySQL 为例说明 `LEAST`、`GREATEST`、`TRIM`、`ABS`、`CEILING`、`FLOOR`、`MOD`、`ROUND`、`SQRT`、`POWER`、`LOG`、`LN`、`EXP` 及其作用；数据库函数是否可用仍以目标环境字段公式校验结果为准。
 - 从技能 `2.2.75` 开始，验证规则创建、计划和显式校验会在提交计划前读取目标字段及动态 `$User.<schemefieldName>` 用户字段，并使用技能包内置 cceg 编译表达式；失败时不创建计划。`platform/validationRule` 用户文档只描述 CLI 能力和使用方法，不再暴露内部实现说明。
 - 从技能 `2.2.76` 开始，报表与仪表板写入要求 MetadataService `1.1.68` 或更高版本：仪表板普通更新只修改根记录，显式 `replace/upsert` 才按集合三态替换组件；报表子集合也按省略保留、空数组清空、非空数组替换处理。Matrix 最多持久化 2 个行分组，`totalrecord` 纳入运行字段闭包，报表删除在 plan/apply 两阶段阻断仪表板引用并完整清理所属行。
+- 从技能 `2.2.77` 开始，查找关系和主详关系自动生成反向相关列表时要求显式 `childrelationName`，并要求 MetadataService `1.1.69` 或更高版本：相关列表按 setup-svc 写入 `relatedlist_type=custom`，新建相关列表、默认列和多语言记录使用 `aee`、`afa`、`bcb` 前缀；历史错误类型的关系行按布局、对象和字段自然键复用并在审核后的 plan/apply 中收敛，禁止通过修改 setup-svc 查询来兼容错误数据。
 - 从技能 `2.2.47` 开始，公式字段创建要求 MetadataService `1.1.51` 或更高版本：调用方只传 `formulaText` / `formulaType`，MetadataService 按目标对象字段元数据生成 `executeExpression`，自动派生跨对象公式依赖写入 `tp_sys_relevance`，并在缺对象、缺字段、缺 `$User` 字段或关系字段缺 lookup 目标时于计划阶段返回明确原因。
 - 从技能 `2.2.51` 开始，接口注册器运行态 `debug`、`logs`、`logDetail` 的 CLI 输出会在展示前脱敏常见 Token、Authorization、Cookie、Secret、Password、API Key 等敏感值，包括字符串形式请求/响应体中的常见鉴权片段。
 - 从技能 `2.2.52` 开始，CLI 对 `/api/cauth/token` 获取的 CloudCC `accessToken` 增加过期前缓存失效、token 错误识别、自动刷新和原请求重试；setup-svc/api-svc、customPage/pagecomponent devconsole envelope、triggers/classes/timer 发布辅助调用、high-code scan 和 MetadataService 401/invalid_token 都会在 token 被拒绝时给出明确刷新结果或配置检查提示。
