@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.78"
+const Version = "2.2.79"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -32,6 +32,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		Help(stdout, stderr)
 		return nil
 	case "changelog":
+		fmt.Fprintln(stderr, "- dataIndex is a first-class domain with standalone user docs, logical get/plan/create, analyze-before-apply optimization, explicit confirmation, capacity limits, stable failure reasons, and async status. Requires MetadataService 1.1.71; raw SQL and unique-index creation remain unsupported.")
 		fmt.Fprintln(stderr, "- Object create now appends a missing system administrator with full permissions; page-layout create/clone no longer assigns profiles, and standalone assign keeps optional record type with omission meaning the main type. Requires MetadataService 1.1.70.")
 		fmt.Fprintln(stderr, "- Relationship fields now require childrelationName for automatic inverse lists and require MetadataService 1.1.69 for setup-svc-compatible custom related-list persistence, aee/afa/bcb identities, and natural-key convergence of historical rows.")
 		fmt.Fprintln(stderr, "- Validation-rule validate/plan/create/update now compile expressions locally through packaged cceg, preserve string literals, resolve standard and relationship fields, infer update objects from rule details, type-check dynamic $User.<schemefieldName> values, send shortcut edits as partial UPDATE plans that preserve API and creation audit fields, and block invalid plans with UTF-8 diagnostics.")
@@ -293,6 +294,16 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc format highcode [projectPath] --check")
 	fmt.Fprintln(stdout, "  cloudcc <query|pageQuery|create|update|delete|upsert> openapi <projectPath> <encodedBodyJson> [isMcp]")
 	fmt.Fprintln(stdout, "  cloudcc capabilities msapi [projectPath]")
+	fmt.Fprintln(stdout)
+	fmt.Fprintln(stdout, "First-class domain: dataIndex (index lifecycle management)")
+	fmt.Fprintln(stdout, "  cloudcc doc dataIndex [introduction|devguide|optimization|database-limits|troubleshooting]")
+	fmt.Fprintln(stdout, "  cloudcc get dataIndex [projectPath] <object>")
+	fmt.Fprintln(stdout, "  cloudcc plan dataIndex [projectPath] <object> --fields <field1,field2> [--name <name>]")
+	fmt.Fprintln(stdout, "  cloudcc create dataIndex [projectPath] <object> --fields <field1,field2> [--name <name>] --confirm [--wait]")
+	fmt.Fprintln(stdout, "  cloudcc analyze dataIndex [projectPath] <object>")
+	fmt.Fprintln(stdout, "  cloudcc optimization-plan dataIndex [projectPath] <planId>")
+	fmt.Fprintln(stdout, "  cloudcc optimize dataIndex [projectPath] <planId> (--recommendations <ids>|--all-executable) --confirm [--wait]")
+	fmt.Fprintln(stdout, "  cloudcc status dataIndex [projectPath] <jobId>")
 	fmt.Fprintln(stdout, "  cloudcc bulk-schema msapi [projectPath] <object>")
 	fmt.Fprintln(stdout, "  cloudcc bulk msapi [projectPath] <object> <operation> <recordsJson|@file> [--format json|ndjson|csv] [--external-key-field <apiName>] [--chunk-size <n>] [--wait] [--output-dir <dir>]")
 	fmt.Fprintln(stdout, "  cloudcc <bulk-status|bulk-results|bulk-resume|bulk-retry-failed|bulk-cancel> msapi [projectPath] <jobId>")

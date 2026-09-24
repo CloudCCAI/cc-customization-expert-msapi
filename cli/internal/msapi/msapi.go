@@ -239,6 +239,256 @@ func Handle(action string, resource string, args []string, stdout io.Writer, cwd
 	}
 }
 
+func IsDataIndexDomain(value string) bool {
+	key := strings.ToLower(strings.TrimSpace(value))
+	key = strings.ReplaceAll(key, "-", "")
+	key = strings.ReplaceAll(key, "_", "")
+	return key == "dataindex"
+}
+
+func HandleDataIndexDomain(action string, args []string, stdout io.Writer, cwd string) error {
+	c, remaining, err := newClient(args, cwd)
+	if err != nil {
+		return err
+	}
+	switch action {
+	case "get", "list":
+		if len(remaining) < 1 || strings.TrimSpace(remaining[0]) == "" {
+			return fmt.Errorf("cloudcc get dataIndex [projectPath] <object>")
+		}
+		if err := c.ensureCloudccAccessToken(); err != nil {
+			return err
+		}
+		return c.getJSON(stdout, "/metadata/v1/data/objects/"+
+			url.PathEscape(strings.TrimSpace(remaining[0]))+"/indexes")
+	case "plan", "create":
+		command, err := dataIndexCommand(action, "dataIndex", remaining)
+		if err != nil {
+			return err
+		}
+		if err := c.ensureCloudccAccessToken(); err != nil {
+			return err
+		}
+		return c.runDataIndex(stdout, action, command)
+	case "analyze":
+		if len(remaining) < 1 || strings.TrimSpace(remaining[0]) == "" {
+			return fmt.Errorf("cloudcc analyze dataIndex [projectPath] <object>")
+		}
+		if err := c.ensureCloudccAccessToken(); err != nil {
+			return err
+		}
+		return c.writeJSON(stdout, http.MethodPost, "/metadata/v1/data/objects/"+
+			url.PathEscape(strings.TrimSpace(remaining[0]))+"/indexes:analyze", map[string]any{})
+	case "optimization-plan":
+		if len(remaining) < 1 || strings.TrimSpace(remaining[0]) == "" {
+			return fmt.Errorf("cloudcc optimization-plan dataIndex [projectPath] <planId>")
+		}
+		if err := c.ensureCloudccAccessToken(); err != nil {
+			return err
+		}
+		return c.getJSON(stdout, "/metadata/v1/data/index-optimization-plans/"+
+			url.PathEscape(strings.TrimSpace(remaining[0])))
+	case "optimize":
+		return c.runDataIndexOptimization(stdout, remaining)
+	case "status":
+		if len(remaining) < 1 || strings.TrimSpace(remaining[0]) == "" {
+			return fmt.Errorf("cloudcc status dataIndex [projectPath] <jobId>")
+		}
+		if err := c.ensureCloudccAccessToken(); err != nil {
+			return err
+		}
+		jobID := strings.TrimSpace(remaining[0])
+		path := "/metadata/v1/data/index-jobs/" + url.PathEscape(jobID)
+		if strings.HasPrefix(strings.ToLower(jobID), "dio") {
+			path = "/metadata/v1/data/index-optimization-jobs/" + url.PathEscape(jobID)
+		}
+		return c.getJSON(stdout, path)
+	default:
+		return fmt.Errorf("unsupported dataIndex domain action: %s", action)
+	}
+}
+
+type dataIndexCLICommand struct {
+	object       string
+	body         map[string]any
+	wait         bool
+	pollInterval time.Duration
+}
+
+func dataIndexCommand(action string, resource string, args []string) (*dataIndexCLICommand, error) {
+	usage := "cloudcc " + action + " " + resource + " <object> --fields <field1,field2> [--name <name>]"
+	if action == "create" {
+		usage += " --confirm [--wait]"
+	}
+	if len(args) < 1 || strings.TrimSpace(args[0]) == "" {
+		return nil, fmt.Errorf("%s", usage)
+	}
+	fields := []string{}
+	name := ""
+	confirmed := false
+	wait := false
+	pollInterval := time.Second
+	for i := 1; i < len(args); i++ {
+		switch args[i] {
+		case "--fields":
+			i++
+			if i >= len(args) {
+				return nil, fmt.Errorf("%s: --fields requires a comma-separated field list", usage)
+			}
+			for _, field := range strings.Split(args[i], ",") {
+				if value := strings.TrimSpace(field); value != "" {
+					fields = append(fields, value)
+				}
+			}
+		case "--name":
+			i++
+			if i >= len(args) || strings.TrimSpace(args[i]) == "" {
+				return nil, fmt.Errorf("%s: --name requires an index name", usage)
+			}
+			name = strings.TrimSpace(args[i])
+		case "--confirm":
+			confirmed = true
+		case "--wait":
+			wait = true
+		case "--poll-interval-ms":
+			i++
+			if i >= len(args) {
+				return nil, fmt.Errorf("%s: --poll-interval-ms requires a positive integer", usage)
+			}
+			value, err := strconv.Atoi(strings.TrimSpace(args[i]))
+			if err != nil || value <= 0 {
+				return nil, fmt.Errorf("%s: --poll-interval-ms requires a positive integer", usage)
+			}
+			pollInterval = time.Duration(value) * time.Millisecond
+		default:
+			return nil, fmt.Errorf("%s: unsupported option %s", usage, args[i])
+		}
+	}
+	if len(fields) == 0 || len(fields) > 4 {
+		return nil, fmt.Errorf("%s: --fields requires one to four fields", usage)
+	}
+	if action == "create" && !confirmed {
+		return nil, fmt.Errorf("%s: --confirm is required because index creation changes the tenant database schema", usage)
+	}
+	if action == "plan" && (confirmed || wait) {
+		return nil, fmt.Errorf("%s: --confirm and --wait apply only to create dataIndex", usage)
+	}
+	body := map[string]any{"fields": fields, "unique": false}
+	if name != "" {
+		body["name"] = name
+	}
+	return &dataIndexCLICommand{object: strings.TrimSpace(args[0]), body: body, wait: wait, pollInterval: pollInterval}, nil
+}
+
+func (c *client) runDataIndex(stdout io.Writer, action string, command *dataIndexCLICommand) error {
+	path := "/metadata/v1/data/objects/" + url.PathEscape(command.object) + "/indexes"
+	if action == "plan" {
+		return c.writeJSON(stdout, http.MethodPost, path+":plan", command.body)
+	}
+	job, err := c.requestJSONMap(http.MethodPost, path, command.body)
+	if err != nil {
+		return err
+	}
+	if !command.wait {
+		return writePrettyJSON(stdout, job)
+	}
+	jobID := strings.TrimSpace(stringValue(job["jobId"]))
+	if jobID == "" {
+		return fmt.Errorf("business data index response did not include jobId")
+	}
+	for {
+		status := strings.ToUpper(strings.TrimSpace(stringValue(job["status"])))
+		if contains([]string{"SUCCEEDED", "FAILED"}, status) {
+			return writePrettyJSON(stdout, job)
+		}
+		time.Sleep(command.pollInterval)
+		job, err = c.requestJSONMap(http.MethodGet,
+			"/metadata/v1/data/index-jobs/"+url.PathEscape(jobID), nil)
+		if err != nil {
+			return err
+		}
+	}
+}
+
+func (c *client) runDataIndexOptimization(stdout io.Writer, args []string) error {
+	usage := "cloudcc optimize dataIndex [projectPath] <planId> (--recommendations <id1,id2>|--all-executable) --confirm [--wait]"
+	if len(args) < 1 || strings.TrimSpace(args[0]) == "" {
+		return fmt.Errorf("%s", usage)
+	}
+	planID := strings.TrimSpace(args[0])
+	ids := []string{}
+	allExecutable := false
+	confirmed := false
+	wait := false
+	pollInterval := time.Second
+	for i := 1; i < len(args); i++ {
+		switch args[i] {
+		case "--recommendations":
+			i++
+			if i >= len(args) {
+				return fmt.Errorf("%s: --recommendations requires comma-separated IDs", usage)
+			}
+			for _, value := range strings.Split(args[i], ",") {
+				if value = strings.TrimSpace(value); value != "" {
+					ids = append(ids, value)
+				}
+			}
+		case "--all-executable":
+			allExecutable = true
+		case "--confirm":
+			confirmed = true
+		case "--wait":
+			wait = true
+		case "--poll-interval-ms":
+			i++
+			if i >= len(args) {
+				return fmt.Errorf("%s: --poll-interval-ms requires a positive integer", usage)
+			}
+			value, err := strconv.Atoi(strings.TrimSpace(args[i]))
+			if err != nil || value <= 0 {
+				return fmt.Errorf("%s: --poll-interval-ms requires a positive integer", usage)
+			}
+			pollInterval = time.Duration(value) * time.Millisecond
+		default:
+			return fmt.Errorf("%s: unsupported option %s", usage, args[i])
+		}
+	}
+	if !confirmed {
+		return fmt.Errorf("%s: --confirm is required after reviewing the optimization plan", usage)
+	}
+	if !allExecutable && len(ids) == 0 {
+		return fmt.Errorf("%s: select --recommendations or --all-executable", usage)
+	}
+	body := map[string]any{"recommendationIds": ids, "allExecutable": allExecutable, "confirmed": true}
+	if err := c.ensureCloudccAccessToken(); err != nil {
+		return err
+	}
+	job, err := c.requestJSONMap(http.MethodPost, "/metadata/v1/data/index-optimization-plans/"+
+		url.PathEscape(planID)+":apply", body)
+	if err != nil {
+		return err
+	}
+	if !wait {
+		return writePrettyJSON(stdout, job)
+	}
+	jobID := strings.TrimSpace(stringValue(job["jobId"]))
+	if jobID == "" {
+		return fmt.Errorf("dataIndex optimization response did not include jobId")
+	}
+	for {
+		status := strings.ToUpper(strings.TrimSpace(stringValue(job["status"])))
+		if contains([]string{"SUCCEEDED", "FAILED"}, status) {
+			return writePrettyJSON(stdout, job)
+		}
+		time.Sleep(pollInterval)
+		job, err = c.requestJSONMap(http.MethodGet,
+			"/metadata/v1/data/index-optimization-jobs/"+url.PathEscape(jobID), nil)
+		if err != nil {
+			return err
+		}
+	}
+}
+
 type bulkCommand struct {
 	body         map[string]any
 	records      []any

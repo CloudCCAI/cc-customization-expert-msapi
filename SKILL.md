@@ -1,12 +1,12 @@
 ---
 name: cc-customization-expert-msapi
-version: 2.2.78-msapi
+version: 2.2.79-msapi
 description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService."
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.2.78-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.2.79-msapi
 
-当前技能版本：`2.2.78-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.2.79-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
 
@@ -31,6 +31,7 @@ description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict Metad
 - 接口注册器属于低代码配置元数据：create/update/delete/query 走 MetadataService，debug/logs/logDetail 保持 setup-svc 实时运行态通道。高代码调用外部 HTTP 前读取 `platform/apiRegistrar devguide`，源码只使用已调试且为 `ACTIVE` 的 `apiCode`，不得硬编码 URL 或误用软件包标识 `apiName`。从技能 `2.2.33` 开始，接口注册器运行态调试/日志和高代码远程调用调整要求 MetadataService `1.1.41` 或更高版本，并建议 setup-svc `19.7.R8` 或更高版本；setup-svc 分支版本只做提醒，不按字符串直接阻断。
 - 从技能 `2.2.39` 开始，会计年度 `fiscal-years` 纳入年度和下级会计季度：年度详情返回 `fiscalQuarters[]`，年度 spec 可嵌套 `quarters[]`，也可用 `createQuarter/deleteQuarter fiscalYear` 快捷命令；区域层级 `areas` 仅对齐 setup-web 使用的 `/api/area/queryTree`、`/api/area/saveArea`、`/api/area/DeleteArea`。用户管理 CLI 改用 setup-svc `/api/usermange/*`，删除语义为停用用户。
 - 从技能 `2.2.40` 开始，CloudCC `accessToken` 自动刷新如果在 `/api/cauth/token` 失败，会立即返回接口失败原因并提示检查当前环境的 `cloudcc-cli.config.json` 配置，不再继续请求到只剩通用缺 token 错误。
+- 从技能 `2.2.79` 开始，`dataIndex` 是一级 Domain，要求 MetadataService `1.1.71`。用户应先运行 `cloudcc doc dataIndex`，再使用 `get/plan/create/analyze/optimization-plan/optimize/status dataIndex`；只接受对象和字段 API 名，创建需要 `--confirm`，分析不执行 DDL，优化要求已审阅方案和显式确认，不支持唯一索引。
 - 从技能 `2.2.41` 开始，`cloudcc get/getList view` 统一作为对象视图列表查询，可传对象 ID/API 名/前缀或 JSON filter；`detail/editInfo view` 才按 viewId 查详情。字段文档明确 `P`、`c`、`N`、`LT` 的 create/update/upsert 精度规则为 `length + decimalPlaces <= 18`，历史非法字段需要先修复字段定义，CLI 不自动缩短字段。
 - 创建页面布局不传 `sourceLayoutId` 且不传 `sections/buttons/layoutButtons/relatedLists` 时，MetadataService 根据对象元数据自动生成字段分区、详情页按钮和真实入向关系相关列表，基础短字段优先进入双列 `基本信息` 并均衡排布。`contentMode=auto|explicit|clone|blank` 分别用于自动补齐、完全手工、精确源布局复制和真正空白；显式空数组禁止该类别自动补齐，`sourceLayoutId` 不会默认选择第一个布局。创建/复制页面布局不分配简档；使用独立的 `cloudcc assign pagelayout` 分配一个或多个简档，`--record-type` 可选，省略表示主类型。`detail pagelayout` 的 `content` 使用可直接复用的 CLI 参数名，相关列表固定回读 `objectId`、`fieldId`、`relatedListType`、布尔值 `show`、`seq`、`fields` 和 `buttons`。该创建/分配边界以及对象简档权限补全要求 MetadataService `1.1.70` 或更高版本。
 - 从技能 `2.2.43` 开始，币种管理 `currencies` 纳入 MetadataService 低代码域：支持币种列表/详情/可新增币种/高级汇率读取，固定币种新增/修改/启停/汇率维护，高级多币种开关，dated rate 新增/修改/删除，以及要求显式 `rates[]` 的公司本位币变更计划。

@@ -67,6 +67,8 @@ func Run(args []string, stdout io.Writer, stderr io.Writer, cwd string) int {
 		if err = provider.RequireMSAPI(firstOr(rest, cwd)); err == nil {
 			err = msapi.Handle(action, resource, rest, stdout, cwd)
 		}
+	case msapi.IsDataIndexDomain(resource):
+		err = msapi.HandleDataIndexDomain(action, rest, stdout, cwd)
 	case msapi.IsMetadataDomainAction(action) && msapi.IsMetadataDomain(resource):
 		err = msapi.Handle(action, "msapi", append([]string{resource}, rest...), stdout, cwd)
 	case msapi.IsLowCodeShortcut(action, resource):
