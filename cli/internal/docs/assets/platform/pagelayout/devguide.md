@@ -6,6 +6,7 @@
 |------|------|
 | `get` | 查询页面布局列表 |
 | `create` | 创建/复制页面布局 |
+| `assign` | 将已有页面布局分配给一个或多个简档，可选指定记录类型 |
 | `delete` | 删除页面布局 |
 | `detail` | 查询页面布局详情（支持 PC / mobile） |
 | `update` | 保存布局编辑结果 |
@@ -23,7 +24,7 @@
 
 | 页面布局详情能力 | CLI kind | setup-svc 入口 | 当前 CLI/MSAPI 支持 |
 |------------------|----------|----------------|---------------------|
-| PC 页面布局 | 默认或 `pc` | `/api/modifyLayoutLightning/queryLayout`、`/saveLayout`、`/saveButtonLayout`、`/saveRelatedList` | 支持列表、详情、创建/复制、删除、sections 更新、布局分配；按钮/相关列表可通过 JSON spec 或 setup-svc 兼容入口处理 |
+| PC 页面布局 | 默认或 `pc` | `/api/modifyLayoutLightning/queryLayout`、`/saveLayout`、`/saveButtonLayout`、`/saveRelatedList` | 支持列表、详情、创建/复制、删除、sections 更新和独立布局分配；按钮/相关列表可通过 JSON spec 或 setup-svc 兼容入口处理 |
 | 移动页面布局 | `mobile` | `/api/modifyLayoutLightning/queryLayout`、`/saveLayout`，请求体 `type=mobile` | 支持详情和 sections 保存；保存时传 PC 根布局 ID，服务端定位其 mobile 子布局 |
 | 行式布局 | `row` | `/api/modifyLayoutLightning/queryMultiLayout`、`/saveMultiLayout` | 支持详情和完整替换保存；必填字段排在可选字段前 |
 | 悬停布局 | `hover` | `/api/modifyLayoutLightning/queryMiniLayout`、`/saveMiniLayout` | 支持详情和字段完整替换保存；悬停相关列表 JSON 可传给 setup-svc，MetadataService 表级写入需等待 live parity 完成 |
@@ -62,7 +63,7 @@ cloudcc get pagelayout . 001
 cloudcc create pagelayout <projectPath> <objId> <layoutName> [sourceLayoutId] [isCloneDynamic]
 ```
 
-`create pagelayout` 创建或复制布局后必须同时形成可用内容和布局分配。使用 MetadataService `1.1.62+` 时，最简单的命令会自动读取对象字段、详情按钮和入向查找/主详关系并设计布局：
+`create pagelayout` 只创建或复制页面布局，不分配简档。使用 MetadataService `1.1.62+` 时，最简单的命令会自动读取对象字段、详情按钮和入向查找/主详关系并设计布局：
 
 ```bash
 cloudcc create pagelayout . 20267D1465464C5OB6m5 "课程表2"
@@ -88,13 +89,7 @@ cloudcc create pagelayout . 20267D1465464C5OB6m5 "课程表2"
 - 详情按钮只从当前对象可见的 `detailBtn` 中选择，标准按钮优先，隐藏按钮和列表按钮不进入详情布局。
 - 相关列表只从真实的入向查找/主详关系生成；显示列优先名称/编号、状态、金额/数量、日期、负责人，最多 7 列；列表按钮只从子对象可见 `listBtn` 中选择。
 
-布局分配规则独立于内容模式：
-
-- 未传 `assignments[]`：默认把新布局作为对象默认布局分配给当前租户全部简档，`recordTypeId` 为空。
-- 传入 `assignments[]`：只按显式简档/记录类型范围分配，不再额外展开全部简档。
-- 确实只想创建未分配草稿：设置 `autoAssignProfiles=false`，即在 JSON spec 中显式写 `"autoAssignProfiles": false`，之后再使用独立的 `assign pagelayout` 完成分配。
-
-创建成功不等于用户已经能看到布局；验收必须同时检查布局内容和布局分配结果。
+创建完成后，如需让简档使用该布局，再执行独立的 `assign pagelayout` 命令。创建成功不等于用户已经能看到布局；验收时分别检查布局内容和布局分配结果。
 
 **参数说明：**
 
@@ -109,7 +104,7 @@ cloudcc create pagelayout . 20267D1465464C5OB6m5 "课程表2"
 **示例：**
 
 ```bash
-# 自动设计字段、按钮和相关列表，并默认分配给全部简档
+# 自动设计字段、按钮和相关列表
 cloudcc create pagelayout . 20267D1465464C5OB6m5 "课程表2"
 
 # 指定源布局 ID 进行复制
@@ -118,8 +113,6 @@ cloudcc create pagelayout . 20267D1465464C5OB6m5 "课程表2" add20261DA7347CZPA
 # 不复制动态布局规则
 cloudcc create pagelayout . 20267D1465464C5OB6m5 "课程表2" add20261DA7347CZPAUz false
 
-# 创建页面布局并同步分配给某个简档和记录类型
-cloudcc create pagelayout . 20267D1465464C5OB6m5 "课程表2" add20261DA7347CZPAUz false --profile aaa000001 --record-type rt_course_domestic
 ```
 
 自动模式也可以使用 MetadataService JSON，并在 plan 阶段查看设计结果：
@@ -163,7 +156,7 @@ cloudcc detail pagelayout . 20267D1465464C5OB6m5 <layoutId>
 
 完整手工设计使用 `contentMode=explicit` 和后文的完整页面布局 JSON。只要任一内容数组已经出现且没有显式写 `contentMode=auto`，系统就按 `explicit` 处理，不会猜测遗漏的按钮或相关列表。
 
-复制现有布局时，可以在创建布局的同一个 plan 中显式限定分配范围：
+复制现有布局时只需要指定源布局：
 
 ```json
 {
@@ -171,26 +164,7 @@ cloudcc detail pagelayout . 20267D1465464C5OB6m5 <layoutId>
   "objectId": "20267D1465464C5OB6m5",
   "layoutName": "课程销售布局",
   "contentMode": "clone",
-  "sourceLayoutId": "add20261DA7347CZPAUz",
-  "assignments": [
-    {
-      "profileId": "aaa000001",
-      "recordTypeId": "rt_course_domestic"
-    }
-  ]
-}
-```
-
-`assignments[].layoutId` 在创建布局时不要传；MetadataService 会使用本次创建的布局 ID。`recordTypeId` 不传表示该简档的对象默认布局，传入记录类型 ID 表示该简档下特定记录类型的页面布局。
-
-如果只创建未分配草稿，必须明确表达，而不是依赖省略参数；内容是否自动设计由 `contentMode` 单独决定：
-
-```json
-{
-  "objectId": "20267D1465464C5OB6m5",
-  "layoutName": "课程草稿布局",
-  "contentMode": "auto",
-  "autoAssignProfiles": false
+  "sourceLayoutId": "add20261DA7347CZPAUz"
 }
 ```
 
@@ -202,10 +176,15 @@ cloudcc detail pagelayout . 20267D1465464C5OB6m5 <layoutId>
 cloudcc assign pagelayout <projectPath> <objectId|apiName|prefix> <layoutId> --profile <profileId> [--record-type <recordTypeId>]
 ```
 
+`--profile` 可重复传入。`--record-type` 不是必填；省略时分配到对象的主类型，传入时分配到该记录类型。
+
 示例：
 
 ```bash
 cloudcc assign pagelayout . 20267D1465464C5OB6m5 layout_course_sales --profile aaa000001 --record-type rt_course_domestic
+
+# 分配到主类型
+cloudcc assign pagelayout . 20267D1465464C5OB6m5 layout_course_main --profile aaa000001 --profile aaa000002
 ```
 
 批量或复杂分配建议使用 MetadataService JSON：
@@ -238,7 +217,7 @@ cloudcc apply msapi . <planId>
 
 ## 完整页面布局 JSON
 
-下面示例在一次 MetadataService 计划中创建布局字段、详情页按钮、相关列表、相关列表显示列、相关列表按钮，并显式分配给一个简档和记录类型：
+下面示例在一次 MetadataService 计划中创建布局字段、详情页按钮、相关列表、相关列表显示列和相关列表按钮：
 
 ```json
 {
@@ -290,12 +269,6 @@ cloudcc apply msapi . <planId>
         {"buttonId": "button_payment_new", "seq": 1}
       ]
     }
-  ],
-  "assignments": [
-    {
-      "profileId": "aaa_sales",
-      "recordTypeId": "rt_contract_domestic"
-    }
   ]
 }
 ```
@@ -308,8 +281,6 @@ cloudcc apply msapi . <planId>
 cloudcc detail pagelayout . obj_contract layout_contract_sales
 ```
 
-如果省略上例的 `assignments[]`，新布局默认分配给全部简档；如果不希望自动分配，必须显式写 `"autoAssignProfiles": false`。
-
 ### 完整 JSON 字段说明
 
 | 节点 | 关键字段 | 说明 |
@@ -320,7 +291,6 @@ cloudcc detail pagelayout . obj_contract layout_contract_sales
 | `relatedLists[]` | `name/objectId/fieldId/relatedListType/seq/show` | `objectId` 是子对象；普通业务列表的 `fieldId` 是子对象上指向当前父对象的查找/主详关系字段；系统列表按下文固定参数填写。 |
 | `relatedLists[].fields[]` | `fieldId/seq/fieldStyle` | 相关列表显示列，字段来自子对象；首列应是可点击名称/编号字段。 |
 | `relatedLists[].buttons[]` | `buttonId/seq` | 挂载已经存在且适用于该相关列表的按钮。 |
-| `assignments[]` | `profileId/recordTypeId` | 显式限定布局分配；省略整个数组才触发全部简档默认分配。 |
 
 ### 批量创建页面布局
 
@@ -336,7 +306,6 @@ cloudcc detail pagelayout . obj_contract layout_contract_sales
     {
       "id": "layout_contract_default",
       "layoutName": "合同默认布局",
-      "assignments": [{"profileId": "aaa_contract_admin"}],
       "sections": [
         {
           "label": "基本信息",
@@ -348,8 +317,7 @@ cloudcc detail pagelayout . obj_contract layout_contract_sales
       "targetLayoutId": "layout_contract_channel",
       "layoutName": "渠道合同布局",
       "sourceLayoutId": "layout_contract_default",
-      "isCloneDynamic": "true",
-      "assignments": [{"profileId": "aaa_channel_sales", "recordTypeId": "rt_contract_channel"}]
+      "isCloneDynamic": "true"
     }
   ]
 }
@@ -365,8 +333,6 @@ cloudcc get pagelayout <projectPath> <prefix>
 ```
 
 `pagelayout` / `layouts` 都可作为 `plan msapi` 的 domain 参数。批量计划会逐项检查同批重复、目标对象已有同 ID / API 名 / 名称布局、数组项是否声明了其它对象。复制布局时，`sourceLayoutId` / `cloneFromLayoutId` / 复制形态下的 `layoutId` 必须属于同一个根对象，跨对象源布局会标记为 `FAILED_PRECHECK`。
-
-批量创建多个布局时，每个 `layouts[]` 项必须显式提供自己的 `assignments[]`，或者写 `"autoAssignProfiles": false` 表示该项暂不分配。多个布局不能同时成为全部简档的对象默认布局；省略这两个字段会标记为 `FAILED_PRECHECK`，避免数组最后一项意外覆盖前面布局的默认分配。
 
 `onExisting` 支持：
 

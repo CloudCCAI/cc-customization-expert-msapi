@@ -2003,7 +2003,7 @@ func pageLayoutShortcutSpec(action string, args []string) (map[string]any, strin
 	switch strings.TrimSpace(action) {
 	case "create":
 		if len(filtered) < 2 || strings.TrimSpace(filtered[0]) == "" || strings.TrimSpace(filtered[1]) == "" {
-			return nil, "", fmt.Errorf("cloudcc create pagelayout <projectPath> <object-id-apiName-or-prefix> <layoutName> [sourceLayoutId] [isCloneDynamic] [--profile <profileId> --record-type <recordTypeId>]")
+			return nil, "", fmt.Errorf("cloudcc create pagelayout <projectPath> <object-id-apiName-or-prefix> <layoutName> [sourceLayoutId] [isCloneDynamic]")
 		}
 		spec := map[string]any{
 			"objectId":   strings.TrimSpace(filtered[0]),
@@ -2017,9 +2017,6 @@ func pageLayoutShortcutSpec(action string, args []string) (map[string]any, strin
 		}
 		if len(filtered) > 4 {
 			return nil, "", fmt.Errorf("cloudcc create pagelayout received too many positional arguments; use JSON for advanced layout specs")
-		}
-		if len(assignment) > 0 {
-			spec["assignments"] = assignment
 		}
 		return spec, "create", nil
 	case "assign":
@@ -2179,9 +2176,6 @@ func extractPageLayoutAssignmentFlags(args []string) ([]string, []map[string]any
 			assignment["recordTypeId"] = recordTypeId
 		}
 		assignments = append(assignments, assignment)
-	}
-	if recordTypeId != "" && len(assignments) == 0 {
-		return nil, nil, fmt.Errorf("--record-type requires at least one --profile")
 	}
 	return filtered, assignments, nil
 }

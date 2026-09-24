@@ -1,6 +1,6 @@
 {
     "packageName":  "cc-customization-expert-msapi",
-    "version":  "2.2.77-msapi",
+    "version":  "2.2.78-msapi",
     "releaseDate":  "2026-09-24",
     "compatCloudccCliVersion":  "2.5.3",
     "runtime":  "go",
@@ -65,6 +65,22 @@
                                          "policy":  "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
                                          "minimumByCapability":  [
                                                                      {
+                                                                         "capability":  "msapi.objectsAndLayouts.assignmentParity",
+                                                                         "label":  "Object profile defaults and independent page-layout assignment",
+                                                                         "introducedInSkillVersion":  "2.2.78-msapi",
+                                                                         "minimumMetadataServiceVersion":  "1.1.70",
+                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.70",
+                                                                         "domains":  [
+                                                                                         "objects",
+                                                                                         "layouts"
+                                                                                     ],
+                                                                         "operations":  [
+                                                                                            "create",
+                                                                                            "assign"
+                                                                                        ],
+                                                                         "reason":  "Requires missing-system-administrator permission completion, assignment-free standalone layout create/clone, and standalone profile assignment with optional main record type."
+                                                                     },
+                                                                     {
                                                                          "capability":  "msapi.fields.relationshipPersistenceParity",
                                                                          "label":  "Lookup and master-detail inverse related-list persistence parity",
                                                                          "introducedInSkillVersion":  "2.2.77-msapi",
@@ -120,8 +136,8 @@
                                                                          "reason":  "Requires staged NDJSON/CSV stream endpoints, server-side staged row execution, batch DML for Bulk update/delete/upsert paths, chunk-level automatic-number range allocation, and compact success-result persistence."
                                                                      },
                                                                      {
-                                                                         "capability":  "msapi.layouts.defaultAssignmentAndCompleteContent",
-                                                                         "label":  "Page layout auto-design, default assignment, and complete content planning",
+                                                                         "capability":  "msapi.layouts.completeContent",
+                                                                         "label":  "Page layout auto-design and complete content planning",
                                                                          "introducedInSkillVersion":  "2.2.68-msapi",
                                                                          "minimumMetadataServiceVersion":  "1.1.62",
                                                                          "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.62",
@@ -133,7 +149,7 @@
                                                                                             "update",
                                                                                             "assign"
                                                                                         ],
-                                                                         "reason":  "Requires empty-content layout create to auto-design metadata-backed sections/buttons/relatedLists with basic short fields balanced into two columns, explicit auto|explicit|clone|blank content modes, created/cloned layouts defaulting to all-profile assignment unless scoped or disabled, clone-time assignments, natural-scope reassignment, and replacement-safe updates."
+                                                                         "reason":  "Requires empty-content layout create to auto-design metadata-backed sections/buttons/relatedLists with basic short fields balanced into two columns, explicit auto|explicit|clone|blank content modes, exact-source cloning, natural-scope standalone reassignment, and replacement-safe updates."
                                                                      },
                                                                      {
                                                                          "capability":  "msapi.profiles.copyCreateExistingStateUpdate",
@@ -380,7 +396,7 @@
                                                                      },
                                                                      {
                                                                          "capability":  "msapi.layouts.recordTypeAssignment",
-                                                                         "label":  "Page layout record-type assignment during create and assignment-only plans",
+                                                                         "label":  "Standalone page layout profile and record-type assignment",
                                                                          "introducedInSkillVersion":  "2.2.42-msapi",
                                                                          "minimumMetadataServiceVersion":  "1.1.48",
                                                                          "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.48",
@@ -388,10 +404,9 @@
                                                                                          "layouts"
                                                                                      ],
                                                                          "operations":  [
-                                                                                            "create",
                                                                                             "assign"
                                                                                         ],
-                                                                         "reason":  "Requires MetadataService layouts.create assignments[] and layouts.assign to write tp_sys_profile_layout for explicit profile/record-type bindings while preserving setup-svc layout create/clone behavior when assignments are omitted."
+                                                                         "reason":  "Requires MetadataService layouts.assign to write tp_sys_profile_layout for explicit profile and optional record-type bindings without coupling assignment to layout creation."
                                                                      },
                                                                      {
                                                                          "capability":  "msapi.companyCurrencyDomain",

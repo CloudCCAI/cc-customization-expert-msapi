@@ -8,7 +8,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.77"
+const Version = "2.2.78"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -32,13 +32,14 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		Help(stdout, stderr)
 		return nil
 	case "changelog":
+		fmt.Fprintln(stderr, "- Object create now appends a missing system administrator with full permissions; page-layout create/clone no longer assigns profiles, and standalone assign keeps optional record type with omission meaning the main type. Requires MetadataService 1.1.70.")
 		fmt.Fprintln(stderr, "- Relationship fields now require childrelationName for automatic inverse lists and require MetadataService 1.1.69 for setup-svc-compatible custom related-list persistence, aee/afa/bcb identities, and natural-key convergence of historical rows.")
 		fmt.Fprintln(stderr, "- Validation-rule validate/plan/create/update now compile expressions locally through packaged cceg, preserve string literals, resolve standard and relationship fields, infer update objects from rule details, type-check dynamic $User.<schemefieldName> values, send shortcut edits as partial UPDATE plans that preserve API and creation audit fields, and block invalid plans with UTF-8 diagnostics.")
 		fmt.Fprintln(stderr, "- Formula field user docs now distinguish platform functions from target-database functions and document common MySQL LEAST, GREATEST, TRIM, ABS, CEILING, FLOOR, MOD, ROUND, SQRT, POWER, LOG, LN, and EXP functions with target-validation guidance.")
 		fmt.Fprintln(stderr, "- Trigger local scaffolding now prefers objectApi/TriggerName and records the object API name in config.json schemetableName; flat TriggerName remains compatible, targetObjectId remains the authoritative binding, and both layouts create real CCTrigger wrappers with constructor-scoped SOURCE markers.")
 		fmt.Fprintln(stderr, "- High-code Java layout cleanup now runs as a lightweight single-pass Go formatter with no JVM or formatter JAR; publish reports formatting problems as warnings and continues to the existing structure, compile, remote validation, save, and readback gates.")
 		fmt.Fprintln(stderr, "- High-code publish auto-formats classes, triggers, and timers in the local project before validation and remote requests; release 2.2.71 changes formatter failures from local blockers to structured warnings.")
-		fmt.Fprintln(stderr, "- Page layout create/clone now defaults to all-profile assignment unless explicit assignments or autoAssignProfiles=false are supplied; standalone assign remains available, and layout JSON/docs now cover sections, detail buttons, related lists, related-list fields, and related-list buttons end to end through MetadataService 1.1.62.")
+		fmt.Fprintln(stderr, "- Page layout auto-design covers sections, detail buttons, related lists, related-list fields, and related-list buttons; current create/clone assignment behavior is documented by the latest changelog entry.")
 		fmt.Fprintln(stderr)
 		fmt.Fprintln(stderr, "CloudCC Go skill CLI")
 		fmt.Fprintln(stderr, "- Corrected the bundled page-component introduction terminology to use CloudCC-native custom-class wording.")
@@ -66,7 +67,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		fmt.Fprintln(stderr, "- Formula field CLI docs now document create-field formula expressions, return types, operators, and the complete platform formula function list, while marking ^ and & as target validation dependent.")
 		fmt.Fprintln(stderr, "- Validation rule CLI docs now list setup-service validateFunction-backed operators and functions, replace the misleading ISBLANK example with ISNULL, and mark frontend-only or ambiguous formula entries as requiring target validateFunction confirmation.")
 		fmt.Fprintln(stderr, "- Currency management is now a MetadataService low-code domain: currency/companyCurrency shortcuts read /metadata/v1/currencies, create/update/activate/deactivate/updateRate/createDatedRate/updateDatedRate/deleteDatedRate/enableAdvanced/disableAdvanced/changeCorporate create reviewed currencies plans, and changeCorporate fails closed without explicit rebased rates for rollback-safe apply.")
-		fmt.Fprintln(stderr, "- Page layout assignment originally added explicit create-time assignments[] / --profile / --record-type and standalone assign; as of 2.2.68, omitted assignments default to all profiles unless autoAssignProfiles=false is explicit.")
+		fmt.Fprintln(stderr, "- Page layout assignment is a standalone operation for an existing layout and one or more profiles; record type is optional and omission selects the main type.")
 		fmt.Fprintln(stderr, "- Object-view reads now keep get/getList as list query semantics with optional object selector or JSON filter, reserve detail/editInfo for view-ID detail, and field docs clarify create/update/upsert precision enforcement for length + decimalPlaces <= 18.")
 		fmt.Fprintln(stderr, "- CloudCC accessToken refresh failures now surface the /api/cauth/token failure reason immediately and remind callers to inspect the active cloudcc-cli.config.json credentials, instead of continuing until MetadataService reports a generic missing accessToken.")
 		fmt.Fprintln(stderr, "- Fiscal-year low-code domain now includes child fiscal quarters: fiscal-years reads return fiscalQuarters on detail, nested quarters[] plans write tp_sys_fiscalquarter, createQuarter/deleteQuarter shortcuts map to setup-svc saveFiscalQuarter/delFiscalQuarter semantics, and quarterly ranges are guarded inside their parent fiscal year.")
@@ -318,11 +319,11 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc get profile <projectPath> [filter]")
 	fmt.Fprintln(stdout, "  cloudcc detail profile <projectPath> <id|name|apiName>")
 	fmt.Fprintln(stdout, "  cloudcc delete profile <projectPath> <id|name|apiName>  # resolves uniquely and creates a guarded MetadataService plan")
-	fmt.Fprintln(stdout, "  cloudcc create pagelayout <projectPath> <object> <layoutName> [sourceLayoutId] [isCloneDynamic] [--profile <profileId> --record-type <recordTypeId>]")
+	fmt.Fprintln(stdout, "  cloudcc create pagelayout <projectPath> <object> <layoutName> [sourceLayoutId] [isCloneDynamic]")
 	fmt.Fprintln(stdout, "  cloudcc assign pagelayout <projectPath> <object> <layoutId> --profile <profileId> [--record-type <recordTypeId>]")
 	fmt.Fprintln(stdout, "    No source/content: auto-design fields, detail buttons, and related lists; basic short fields are balanced into two columns first")
 	fmt.Fprintln(stdout, "    sourceLayoutId: clone that exact layout; JSON contentMode supports auto|explicit|clone|blank")
-	fmt.Fprintln(stdout, "    MSAPI create/clone defaults to all-profile object-layout assignment; use JSON autoAssignProfiles=false only for an unassigned draft")
+	fmt.Fprintln(stdout, "    MSAPI create/clone does not assign profiles; assign separately, omitting --record-type for the main type")
 	fmt.Fprintln(stdout, "  cloudcc get fiscalYear <projectPath> [filterJson|year]")
 	fmt.Fprintln(stdout, "  cloudcc detail fiscalYear <projectPath> <id|year>")
 	fmt.Fprintln(stdout, "  cloudcc create fiscalYear <projectPath> <year> <startDate> <endDate> [description]")
