@@ -15,6 +15,7 @@ import (
 
 	"cloudcc-customization-expert-go/internal/compatibility"
 	"cloudcc-customization-expert-go/internal/config"
+	"cloudcc-customization-expert-go/internal/domaincatalog"
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
@@ -125,6 +126,33 @@ func RequireMSAPI(projectPath string) error {
 	}
 	if selection.SelectedMode != ModeMSAPI {
 		return fmt.Errorf("MetadataService command is unavailable with selected provider %s; set executionMode=msapi only when a compatible MetadataService is configured", selection.SelectedMode)
+	}
+	return nil
+}
+
+// RequireDomain enforces the package and provider availability declared by
+// the embedded Domain catalog before a Domain handler reads credentials or
+// starts its first business request.
+func RequireDomain(projectPath string, name string) error {
+	domain, ok := domaincatalog.Find(name)
+	if !ok {
+		return fmt.Errorf("unknown Domain %q; run cloudcc domains", name)
+	}
+	availability := domaincatalog.AvailabilityFor(domain, domaincatalog.PackageKind())
+	if availability == "unavailable" {
+		return fmt.Errorf("%s is unavailable in %s: this %s Domain requires executionMode=msapi and MetadataService >= %s",
+			domain.Name, edition.PackageName, domain.Category, domain.MinimumBackendVersion)
+	}
+	if domain.Transport != ModeMSAPI {
+		return nil
+	}
+	selection, err := Resolve(projectPath)
+	if err != nil {
+		return err
+	}
+	if selection.SelectedMode != ModeMSAPI {
+		return fmt.Errorf("%s requires executionMode=msapi; selected provider is %s",
+			domain.Name, selection.SelectedMode)
 	}
 	return nil
 }

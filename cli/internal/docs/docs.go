@@ -67,8 +67,14 @@ func normalizeModule(module string) string {
 	if module == "dashboard" {
 		return "platform/dashboard"
 	}
-	if strings.EqualFold(module, "dataIndex") || strings.EqualFold(module, "data-index") {
+	if strings.EqualFold(module, "dataIndex") {
 		return "platform/dataIndex"
+	}
+	if strings.EqualFold(module, "dataBulk") {
+		return "platform/dataBulk"
+	}
+	if strings.EqualFold(module, "domains") {
+		return "platform/domains"
 	}
 	if module == "" {
 		return ""

@@ -1,25 +1,210 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.2.79-msapi",
-  "releaseDate": "2026-09-24",
+  "version": "2.2.80-msapi",
+  "releaseDate": "2026-09-28",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
-  "firstClassDomains": [
-    {
-      "name": "dataIndex",
-      "label": "Business data index lifecycle management",
-      "documentationCommand": "cloudcc doc dataIndex",
-      "actions": [
-        "get",
-        "plan",
-        "create",
-        "analyze",
-        "optimization-plan",
-        "optimize",
-        "status"
-      ]
-    }
-  ],
+  "domainCatalog": {
+    "schemaVersion": "cloudcc-domain-catalog/v1",
+    "source": "cli/internal/domaincatalog/domain-catalog.json",
+    "packageKind": "msapi",
+    "categories": [
+      {
+        "name": "metadata",
+        "label": "Metadata Domains",
+        "description": "Platform configuration and model control-plane metadata."
+      },
+      {
+        "name": "data-extension",
+        "label": "Data Extension Domains",
+        "description": "Business-data capabilities that use metadata but are not metadata domains."
+      },
+      {
+        "name": "integration",
+        "label": "Integration Domains",
+        "description": "External integration and platform API access."
+      },
+      {
+        "name": "high-code",
+        "label": "High-code Domains",
+        "description": "Platform development and deployable code assets."
+      },
+      {
+        "name": "governance",
+        "label": "Governance Domains",
+        "description": "Local project delivery and verification governance."
+      }
+    ],
+    "domains": [
+      {
+        "name": "metadata",
+        "label": "CloudCC metadata configuration",
+        "level": "first-class",
+        "category": "metadata",
+        "backend": "metadata-service",
+        "transport": "msapi",
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "documentationCommand": "cloudcc doc platform/capabilityMap introduction",
+        "actions": [
+          "get",
+          "detail",
+          "create",
+          "update",
+          "delete",
+          "plan",
+          "apply",
+          "rollback"
+        ]
+      },
+      {
+        "name": "dataIndex",
+        "label": "Business data index lifecycle management",
+        "level": "first-class",
+        "category": "data-extension",
+        "backend": "metadata-service",
+        "transport": "msapi",
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "unavailable",
+          "universal": "requires-msapi"
+        },
+        "minimumBackendVersion": "1.1.71",
+        "documentationCommand": "cloudcc doc dataIndex",
+        "actions": [
+          "get",
+          "plan",
+          "create",
+          "analyze",
+          "optimization-plan",
+          "optimize",
+          "status"
+        ]
+      },
+      {
+        "name": "dataBulk",
+        "label": "Business data bulk jobs",
+        "level": "first-class",
+        "category": "data-extension",
+        "backend": "metadata-service",
+        "transport": "msapi",
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "unavailable",
+          "universal": "requires-msapi"
+        },
+        "minimumBackendVersion": "1.1.71",
+        "documentationCommand": "cloudcc doc dataBulk",
+        "actions": [
+          "schema",
+          "submit",
+          "status",
+          "results",
+          "resume",
+          "retry",
+          "cancel"
+        ]
+      },
+      {
+        "name": "openapi",
+        "label": "CloudCC OpenAPI",
+        "level": "first-class",
+        "category": "integration",
+        "backend": "api-svc",
+        "transport": "direct",
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "enabled",
+          "universal": "enabled"
+        },
+        "minimumBackendVersion": null,
+        "documentationCommand": "cloudcc doc platform/openapi introduction",
+        "actions": [
+          "query",
+          "pageQuery",
+          "create",
+          "update",
+          "delete",
+          "upsert"
+        ]
+      },
+      {
+        "name": "highcode",
+        "label": "CloudCC high-code resources",
+        "level": "first-class",
+        "category": "high-code",
+        "backend": "setup-svc/devconsole",
+        "transport": "direct",
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "enabled",
+          "universal": "enabled"
+        },
+        "minimumBackendVersion": null,
+        "documentationCommand": "cloudcc doc platform/lowcodeHighcode introduction",
+        "actions": [
+          "create",
+          "validate",
+          "publish",
+          "get",
+          "detail",
+          "delete"
+        ]
+      },
+      {
+        "name": "projectOutputs",
+        "label": "Project output governance",
+        "level": "first-class",
+        "category": "governance",
+        "backend": "local",
+        "transport": "local",
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "enabled",
+          "universal": "enabled"
+        },
+        "minimumBackendVersion": null,
+        "documentationCommand": "cloudcc doc methodology/projectOutputs introduction",
+        "actions": [
+          "init",
+          "doctor"
+        ]
+      },
+      {
+        "name": "testing",
+        "label": "Test governance",
+        "level": "first-class",
+        "category": "governance",
+        "backend": "local",
+        "transport": "local",
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "enabled",
+          "universal": "enabled"
+        },
+        "minimumBackendVersion": null,
+        "documentationCommand": "cloudcc doc methodology/testGovernance introduction",
+        "actions": [
+          "init",
+          "advise",
+          "decide",
+          "record",
+          "doctor"
+        ]
+      }
+    ]
+  },
   "javaFormatter": {
     "name": "cloudcc-go-layout",
     "version": "1",
@@ -83,7 +268,7 @@
       {
         "capability": "msapi.businessData.indexManagement",
         "label": "Business data logical object/field index management",
-        "introducedInSkillVersion": "2.2.79-msapi",
+        "introducedInSkillVersion": "2.2.80-msapi",
         "minimumMetadataServiceVersion": "1.1.71",
         "metadataServiceReleaseTag": "cc-metadata-service-v1.1.71",
         "domains": [
@@ -152,24 +337,32 @@
         "reason": "Requires distinct dashboard root update and aggregate replacement, tri-state child collections, Matrix two-row persistence validation, totalrecord runtime closure, complete owned-row cleanup, and fail-closed report delete reference guards."
       },
       {
-        "capability": "msapi.bulk.largeStreamingAndBatchDml",
-        "label": "Business data Bulk staged streaming and batch DML",
-        "introducedInSkillVersion": "2.2.70-msapi",
-        "minimumMetadataServiceVersion": "1.1.63",
-        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.63",
+        "capability": "msapi.businessData.bulk",
+        "label": "First-class business data Bulk lifecycle Domain",
+        "introducedInSkillVersion": "2.2.80-msapi",
+        "minimumMetadataServiceVersion": "1.1.71",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.71",
         "domains": [
           "business-data-bulk"
         ],
         "operations": [
+          "write-schema",
           "insert",
           "update-by-id",
           "upsert-by-id",
           "upsert-by-external-key",
           "logical-delete-by-id",
+          "json",
           "ndjson",
-          "csv"
+          "csv",
+          "stream",
+          "status",
+          "results",
+          "resume",
+          "retry-failed",
+          "cancel"
         ],
-        "reason": "Requires staged NDJSON/CSV stream endpoints, server-side staged row execution, batch DML for Bulk update/delete/upsert paths, chunk-level automatic-number range allocation, and compact success-result persistence."
+        "reason": "Requires the first-class dataBulk lifecycle Domain, staged streaming and batch DML, physical-table writer, independent job ledger, logical object/field validation, stable failure reasons, and data:bulk security scopes."
       },
       {
         "capability": "msapi.layouts.completeContent",
@@ -218,24 +411,6 @@
           "runtime-visible"
         ],
         "reason": "Requires complete Lightning folder/root/component/filter planning, a 15-component guard, dedicated dashboard list/detail routes, and read-only runtime folder visibility diagnostics."
-      },
-      {
-        "capability": "msapi.businessData.bulk",
-        "label": "Isolated business-data Bulk API",
-        "introducedInSkillVersion": "2.2.62-msapi",
-        "minimumMetadataServiceVersion": "1.1.59",
-        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.59",
-        "domains": [
-          "business-data-bulk"
-        ],
-        "operations": [
-          "insert",
-          "update-by-id",
-          "upsert-by-id",
-          "upsert-by-external-key",
-          "logical-delete-by-id"
-        ],
-        "reason": "Requires the default-off isolated direct-write Bulk API, physical-table writer, independent job ledger, and data:bulk security scopes."
       },
       {
         "capability": "msapi.buttons.urlFieldNormalization",

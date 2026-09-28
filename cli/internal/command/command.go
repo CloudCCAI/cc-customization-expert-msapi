@@ -68,7 +68,13 @@ func Run(args []string, stdout io.Writer, stderr io.Writer, cwd string) int {
 			err = msapi.Handle(action, resource, rest, stdout, cwd)
 		}
 	case msapi.IsDataIndexDomain(resource):
-		err = msapi.HandleDataIndexDomain(action, rest, stdout, cwd)
+		if err = provider.RequireDomain(msapi.ProjectPath(rest, cwd), "dataIndex"); err == nil {
+			err = msapi.HandleDataIndexDomain(action, rest, stdout, cwd)
+		}
+	case msapi.IsDataBulkDomain(resource):
+		if err = provider.RequireDomain(msapi.ProjectPath(rest, cwd), "dataBulk"); err == nil {
+			err = msapi.HandleDataBulkDomain(action, rest, stdout, cwd)
+		}
 	case msapi.IsMetadataDomainAction(action) && msapi.IsMetadataDomain(resource):
 		err = msapi.Handle(action, "msapi", append([]string{resource}, rest...), stdout, cwd)
 	case msapi.IsLowCodeShortcut(action, resource):

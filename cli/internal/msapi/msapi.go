@@ -46,51 +46,6 @@ func Handle(action string, resource string, args []string, stdout io.Writer, cwd
 	switch action {
 	case "capabilities", "capability":
 		return c.getJSON(stdout, "/metadata/v1/capabilities")
-	case "bulk-schema":
-		if len(remaining) < 1 || strings.TrimSpace(remaining[0]) == "" {
-			return fmt.Errorf("cloudcc bulk-schema %s <object>", resource)
-		}
-		if err := c.ensureCloudccAccessToken(); err != nil {
-			return err
-		}
-		return c.getJSON(stdout, "/metadata/v1/data/objects/"+url.PathEscape(strings.TrimSpace(remaining[0]))+"/write-schema")
-	case "bulk":
-		request, err := bulkJobCommand(remaining)
-		if err != nil {
-			return err
-		}
-		if err := c.ensureCloudccAccessToken(); err != nil {
-			return err
-		}
-		return c.runBulk(stdout, request)
-	case "bulk-status":
-		if len(remaining) < 1 || strings.TrimSpace(remaining[0]) == "" {
-			return fmt.Errorf("cloudcc bulk-status %s <jobId>", resource)
-		}
-		if err := c.ensureCloudccAccessToken(); err != nil {
-			return err
-		}
-		return c.getJSON(stdout, "/metadata/v1/data/bulk/jobs/"+url.PathEscape(remaining[0]))
-	case "bulk-results":
-		if len(remaining) < 1 || strings.TrimSpace(remaining[0]) == "" {
-			return fmt.Errorf("cloudcc bulk-results %s <jobId>", resource)
-		}
-		if err := c.ensureCloudccAccessToken(); err != nil {
-			return err
-		}
-		return c.getJSON(stdout, "/metadata/v1/data/bulk/jobs/"+url.PathEscape(remaining[0])+"/results")
-	case "bulk-resume", "bulk-retry-failed", "bulk-cancel":
-		if len(remaining) < 1 || strings.TrimSpace(remaining[0]) == "" {
-			return fmt.Errorf("cloudcc %s %s <jobId>", action, resource)
-		}
-		if err := c.ensureCloudccAccessToken(); err != nil {
-			return err
-		}
-		suffix := map[string]string{
-			"bulk-resume": ":resume", "bulk-retry-failed": ":retryFailed", "bulk-cancel": ":cancel",
-		}[action]
-		return c.writeJSON(stdout, http.MethodPost,
-			"/metadata/v1/data/bulk/jobs/"+url.PathEscape(remaining[0])+suffix, nil)
 	case "scan":
 		return c.scan(stdout, remaining)
 	case "resolve", "references":
@@ -240,10 +195,18 @@ func Handle(action string, resource string, args []string, stdout io.Writer, cwd
 }
 
 func IsDataIndexDomain(value string) bool {
-	key := strings.ToLower(strings.TrimSpace(value))
-	key = strings.ReplaceAll(key, "-", "")
-	key = strings.ReplaceAll(key, "_", "")
-	return key == "dataindex"
+	return strings.EqualFold(strings.TrimSpace(value), "dataIndex")
+}
+
+func IsDataBulkDomain(value string) bool {
+	return strings.EqualFold(strings.TrimSpace(value), "dataBulk")
+}
+
+func ProjectPath(args []string, cwd string) string {
+	if len(args) > 0 && isProjectPath(args[0]) {
+		return args[0]
+	}
+	return cwd
 }
 
 func HandleDataIndexDomain(action string, args []string, stdout io.Writer, cwd string) error {
@@ -308,6 +271,51 @@ func HandleDataIndexDomain(action string, args []string, stdout io.Writer, cwd s
 	}
 }
 
+func HandleDataBulkDomain(action string, args []string, stdout io.Writer, cwd string) error {
+	c, remaining, err := newClient(args, cwd)
+	if err != nil {
+		return err
+	}
+	switch action {
+	case "schema":
+		if len(remaining) < 1 || strings.TrimSpace(remaining[0]) == "" {
+			return fmt.Errorf("cloudcc schema dataBulk [projectPath] <object>")
+		}
+		if err := c.ensureCloudccAccessToken(); err != nil {
+			return err
+		}
+		return c.getJSON(stdout, "/metadata/v1/data/objects/"+
+			url.PathEscape(strings.TrimSpace(remaining[0]))+"/write-schema")
+	case "submit":
+		request, err := bulkJobCommand(remaining)
+		if err != nil {
+			return err
+		}
+		if err := c.ensureCloudccAccessToken(); err != nil {
+			return err
+		}
+		return c.runBulk(stdout, request)
+	case "status", "results", "resume", "retry", "cancel":
+		if len(remaining) < 1 || strings.TrimSpace(remaining[0]) == "" {
+			return fmt.Errorf("cloudcc %s dataBulk [projectPath] <jobId>", action)
+		}
+		if err := c.ensureCloudccAccessToken(); err != nil {
+			return err
+		}
+		jobPath := "/metadata/v1/data/bulk/jobs/" + url.PathEscape(strings.TrimSpace(remaining[0]))
+		if action == "status" {
+			return c.getJSON(stdout, jobPath)
+		}
+		if action == "results" {
+			return c.getJSON(stdout, jobPath+"/results")
+		}
+		suffix := map[string]string{"resume": ":resume", "retry": ":retryFailed", "cancel": ":cancel"}[action]
+		return c.writeJSON(stdout, http.MethodPost, jobPath+suffix, nil)
+	default:
+		return fmt.Errorf("unsupported dataBulk Domain action: %s", action)
+	}
+}
+
 type dataIndexCLICommand struct {
 	object       string
 	body         map[string]any
@@ -318,7 +326,7 @@ type dataIndexCLICommand struct {
 func dataIndexCommand(action string, resource string, args []string) (*dataIndexCLICommand, error) {
 	usage := "cloudcc " + action + " " + resource + " <object> --fields <field1,field2> [--name <name>]"
 	if action == "create" {
-		usage += " --confirm [--wait]"
+		usage += " --confirm [--wait] [--poll-interval-ms <n>]"
 	}
 	if len(args) < 1 || strings.TrimSpace(args[0]) == "" {
 		return nil, fmt.Errorf("%s", usage)
@@ -411,7 +419,7 @@ func (c *client) runDataIndex(stdout io.Writer, action string, command *dataInde
 }
 
 func (c *client) runDataIndexOptimization(stdout io.Writer, args []string) error {
-	usage := "cloudcc optimize dataIndex [projectPath] <planId> (--recommendations <id1,id2>|--all-executable) --confirm [--wait]"
+	usage := "cloudcc optimize dataIndex [projectPath] <planId> (--recommendations <id1,id2>|--all-executable) --confirm [--wait] [--poll-interval-ms <n>]"
 	if len(args) < 1 || strings.TrimSpace(args[0]) == "" {
 		return fmt.Errorf("%s", usage)
 	}
@@ -455,6 +463,9 @@ func (c *client) runDataIndexOptimization(stdout io.Writer, args []string) error
 	}
 	if !confirmed {
 		return fmt.Errorf("%s: --confirm is required after reviewing the optimization plan", usage)
+	}
+	if allExecutable && len(ids) > 0 {
+		return fmt.Errorf("%s: select exactly one of --recommendations or --all-executable", usage)
 	}
 	if !allExecutable && len(ids) == 0 {
 		return fmt.Errorf("%s: select --recommendations or --all-executable", usage)
@@ -516,7 +527,7 @@ func bulkJobCommand(args []string) (*bulkCommand, error) {
 }
 
 func bulkJobCommandWithMode(args []string, eager bool) (*bulkCommand, error) {
-	const usage = "cloudcc bulk msapi <object> <operation> <recordsJson|@file> [--format json|ndjson|csv] [--external-key-field <apiName>]"
+	const usage = "cloudcc submit dataBulk [projectPath] <object> <operation> <recordsJson|@file> [--format json|ndjson|csv] [--external-key-field <apiName>] [--chunk-size <n>] [--wait] [--poll-interval-ms <n>] [--output-dir <dir>]"
 	if len(args) < 3 {
 		return nil, fmt.Errorf(usage)
 	}

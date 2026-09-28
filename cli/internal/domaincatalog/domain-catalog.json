@@ -1,0 +1,91 @@
+{
+  "schemaVersion": "cloudcc-domain-catalog/v1",
+  "categories": [
+    {"name": "metadata", "label": "Metadata Domains", "description": "Platform configuration and model control-plane metadata."},
+    {"name": "data-extension", "label": "Data Extension Domains", "description": "Business-data capabilities that use metadata but are not metadata domains."},
+    {"name": "integration", "label": "Integration Domains", "description": "External integration and platform API access."},
+    {"name": "high-code", "label": "High-code Domains", "description": "Platform development and deployable code assets."},
+    {"name": "governance", "label": "Governance Domains", "description": "Local project delivery and verification governance."}
+  ],
+  "domains": [
+    {
+      "name": "metadata",
+      "label": "CloudCC metadata configuration",
+      "level": "first-class",
+      "category": "metadata",
+      "backend": "metadata-service",
+      "transport": "msapi",
+      "availability": {"msapi": "enabled", "uiapi": "provider-adapter", "universal": "provider-selected"},
+      "documentationCommand": "cloudcc doc platform/capabilityMap introduction",
+      "actions": ["get", "detail", "create", "update", "delete", "plan", "apply", "rollback"]
+    },
+    {
+      "name": "dataIndex",
+      "label": "Business data index lifecycle management",
+      "level": "first-class",
+      "category": "data-extension",
+      "backend": "metadata-service",
+      "transport": "msapi",
+      "availability": {"msapi": "enabled", "uiapi": "unavailable", "universal": "requires-msapi"},
+      "minimumBackendVersion": "1.1.71",
+      "documentationCommand": "cloudcc doc dataIndex",
+      "actions": ["get", "plan", "create", "analyze", "optimization-plan", "optimize", "status"]
+    },
+    {
+      "name": "dataBulk",
+      "label": "Business data bulk jobs",
+      "level": "first-class",
+      "category": "data-extension",
+      "backend": "metadata-service",
+      "transport": "msapi",
+      "availability": {"msapi": "enabled", "uiapi": "unavailable", "universal": "requires-msapi"},
+      "minimumBackendVersion": "1.1.71",
+      "documentationCommand": "cloudcc doc dataBulk",
+      "actions": ["schema", "submit", "status", "results", "resume", "retry", "cancel"]
+    },
+    {
+      "name": "openapi",
+      "label": "CloudCC OpenAPI",
+      "level": "first-class",
+      "category": "integration",
+      "backend": "api-svc",
+      "transport": "direct",
+      "availability": {"msapi": "enabled", "uiapi": "enabled", "universal": "enabled"},
+      "documentationCommand": "cloudcc doc platform/openapi introduction",
+      "actions": ["query", "pageQuery", "create", "update", "delete", "upsert"]
+    },
+    {
+      "name": "highcode",
+      "label": "CloudCC high-code resources",
+      "level": "first-class",
+      "category": "high-code",
+      "backend": "setup-svc/devconsole",
+      "transport": "direct",
+      "availability": {"msapi": "enabled", "uiapi": "enabled", "universal": "enabled"},
+      "documentationCommand": "cloudcc doc platform/lowcodeHighcode introduction",
+      "actions": ["create", "validate", "publish", "get", "detail", "delete"]
+    },
+    {
+      "name": "projectOutputs",
+      "label": "Project output governance",
+      "level": "first-class",
+      "category": "governance",
+      "backend": "local",
+      "transport": "local",
+      "availability": {"msapi": "enabled", "uiapi": "enabled", "universal": "enabled"},
+      "documentationCommand": "cloudcc doc methodology/projectOutputs introduction",
+      "actions": ["init", "doctor"]
+    },
+    {
+      "name": "testing",
+      "label": "Test governance",
+      "level": "first-class",
+      "category": "governance",
+      "backend": "local",
+      "transport": "local",
+      "availability": {"msapi": "enabled", "uiapi": "enabled", "universal": "enabled"},
+      "documentationCommand": "cloudcc doc methodology/testGovernance introduction",
+      "actions": ["init", "advise", "decide", "record", "doctor"]
+    }
+  ]
+}

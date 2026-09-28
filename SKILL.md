@@ -1,12 +1,12 @@
 ---
 name: cc-customization-expert-msapi
-version: 2.2.79-msapi
+version: 2.2.80-msapi
 description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService."
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.2.79-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.2.80-msapi
 
-当前技能版本：`2.2.79-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.2.80-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
 
@@ -31,7 +31,7 @@ description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict Metad
 - 接口注册器属于低代码配置元数据：create/update/delete/query 走 MetadataService，debug/logs/logDetail 保持 setup-svc 实时运行态通道。高代码调用外部 HTTP 前读取 `platform/apiRegistrar devguide`，源码只使用已调试且为 `ACTIVE` 的 `apiCode`，不得硬编码 URL 或误用软件包标识 `apiName`。从技能 `2.2.33` 开始，接口注册器运行态调试/日志和高代码远程调用调整要求 MetadataService `1.1.41` 或更高版本，并建议 setup-svc `19.7.R8` 或更高版本；setup-svc 分支版本只做提醒，不按字符串直接阻断。
 - 从技能 `2.2.39` 开始，会计年度 `fiscal-years` 纳入年度和下级会计季度：年度详情返回 `fiscalQuarters[]`，年度 spec 可嵌套 `quarters[]`，也可用 `createQuarter/deleteQuarter fiscalYear` 快捷命令；区域层级 `areas` 仅对齐 setup-web 使用的 `/api/area/queryTree`、`/api/area/saveArea`、`/api/area/DeleteArea`。用户管理 CLI 改用 setup-svc `/api/usermange/*`，删除语义为停用用户。
 - 从技能 `2.2.40` 开始，CloudCC `accessToken` 自动刷新如果在 `/api/cauth/token` 失败，会立即返回接口失败原因并提示检查当前环境的 `cloudcc-cli.config.json` 配置，不再继续请求到只剩通用缺 token 错误。
-- 从技能 `2.2.79` 开始，`dataIndex` 是一级 Domain，要求 MetadataService `1.1.71`。用户应先运行 `cloudcc doc dataIndex`，再使用 `get/plan/create/analyze/optimization-plan/optimize/status dataIndex`；只接受对象和字段 API 名，创建需要 `--confirm`，分析不执行 DDL，优化要求已审阅方案和显式确认，不支持唯一索引。
+- 从技能 `2.2.80` 开始，使用 `cloudcc domains` 查看一级 Domain 分类、后端和包可用性。`dataIndex`、`dataBulk` 是 MSAPI-only Data Extension Domain，要求 MetadataService `1.1.71`；UIAPI 在读取凭据和网络请求前拒绝，Universal 仅在选择 MSAPI provider 时允许。`openapi` 是 Integration Domain，直接调用 `api-svc`。
 - 从技能 `2.2.41` 开始，`cloudcc get/getList view` 统一作为对象视图列表查询，可传对象 ID/API 名/前缀或 JSON filter；`detail/editInfo view` 才按 viewId 查详情。字段文档明确 `P`、`c`、`N`、`LT` 的 create/update/upsert 精度规则为 `length + decimalPlaces <= 18`，历史非法字段需要先修复字段定义，CLI 不自动缩短字段。
 - 创建页面布局不传 `sourceLayoutId` 且不传 `sections/buttons/layoutButtons/relatedLists` 时，MetadataService 根据对象元数据自动生成字段分区、详情页按钮和真实入向关系相关列表，基础短字段优先进入双列 `基本信息` 并均衡排布。`contentMode=auto|explicit|clone|blank` 分别用于自动补齐、完全手工、精确源布局复制和真正空白；显式空数组禁止该类别自动补齐，`sourceLayoutId` 不会默认选择第一个布局。创建/复制页面布局不分配简档；使用独立的 `cloudcc assign pagelayout` 分配一个或多个简档，`--record-type` 可选，省略表示主类型。`detail pagelayout` 的 `content` 使用可直接复用的 CLI 参数名，相关列表固定回读 `objectId`、`fieldId`、`relatedListType`、布尔值 `show`、`seq`、`fields` 和 `buttons`。该创建/分配边界以及对象简档权限补全要求 MetadataService `1.1.70` 或更高版本。
 - 从技能 `2.2.43` 开始，币种管理 `currencies` 纳入 MetadataService 低代码域：支持币种列表/详情/可新增币种/高级汇率读取，固定币种新增/修改/启停/汇率维护，高级多币种开关，dated rate 新增/修改/删除，以及要求显式 `rates[]` 的公司本位币变更计划。
@@ -57,7 +57,7 @@ description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict Metad
 - 从技能 `2.2.73` 开始，触发器和定时类本地骨架镜像平台提供的 `userInfo`/`cclogger` 上下文：触发器和定时类 SOURCE 可以直接记录日志，复杂业务仍应下沉到自定义类；模板保留本地兼容 import，发布时继续由平台高代码模板提供真实运行时上下文。
 - 从技能 `2.2.65` 开始，Lightning 仪表板创建按完整聚合处理：可在一个 MetadataService `dashboards create` 计划中写入可选的 `lightningdashboard` 文件夹、仪表板根、最多 15 个组件及筛选条件；`get/getList/detail dashboard` 固定读取 MetadataService 仪表板端点，`runtime dashboard` 只读核验指定用户/角色/简档的目录可见性。该能力要求 MetadataService `1.1.60` 或更高版本；`recentDashboard` 为空只代表最近访问状态，不能作为创建失败依据。
 - 从技能 `2.2.66` 开始，简档标准创建必须使用真实回读的 `copyFromId` / `copyFromProfileId` 复制来源简档；只有明确需要无权限模板时才使用互斥的 `blank=true`。简档更新只允许通过目标简档下已存在的 infoset ID 修改状态，不补建缺失权限，也不接受旧 UI 字符串或关系身份字段。该能力要求 MetadataService `1.1.61` 或更高版本。
-- 从技能 `2.2.62` 开始，`cloudcc bulk msapi` 调用独立业务数据 Bulk API；当前实现要求 MetadataService `1.1.59` 或更高版本，按对象/字段元数据直接写物理表，不暴露也不执行验证规则、触发器、查重过滤器、共享规则或工作流，自动编号仍由系统管理。
+- 业务数据批量作业使用一级 `dataBulk` Domain，按对象/字段元数据直接写物理表，不执行验证规则、触发器、查重过滤器、共享规则或工作流。
 - 从技能 `2.2.53` 开始，验证规则 CLI 用户级文档说明 `$User.id`、`$User.name`、角色、简档和联系信息等常用属性，并保留 `$User.<schemefieldName>` 动态用户对象字段能力。
 - 从技能 `2.2.50` 开始，记录类型详情的选项列表值分配纳入 MetadataService：`saveDependency/assignPicklistValues recordType` 生成 `record-types save-dependency` 计划，对齐 setup-svc `/api/recordType/saveDependency` 的所选值全量替换、未选旧值删除和默认值设置语义，要求 MetadataService `1.1.52` 或更高版本。
 - 高代码发布前先读 `cloudcc doc platform/classes|triggers|timer devguide` 或 `platform/almRelease devguide`；从技能 `2.2.7` 开始，classes/triggers/timer 的 publish 建议 setup-svc `19.3.R20` 或更高版本，不要求 MetadataService 版本门槛。classes 固定执行本地编译、目标 setup-svc validate、最后 save；triggers/timer 执行目标 setup-svc validate、最后 save；并把 validate 失败详情返回调用方。
@@ -87,10 +87,11 @@ tools/bin/cloudcc create project demo-cloudcc
 tools/bin/cloudcc create object /path/to/project '<provider-specific object input>'
 tools/bin/cloudcc plan msapi /path/to/project objects @object.json create
 tools/bin/cloudcc apply msapi /path/to/project <planId>
-tools/bin/cloudcc bulk-schema msapi /path/to/project Account
-tools/bin/cloudcc bulk msapi /path/to/project Account INSERT @accounts.json --format json --wait --output-dir ./bulk-results
-tools/bin/cloudcc bulk-status msapi /path/to/project <jobId>
-tools/bin/cloudcc bulk-results msapi /path/to/project <jobId>
+tools/bin/cloudcc domains
+tools/bin/cloudcc schema dataBulk /path/to/project Account
+tools/bin/cloudcc submit dataBulk /path/to/project Account INSERT @accounts.json --format json --wait --output-dir ./bulk-results
+tools/bin/cloudcc status dataBulk /path/to/project <jobId>
+tools/bin/cloudcc results dataBulk /path/to/project <jobId>
 tools/bin/cloudcc publish classes ExampleClass /path/to/project
 tools/bin/cloudcc format classes ExampleClass /path/to/project --write
 tools/bin/cloudcc format highcode /path/to/project --check
@@ -100,7 +101,7 @@ MSAPI 的 `plan/apply/changes/rollback`、setup-svc parity replay、用户管理
 
 ## 业务数据 Bulk API
 
-`cloudcc bulk-schema msapi <projectPath> <object>` 先查询可写字段、示例、自动编号状态和 `maxInlineRecords`；`cloudcc bulk msapi <projectPath> <object> <operation> <recordsJson|@file> [--format json|ndjson|csv] [--external-key-field <apiName>] [--chunk-size <n>] [--wait] [--output-dir <dir>]` 调用 MetadataService 独立业务数据 Bulk API。支持 `INSERT`、`UPDATE_BY_ID`、`UPSERT_BY_ID`、`UPSERT_BY_EXTERNAL_KEY`、`DELETE_BY_ID`；操作名也可写成 `insert`、`update-by-id`、`upsert-by-id`、`upsert-by-external-key`、`delete-by-id`。`object` 优先传对象 API 名，如 `account`、`Account`、`Custom__c`。
+`cloudcc schema dataBulk <projectPath> <object>` 先查询可写字段、示例、自动编号状态和 `maxInlineRecords`；`cloudcc submit dataBulk <projectPath> <object> <operation> <recordsJson|@file> [--format json|ndjson|csv] [--external-key-field <apiName>] [--chunk-size <n>] [--wait] [--output-dir <dir>]` 调用 MetadataService 独立业务数据 Bulk API；使用 `status/results/resume/retry/cancel dataBulk` 管理作业。
 
 Bulk API 是业务数据直连式导入能力，不走 MetadataService plan/apply，不执行验证规则、触发器、查重过滤器、共享规则或工作流。系统字段、逻辑删除字段、owner/create/modify 字段和自动编号由服务端管理。导入文件只能包含 write-schema 中标记为 `DIRECT_WRITABLE` 的字段；`INSERT` 和 `UPSERT_BY_EXTERNAL_KEY` 不允许传 `id`，`UPDATE_BY_ID`/`DELETE_BY_ID` 必须传真实回读的 `id`，`DELETE_BY_ID` 每行只能包含 `id`。
 
