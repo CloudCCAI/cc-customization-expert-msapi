@@ -13,7 +13,10 @@
 ## Provider 规则
 
 - `dataIndex`、`dataBulk`：MSAPI 启用；UIAPI 不可用；Universal 只有实际选择 MSAPI 时可用。
-- `openapi`：三个发行包均可用，直接调用平台 `api-svc`，不经过 MetadataService。
+- `openapi`：标准 CRM 对象和自定义对象的常规业务数据 CRUD；三个发行包均可用，直接调用平台 `api-svc`，不经过 MetadataService。
+- `dataBulk`：只用于大批量数据导入、初始化和离线批处理，不作为日常业务操作入口。
+- `dataIndex`：只用于数据库索引生命周期和优化。
+- 对象、字段、页面、权限和流程等平台二开配置使用对应元数据 Domain。
 - UIAPI 对 MSAPI-only Domain 的拒绝发生在凭据读取和业务 HTTP 请求之前。
 
 ## 发现与文档

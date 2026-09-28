@@ -1,6 +1,6 @@
 # dataIndex：业务数据索引生命周期管理
 
-`dataIndex` 是 CloudCC Skill 的一级 Data Extension Domain，用于查看、规划、创建、分析和安全优化业务数据索引。它由 MetadataService 承载，但不属于对象、字段、布局等元数据 Domain。
+`dataIndex` 是 CloudCC Skill 的一级 Data Extension Domain，只用于查看、规划、创建、分析和安全优化数据库索引。它不操作业务记录，也不配置对象、字段、布局等平台元数据。
 
 ## 文档入口
 

@@ -88,12 +88,29 @@ openapi -> apiRegistrar -> classes -> triggers/timer/scheduleJob -> identityProv
 
 说明：
 
-- 数据 CRUD 优先看 OpenAPI。
+- 标准 CRM 对象和自定义对象的常规业务数据 CRUD 使用 OpenAPI。
 - CloudCC 高代码主动调用外部 HTTP 服务时，先在接口注册器登记 URL、调试并取得运行态 `apiCode`。
 - 服务端业务封装用类。
 - 定时同步用定时类和定时作业。
 - 身份统一用 IdP/SSO。
 - 平台内不适合承载的中间程序放 sidecar。
+
+### 操作业务数据
+
+推荐模块：
+
+```text
+常规业务数据 CRUD -> openapi
+大批量数据导入/初始化/离线批处理 -> dataBulk
+数据库索引优化 -> dataIndex
+对象/字段/页面/权限/流程配置 -> metadata domains
+```
+
+说明：
+
+- 用户说“查询、录入、新增、修改、删除业务数据”时，默认使用 OpenAPI。
+- OpenAPI 同时支持客户、联系人、商机等标准 CRM 对象和租户自定义对象。
+- dataBulk 不用于日常业务操作，不能因为记录多于一条就自动改用 dataBulk。
 
 ### 做移动端业务
 

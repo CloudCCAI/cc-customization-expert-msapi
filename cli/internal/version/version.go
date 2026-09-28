@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.80"
+const Version = "2.2.81"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -40,6 +40,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetail(stdout, args[0])
 	case "changelog":
+		fmt.Fprintln(stderr, "- OpenAPI is now documented and discovered as the normal business-data CRUD Domain for both standard CRM and custom objects; dataBulk is reserved for large-volume import, and dataIndex for database index optimization.")
 		fmt.Fprintln(stderr, "- Unified first-class Domain discovery now classifies metadata, data extensions, integrations, high-code, and governance. dataIndex and dataBulk are MSAPI-only Data Extension Domains backed by MetadataService 1.1.71; UIAPI rejects them before credentials or network access, Universal requires an MSAPI provider, and openapi remains a direct api-svc integration.")
 		fmt.Fprintln(stderr, "- Object create now appends a missing system administrator with full permissions; page-layout create/clone no longer assigns profiles, and standalone assign keeps optional record type with omission meaning the main type. Requires MetadataService 1.1.70.")
 		fmt.Fprintln(stderr, "- Relationship fields now require childrelationName for automatic inverse lists and require MetadataService 1.1.69 for setup-svc-compatible custom related-list persistence, aee/afa/bcb identities, and natural-key convergence of historical rows.")
@@ -300,7 +301,9 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc create project <name|.>")
 	fmt.Fprintln(stdout, "  cloudcc format <classes|trigger|timer> <name> [projectPath] [--check|--write]")
 	fmt.Fprintln(stdout, "  cloudcc format highcode [projectPath] --check")
-	fmt.Fprintln(stdout, "  cloudcc <query|pageQuery|create|update|delete|upsert> openapi <projectPath> <encodedBodyJson> [isMcp]")
+	fmt.Fprintln(stdout, "  Normal business-data CRUD (standard CRM and custom objects):")
+	fmt.Fprintln(stdout, "  cloudcc doc platform/openapi introduction|devguide")
+	fmt.Fprintln(stdout, "  cloudcc <query|pageQuery|create|update|delete|upsert> openapi <projectPath> <bodyJson|@file>")
 	fmt.Fprintln(stdout, "  cloudcc capabilities msapi [projectPath]")
 	fmt.Fprintln(stdout)
 	if err := domaincatalog.WriteHelp(stdout); err != nil {

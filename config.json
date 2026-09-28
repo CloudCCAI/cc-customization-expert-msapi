@@ -1,6 +1,6 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.2.80-msapi",
+  "version": "2.2.81-msapi",
   "releaseDate": "2026-09-28",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
@@ -64,7 +64,7 @@
       },
       {
         "name": "dataIndex",
-        "label": "Business data index lifecycle management",
+        "label": "Database index lifecycle and optimization",
         "level": "first-class",
         "category": "data-extension",
         "backend": "metadata-service",
@@ -89,7 +89,7 @@
       },
       {
         "name": "dataBulk",
-        "label": "Business data bulk jobs",
+        "label": "Large-volume data import jobs",
         "level": "first-class",
         "category": "data-extension",
         "backend": "metadata-service",
@@ -114,7 +114,7 @@
       },
       {
         "name": "openapi",
-        "label": "CloudCC OpenAPI",
+        "label": "Standard and custom object business-data CRUD",
         "level": "first-class",
         "category": "integration",
         "backend": "api-svc",

@@ -18,3 +18,14 @@ Domain 分为五类：
 - `governance`：项目交付物和测试治理等本地能力。
 
 `backend` 只说明能力由哪个服务承载，不决定能力类别。`dataIndex` 和 `dataBulk` 虽由 MetadataService 提供，仍属于 Data Extension；它们不属于元数据，也不是 Metadata Domain。
+
+## 用户需求路由
+
+| 用户要做什么 | 使用 Domain |
+|---|---|
+| 对标准 CRM 对象或自定义对象执行常规业务数据 CRUD | `openapi` |
+| 大批量数据导入、初始化或离线批处理 | `dataBulk` |
+| 查看、创建或优化数据库索引 | `dataIndex` |
+| 使用平台二开能力配置对象、字段、页面、权限或流程 | 对应元数据 Domain |
+
+常规业务数据操作不要路由到 `dataBulk`。`openapi` 才是标准对象和自定义对象日常查询、新增、修改、删除及 upsert 的入口。

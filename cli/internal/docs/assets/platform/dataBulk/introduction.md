@@ -1,6 +1,8 @@
 # dataBulk：业务数据批量作业
 
-`dataBulk` 是一级 Data Extension Domain，用于按逻辑对象和字段 API 名提交、查询和管理业务数据批量作业。它由 MetadataService 提供物理映射、作业账本和批量 DML，但不属于元数据 Domain，也不走通用 metadata `plan/apply`。
+`dataBulk` 是一级 Data Extension Domain，专门用于大批量数据导入、初始化和离线批处理。它由 MetadataService 提供物理映射、作业账本和批量 DML，但不属于元数据 Domain，也不走通用 metadata `plan/apply`。
+
+`dataBulk` 不适用于日常业务场景。标准 CRM 对象和自定义对象的常规查询、新增、修改、删除和 upsert 都使用 `openapi`。
 
 ## 文档入口
 
