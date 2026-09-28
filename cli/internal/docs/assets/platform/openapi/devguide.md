@@ -7,6 +7,8 @@
 
 - 标准对象示例：客户、联系人、商机等，使用目标租户真实标准对象 API Name。
 - 自定义对象：使用目标租户真实自定义对象 API Name，能力和命令与标准对象相同。
+- 已有业务记录可以流式上传本地附件并自动完成文件绑定。
+- 已有业务记录可以提交到目标租户为该对象配置的批准过程。
 - `dataBulk` 只用于大批量数据导入、初始化和离线批处理，不用于日常业务操作。
 - `dataIndex` 只用于数据库索引查看、创建和优化。
 - 对象、字段、页面、权限和流程等平台二开配置使用对应元数据 Domain。
@@ -31,6 +33,8 @@ cloudcc create    openapi <projectPath> <bodyJson|@file>
 cloudcc update    openapi <projectPath> <bodyJson|@file>
 cloudcc delete    openapi <projectPath> <bodyJson|@file>
 cloudcc upsert    openapi <projectPath> <bodyJson|@file>
+cloudcc uploadAttachment openapi <projectPath> <recordId> <filePath> [optionsJson|@file]
+cloudcc submitApproval   openapi <projectPath> <bodyJson|@file>
 ```
 
 `bodyJson` 可以是原始 JSON，也可以是 URI 编码后的 JSON；复杂内容推荐写入 JSON 文件并传 `@file`。
@@ -89,6 +93,43 @@ cloudcc query openapi . \
 - 查询条件、分页字段和业务字段必须使用目标环境实际支持的 OpenAPI 请求结构。
 - 成功时 stdout 输出平台原始 JSON，自动化调用必须继续检查其中的逐条业务结果。
 - 失败时 CLI 返回非零退出码，并优先显示平台返回的 `returnInfo` 或 `message`。
+
+## 上传业务记录附件
+
+```bash
+cloudcc uploadAttachment openapi . \
+  <recordId> ./报价说明.pdf
+
+cloudcc uploadAttachment openapi . \
+  <recordId> ./source.bin \
+  '{"fileName":"报价说明.pdf","sourceForm":"cloudcc-cli"}'
+```
+
+命令使用流式 multipart 请求调用 `/api/file/upload`，不会把完整文件读入内存。默认以本地文件名作为
+`fileName`，也可在 options 中传 `fileName`、`groupid`、`libid`、`parentid`、`isFromEmail` 或
+`sourceForm`。上传时把 `recordId` 传给平台做记录权限检查；上传成功后，CLI 用返回的 `name`、
+`type`、`fileContentId`、`fileinfoid`、`filesize` 自动调用 `/api/file/bind`。
+
+bind 会再次检查记录编辑权限和锁定状态。只有上传与绑定都成功，命令才返回成功。如果上传成功但
+bind 失败，CLI 不自动删除文件，而是在错误中返回 `fileContentId` 和 `fileinfoid`，避免隐藏已发生的
+平台状态变化。
+
+## 提交业务记录审批
+
+```bash
+# 最小请求
+cloudcc submitApproval openapi . \
+  '{"relatedId":"<recordId>"}'
+
+# 带意见和显式下一审批人
+cloudcc submitApproval openapi . \
+  '{"relatedId":"<recordId>","fprId":"<userId>","comments":"请审批","appPath":"detail"}'
+```
+
+`relatedId` 是详情页路由中的业务记录 ID，不是对象元数据 ID。可选字段只有 `fprId`、`comments` 和
+`appPath`；未知字段会在本地失败，避免拼写错误被静默忽略。平台返回 `Manual` 表示流程要求手工选择
+下一审批人，以目标租户真实用户 ID 填写 `fprId` 后重试。已经处于审批中、重复提交、缺少上级或没有
+匹配流程等错误保持平台原始 `returnCode/returnInfo` 语义。
 
 ## 浏览器 SDK
 

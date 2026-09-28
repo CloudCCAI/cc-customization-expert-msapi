@@ -1,12 +1,12 @@
 ---
 name: cc-customization-expert-msapi
-version: 2.2.82-msapi
+version: 2.2.83-msapi
 description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService."
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.2.82-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.2.83-msapi
 
-当前技能版本：`2.2.82-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.2.83-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
 
@@ -33,6 +33,7 @@ description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict Metad
 - 从技能 `2.2.40` 开始，CloudCC `accessToken` 自动刷新如果在 `/api/cauth/token` 失败，会立即返回接口失败原因并提示检查当前环境的 `cloudcc-cli.config.json` 配置，不再继续请求到只剩通用缺 token 错误。
 - 从技能 `2.2.80` 开始，使用 `cloudcc domains` 查看一级 Domain 分类、后端和包可用性。`dataIndex`、`dataBulk` 是 MSAPI-only Data Extension Domain，要求 MetadataService `1.1.71`；UIAPI 在读取凭据和网络请求前拒绝，Universal 仅在选择 MSAPI provider 时允许。`openapi` 是 Integration Domain，直接调用 `api-svc`。
 - 从技能 `2.2.81` 开始，普通业务数据查询、新增、修改、删除和 upsert 统一使用 `openapi`，标准 CRM 对象和自定义对象都支持。`dataBulk` 仅用于大批量数据导入、初始化和离线批处理，不适用于日常业务场景；`dataIndex` 仅用于数据库索引优化；对象、字段、页面、权限和流程等平台二开配置使用对应元数据 Domain。
+- 从技能 `2.2.83` 开始，`openapi` 增加已有业务记录附件上传绑定与提交审批：`uploadAttachment openapi` 流式调用 api-svc `/api/file/upload` 后自动调用 `/api/file/bind`，绑定失败保留 `fileContentId/fileinfoid` 且不自动删除；`submitApproval openapi` 调用 `/api/approval/submitApproval`，要求真实 `relatedId`，可选 `fprId/comments/appPath`，`Manual` 响应要求补有效 `fprId` 重试。两项能力均不进入 MetadataService plan/apply。
 - 从技能 `2.2.41` 开始，`cloudcc get/getList view` 统一作为对象视图列表查询，可传对象 ID/API 名/前缀或 JSON filter；`detail/editInfo view` 才按 viewId 查详情。字段文档明确 `P`、`c`、`N`、`LT` 的 create/update/upsert 精度规则为 `length + decimalPlaces <= 18`，历史非法字段需要先修复字段定义，CLI 不自动缩短字段。
 - 创建页面布局不传 `sourceLayoutId` 且不传 `sections/buttons/layoutButtons/relatedLists` 时，MetadataService 根据对象元数据自动生成字段分区、详情页按钮和真实入向关系相关列表，基础短字段优先进入双列 `基本信息` 并均衡排布。`contentMode=auto|explicit|clone|blank` 分别用于自动补齐、完全手工、精确源布局复制和真正空白；显式空数组禁止该类别自动补齐，`sourceLayoutId` 不会默认选择第一个布局。创建/复制页面布局不分配简档；使用独立的 `cloudcc assign pagelayout` 分配一个或多个简档，`--record-type` 可选，省略表示主类型。`detail pagelayout` 的 `content` 使用可直接复用的 CLI 参数名，相关列表固定回读 `objectId`、`fieldId`、`relatedListType`、布尔值 `show`、`seq`、`fields` 和 `buttons`。该创建/分配边界以及对象简档权限补全要求 MetadataService `1.1.70` 或更高版本。
 - 从技能 `2.2.43` 开始，币种管理 `currencies` 纳入 MetadataService 低代码域：支持币种列表/详情/可新增币种/高级汇率读取，固定币种新增/修改/启停/汇率维护，高级多币种开关，dated rate 新增/修改/删除，以及要求显式 `rates[]` 的公司本位币变更计划。
@@ -91,6 +92,8 @@ tools/bin/cloudcc apply msapi /path/to/project <planId>
 tools/bin/cloudcc domains
 tools/bin/cloudcc doc platform/openapi introduction
 tools/bin/cloudcc create openapi /path/to/project '{"objectApiName":"Account","data":[{"name":"Example account"}]}'
+tools/bin/cloudcc uploadAttachment openapi /path/to/project <recordId> <filePath> '[optionsJson|@file]'
+tools/bin/cloudcc submitApproval openapi /path/to/project '{"relatedId":"<recordId>","comments":"请审批"}'
 tools/bin/cloudcc schema dataBulk /path/to/project Account
 tools/bin/cloudcc submit dataBulk /path/to/project Account INSERT @accounts.json --format json --wait --output-dir ./bulk-results
 tools/bin/cloudcc status dataBulk /path/to/project <jobId>

@@ -45,14 +45,14 @@
     },
     {
       "name": "openapi",
-      "label": "Standard and custom object business-data CRUD",
+      "label": "Standard and custom object business-data CRUD, attachments, and approval submission",
       "level": "first-class",
       "category": "integration",
       "backend": "api-svc",
       "transport": "direct",
       "availability": {"msapi": "enabled", "uiapi": "enabled", "universal": "enabled"},
       "documentationCommand": "cloudcc doc platform/openapi introduction",
-      "actions": ["query", "pageQuery", "create", "update", "delete", "upsert"]
+      "actions": ["query", "pageQuery", "create", "update", "delete", "upsert", "uploadAttachment", "submitApproval"]
     },
     {
       "name": "highcode",

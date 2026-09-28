@@ -7,7 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -47,6 +49,74 @@ func (c *Client) PostClass(url string, data any, accessToken string, response an
 
 func (c *Client) PostRaw(url string, data any, headers map[string]string, response any) error {
 	return c.postJSON(url, data, headers, response, false)
+}
+
+func (c *Client) PostMultipartFile(url string, filePath string, fileName string, fields map[string]string, accessToken string, response any) error {
+	if accessToken == "" {
+		return fmt.Errorf("OpenAPI Token is null. Please check your cloudcc-cli.config file or cache")
+	}
+	file, err := os.Open(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	reader, writer := io.Pipe()
+	multipartWriter := multipart.NewWriter(writer)
+	writeDone := make(chan error, 1)
+	go func() {
+		defer close(writeDone)
+		for key, value := range fields {
+			if err := multipartWriter.WriteField(key, value); err != nil {
+				_ = writer.CloseWithError(err)
+				writeDone <- err
+				return
+			}
+		}
+		part, err := multipartWriter.CreateFormFile("file", fileName)
+		if err == nil {
+			_, err = io.Copy(part, file)
+		}
+		if closeErr := multipartWriter.Close(); err == nil {
+			err = closeErr
+		}
+		if err != nil {
+			_ = writer.CloseWithError(err)
+			writeDone <- err
+			return
+		}
+		writeDone <- writer.Close()
+	}()
+
+	req, err := http.NewRequest(http.MethodPost, url, reader)
+	if err != nil {
+		_ = reader.CloseWithError(err)
+		return err
+	}
+	req.Header.Set("Content-Type", multipartWriter.FormDataContentType())
+	req.Header.Set("accessToken", accessToken)
+	httpClient := *c.http
+	httpClient.Timeout = 10 * time.Minute
+	res, err := httpClient.Do(req)
+	if err != nil {
+		_ = reader.CloseWithError(err)
+		return err
+	}
+	defer res.Body.Close()
+	if writeErr := <-writeDone; writeErr != nil {
+		return writeErr
+	}
+	resBody, err := io.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		return fmt.Errorf("http %d: %s", res.StatusCode, string(resBody))
+	}
+	if response == nil {
+		return nil
+	}
+	return json.Unmarshal(resBody, response)
 }
 
 func (c *Client) postJSON(url string, data any, headers map[string]string, response any, checkCode bool) error {

@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.82-msapi
+# cc-customization-expert-msapi v2.2.83-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -14,6 +14,8 @@ tools/bin/cloudcc analyze dataIndex /path/to/project Account
 tools/bin/cloudcc domains
 tools/bin/cloudcc doc platform/openapi introduction
 tools/bin/cloudcc create openapi /path/to/project '{"objectApiName":"Account","data":[{"name":"Example account"}]}'
+tools/bin/cloudcc uploadAttachment openapi /path/to/project <recordId> <filePath> '[optionsJson|@file]'
+tools/bin/cloudcc submitApproval openapi /path/to/project '{"relatedId":"<recordId>","comments":"请审批"}'
 tools/bin/cloudcc doc dataBulk
 tools/bin/cloudcc schema dataBulk /path/to/project Account
 tools/bin/cloudcc submit dataBulk /path/to/project Account INSERT @accounts.json --format json --wait --output-dir ./bulk-results
@@ -32,6 +34,8 @@ Strict MetadataService package: low-code operations require MetadataService.
 从技能 `2.2.80` 开始，使用 `tools/bin/cloudcc domains` 查看统一一级 Domain 分类。`dataIndex`、`dataBulk` 是 MSAPI-only Data Extension Domain，要求 MetadataService `1.1.71`；它们由 MetadataService 承载但不属于元数据。`openapi` 是 Integration Domain，继续直接调用 `api-svc`。
 
 从技能 `2.2.81` 开始，普通业务数据 CRUD 统一使用 `openapi`，标准 CRM 对象和自定义对象都支持。`dataBulk` 仅用于大批量数据导入、初始化和离线批处理，不用于日常业务操作；`dataIndex` 仅用于数据库索引优化；对象、字段、页面、权限和流程等平台二开配置使用对应元数据 Domain。
+
+从技能 `2.2.83` 开始，`openapi` 支持给已有业务记录流式上传并绑定附件，以及把已有业务记录提交到目标租户已配置的批准过程。上传后绑定失败会返回未绑定文件标识且不自动删除；审批返回 `Manual` 时需补有效 `fprId` 重试。两项能力均直连 api-svc。
 
 该包由 `cc-customization-expert-go` 的共享核心生成。低代码能力及 provider 状态见 `capability-matrix.json`；高代码资源继续复用 CloudCC 原 resource/API 通道。
 

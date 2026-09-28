@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.82"
+const Version = "2.2.83"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -40,6 +40,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetail(stdout, args[0])
 	case "changelog":
+		fmt.Fprintln(stderr, "- OpenAPI now uploads and binds local attachments to existing business records through api-svc and submits existing business records for configured approval processes; multipart uploads stream from disk, two-stage failures preserve unbound file identifiers, and Manual approval responses explain the required fprId retry.")
 		fmt.Fprintln(stderr, "- OpenAPI is now documented and discovered as the normal business-data CRUD Domain for both standard CRM and custom objects; dataBulk is reserved for large-volume import, and dataIndex for database index optimization.")
 		fmt.Fprintln(stderr, "- Unified first-class Domain discovery now classifies metadata, data extensions, integrations, high-code, and governance. dataIndex and dataBulk are MSAPI-only Data Extension Domains backed by MetadataService 1.1.71; UIAPI rejects them before credentials or network access, Universal requires an MSAPI provider, and openapi remains a direct api-svc integration.")
 		fmt.Fprintln(stderr, "- Object create now appends a missing system administrator with full permissions; page-layout create/clone no longer assigns profiles, and standalone assign keeps optional record type with omission meaning the main type. Requires MetadataService 1.1.70.")
@@ -302,9 +303,11 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc create project <name|.>")
 	fmt.Fprintln(stdout, "  cloudcc format <classes|trigger|timer> <name> [projectPath] [--check|--write]")
 	fmt.Fprintln(stdout, "  cloudcc format highcode [projectPath] --check")
-	fmt.Fprintln(stdout, "  Normal business-data CRUD (standard CRM and custom objects):")
+	fmt.Fprintln(stdout, "  Normal business-data operations (standard CRM and custom objects):")
 	fmt.Fprintln(stdout, "  cloudcc doc platform/openapi introduction|devguide")
 	fmt.Fprintln(stdout, "  cloudcc <query|pageQuery|create|update|delete|upsert> openapi <projectPath> <bodyJson|@file>")
+	fmt.Fprintln(stdout, "  cloudcc uploadAttachment openapi <projectPath> <recordId> <filePath> [optionsJson|@file]")
+	fmt.Fprintln(stdout, "  cloudcc submitApproval openapi <projectPath> <bodyJson|@file>")
 	fmt.Fprintln(stdout, "  cloudcc capabilities msapi [projectPath]")
 	fmt.Fprintln(stdout)
 	if err := domaincatalog.WriteHelp(stdout); err != nil {
