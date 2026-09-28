@@ -37,11 +37,28 @@ MetadataService spec 是当前字段创建的主入口。调用方应在 JSON �
 
 ### 2.1 字段 ID 和选项 ID 规则
 
-- 创建字段时通常不要传 `id`。字段物理 ID 由 MetadataService 按 setup-svc 兼容格式生成，当前字段 ID 使用 `ffe` 前缀。
+- 创建字段时通常不要传 `id`。字段物理 ID 由 MetadataService 按 setup-svc 兼容格式生成。显式自定义字段 ID 必须匹配 `^ffe[A-Za-z0-9]{17}$`：以 `ffe` 开头、总长 20 位、只能包含 ASCII 字母和数字，不能带下划线。
 - `apiName` 是调用方需要设计和传入的业务稳定标识；`id` 是平台物理元数据 ID。不要把 `apiName`、`f_ci_` + `apiName`、对象前缀、年份、随机串或示例值拼成字段 `id`。
 - 只有更新、删除、精确迁移回放，或引用已经存在字段时，才使用字段 `id`；该值必须来自 `cloudcc get fields`、MetadataService scan/readback、创建回执或平台详情页回读。
 - 本地选项列表 `options[]` 中也不要自造 `id` 或 `code`。普通创建只传 `value`、排序、默认值、本地化等业务字段；MetadataService 会生成或复用 `tp_sys_code` 行 ID。
 - 对同一字段，本地选项的自然键是 `(codetype=字段ID, codevalue=选项值, LANG, RENDER)`。重复提交相同值、语言和 render 不会靠新 ID 变成合法新选项；目标库若已经存在多条相同自然键，需要先治理重复数据再重新 plan。
+
+#### 审计和修复历史字段 ID
+
+早期版本创建的自定义字段可能存在错误前缀、非 20 位长度、下划线或其他非法字符。先执行只读审计：
+
+```bash
+cloudcc audit fields <projectPath> [object-id-apiName-or-prefix] [fieldId]
+```
+
+审计返回 `violations` 和逐表 `referenceCounts`，不会创建 operation 或修改租户数据。修复时先生成计划，再显式 apply：
+
+```bash
+cloudcc repair fields <projectPath> <oldFieldId> [newFieldId|auto] [objectId] [expectedApiName]
+cloudcc apply msapi <projectPath> <planId>
+```
+
+修复会保留对象、API 名、字段类型和 `DATAFIELD_REF`，在一个 MetadataService 事务中迁移已知引用并刷新视图/缓存。每个租户应顺序执行，先选择一个低引用字段做 canary 并回读业务记录。数据库外的代码、导出配置和集成参数必须按 old/new 映射同步更新。禁止用脚本直接 `UPDATE tp_sys_*`。
 
 ### 2.2 MetadataService 物理槽位规则
 

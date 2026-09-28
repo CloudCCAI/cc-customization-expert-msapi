@@ -1,12 +1,12 @@
 ---
 name: cc-customization-expert-msapi
-version: 2.2.81-msapi
+version: 2.2.82-msapi
 description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService."
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.2.81-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.2.82-msapi
 
-当前技能版本：`2.2.81-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.2.82-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
 
@@ -48,7 +48,7 @@ description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict Metad
 - 从技能 `2.2.54` 开始，页面布局 CLI/MSAPI 支持 setup-web 详情页的全部布局能力：PC 页面布局、移动页面布局、行式布局、悬停布局和动态页面布局规则；动态布局支持规则、主条件、二级条件、触发动作、启停和删除计划，要求 MetadataService `1.1.54` 或更高版本。
 - 从技能 `2.2.55` 开始，`cloudcc --help` 明确展示用户管理的完整 setup-svc 直连动作，包括查询列表、视图、新增/编辑表单、详情、创建、更新、停用、重置密码、解锁、解绑 MFA 和发送邮件；命令级回归测试同步覆盖这些 `/api/usermange/*` 路由和请求体包装。
 - 从技能 `2.2.56` 开始，菜单创建未传简档或应用选择时默认展开当前租户全部 `tp_sys_profile` 和 `tp_sys_app`：全部简档写入启用的菜单可见性且 setup-svc `tabState=show`，全部应用写入 `tp_sys_app_tab`；显式简档状态按 setup-svc 三态字符串 `show`、`hidden`、`close` 传入；只有显式传入简档或应用集合时才限制到指定范围，要求 MetadataService `1.1.55` 或更高版本。
-- 从技能 `2.2.57` 开始，字段 CLI 用户级文档明确：创建字段通常省略 `id`，由 MetadataService 生成 setup-svc 兼容的 `ffe` 字段 ID；禁止按 `apiName`、`f_ci_` + `apiName`、对象前缀、年份、随机串或样例值自造字段 ID；本地选项 `options[]` 普通创建不要自造 `id`/`code`，由 MetadataService 按 `(codetype, codevalue, LANG, RENDER)` 复用或生成 `tp_sys_code` ID。该防护要求 MetadataService `1.1.56` 或更高版本。
+- 字段创建通常省略 `id`，由 MetadataService 生成 setup-svc 兼容 ID；显式自定义字段 ID 必须匹配 `^ffe[A-Za-z0-9]{17}$`。历史错误前缀、长度、下划线或非法字符使用 `cloudcc audit fields` 只读检查，再用 `cloudcc repair fields` 生成 `repair-id` 计划并显式 apply；禁止脚本直接更新租户元数据表。严格校验和修复要求 MetadataService `1.1.73` 或更高版本。
 - 从技能 `2.2.58` 开始，按钮 CLI 用户级文档以 MetadataService JSON spec 作为创建入口；自定义按钮 `event` 对齐 setup-web/setup-svc 的四种类型：`lightning`（界面显示 `template`）、`lightning-script`、`lightning-url`、`URL`（界面显示 `url`）。单个按钮创建和 `buttons[]` 批量创建使用同一套字段；`URL` 按钮使用 `url` 填写跳转地址并由 MetadataService 同步写入 `url` 与 `functionCode`。该能力要求 MetadataService `1.1.57` 或更高版本。
 - 从技能 `2.2.59` 开始，高代码本地/线上创建补齐用户常用入口：`cloudcc create trigger|triggers <encodedJson|@file>` 在项目根执行时会使用当前目录作为项目路径并保存触发器元数据，不再把编码 JSON 当目录名；未传 `triggerSource` 时自动补一行无业务逻辑注释，避免 setup-svc 对空源码抛出异常；`cloudcc create plugin|plugins <name>` 作为 `pagecomponent` 兼容别名，并把驼峰/下划线名称规范化为小写连字符组件目录。
 - 从技能 `2.2.60` 开始，高代码发布严格优先使用当前 `id`；仅当 `id` 缺失或为空时才兼容旧包的 `devid` / `devId`，三者都不存在时才按新增处理，避免旧触发器、类或定时类被误判为新增并触发 API 名唯一键冲突。

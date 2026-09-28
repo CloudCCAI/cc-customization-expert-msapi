@@ -1,6 +1,6 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.2.81-msapi",
+  "version": "2.2.82-msapi",
   "releaseDate": "2026-09-28",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
@@ -265,6 +265,22 @@
     "sourceOfTruth": "cc-customization-expert-go/config.json",
     "policy": "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
     "minimumByCapability": [
+      {
+        "capability": "msapi.fields.fieldIdAuditRepair",
+        "label": "Custom field ID audit and guarded repair",
+        "introducedInSkillVersion": "2.2.82-msapi",
+        "minimumMetadataServiceVersion": "1.1.73",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.73",
+        "domains": [
+          "fields"
+        ],
+        "operations": [
+          "create",
+          "id-audit",
+          "repair-id"
+        ],
+        "reason": "Requires strict explicit custom-field ID validation, read-only invalid-ID inventory, guarded reference migration, apply-time drift detection, and reversible ledgered repair."
+      },
       {
         "capability": "msapi.businessData.indexManagement",
         "label": "Business data logical object/field index management",

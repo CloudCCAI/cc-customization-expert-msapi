@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.81"
+const Version = "2.2.82"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -63,6 +63,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		fmt.Fprintln(stderr, "- Trigger JSON create now supplies a harmless non-empty triggerSource comment when callers omit source code, preventing setup-svc null-source failures while leaving explicitly supplied triggerSource/sourceFile content unchanged.")
 		fmt.Fprintln(stderr, "- High-code create now handles the user-facing resource aliases reported from project use: create trigger/triggers accepts a single encoded JSON or @file in the current project without treating it as a Windows directory name, and create plugin/plugins is a compatibility alias for pagecomponent creation with camelCase/underscore names normalized to lowercase hyphen component directories.")
 		fmt.Fprintln(stderr, "- Button plans now align custom button event values with setup-web/setup-svc: lightning (shown as template), lightning-script, lightning-url, and URL (shown as url); URL specs may use user-level url and persist the same value through url and functionCode for single-button and buttons[] batch create specs, while conflicting url/functionCode values are rejected before apply.")
+		fmt.Fprintln(stderr, "- Field ID governance now requires explicit custom-field create IDs to match ^ffe[A-Za-z0-9]{17}$; audit fields is read-only, while repair fields creates a guarded MetadataService repair-id plan that migrates known references only after explicit apply.")
 		fmt.Fprintln(stderr, "- Field CLI docs and MetadataService compatibility now explicitly forbid caller-generated field IDs and tp_sys_code option IDs: create fields should omit id so MetadataService generates setup-svc ffe field IDs, and local picklist options should pass values while MetadataService generates or reuses option IDs by natural key.")
 		fmt.Fprintln(stderr, "- Menu create now defaults omitted profile and application selections to the full runtime tenant sets: all tp_sys_profile rows receive enabled tab visibility with setup-svc tabState=show, and all tp_sys_app rows receive tp_sys_app_tab links unless explicit profile/app selections are supplied.")
 		fmt.Fprintln(stderr, "- User management CLI help and regression coverage now expose the complete setup-svc /api/usermange/* action surface: query/getList, views/queryViews, newInfo/addUserQuery, view/detail, editInfo, create/save, update/editSave, delete/deactivate/disable, resetpw, unlock/unlocked, unBindMfa/mfa-unbind, choseemail, setSendFrom, and sendemail.")
@@ -315,6 +316,8 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc doc dataIndex [introduction|devguide|optimization|database-limits|troubleshooting]")
 	fmt.Fprintln(stdout, "  cloudcc get dataIndex [projectPath] <object>")
 	fmt.Fprintln(stdout, "  cloudcc plan dataIndex [projectPath] <object> --fields <field1,field2> [--name <name>]")
+	fmt.Fprintln(stdout, "  cloudcc audit fields <projectPath> [object-id-apiName-or-prefix] [fieldId]")
+	fmt.Fprintln(stdout, "  cloudcc repair fields <projectPath> <oldFieldId> [newFieldId|auto] [objectId] [expectedApiName]")
 	fmt.Fprintln(stdout, "  cloudcc create dataIndex [projectPath] <object> --fields <field1,field2> [--name <name>] --confirm [--wait] [--poll-interval-ms <n>]")
 	fmt.Fprintln(stdout, "  cloudcc analyze dataIndex [projectPath] <object>")
 	fmt.Fprintln(stdout, "  cloudcc optimization-plan dataIndex [projectPath] <planId>")

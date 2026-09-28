@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.81-msapi
+# cc-customization-expert-msapi v2.2.82-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -73,7 +73,7 @@ Java 高代码由 CLI 内置 Go 轻量格式器单次整理 4 空格缩进、Tab
 
 从技能 `2.2.56` 开始，菜单创建未传简档或应用选择时默认展开当前租户全部 `tp_sys_profile` 和 `tp_sys_app`：全部简档写入启用的菜单可见性且 setup-svc `tabState=show`，全部应用写入 `tp_sys_app_tab`；显式简档状态按 setup-svc 三态字符串 `show`、`hidden`、`close` 传入；只有显式传入简档或应用集合时才限制到指定范围，要求 MetadataService `1.1.55` 或更高版本。
 
-从技能 `2.2.57` 开始，字段 CLI 用户级文档明确：创建字段通常省略 `id`，由 MetadataService 生成 setup-svc 兼容的 `ffe` 字段 ID；禁止按 `apiName`、`f_ci_` + `apiName`、对象前缀、年份、随机串或样例值自造字段 ID；本地选项 `options[]` 普通创建不要自造 `id`/`code`，由 MetadataService 按 `(codetype, codevalue, LANG, RENDER)` 复用或生成 `tp_sys_code` ID。该防护要求 MetadataService `1.1.56` 或更高版本。
+字段创建通常省略 `id`，由 MetadataService 生成 setup-svc 兼容 ID；显式自定义字段 ID 必须匹配 `^ffe[A-Za-z0-9]{17}$`。历史错误前缀、长度、下划线或非法字符使用 `cloudcc audit fields` 只读检查，再用 `cloudcc repair fields` 生成 `repair-id` 计划并显式 apply；禁止脚本直接更新租户元数据表。严格校验和修复要求 MetadataService `1.1.73` 或更高版本。
 
 从技能 `2.2.58` 开始，按钮 CLI 用户级文档以 MetadataService JSON spec 作为创建入口；自定义按钮 `event` 对齐 setup-web/setup-svc 的四种类型：`lightning`（界面显示 `template`）、`lightning-script`、`lightning-url`、`URL`（界面显示 `url`）。单个按钮创建和 `buttons[]` 批量创建使用同一套字段；`URL` 按钮使用 `url` 填写跳转地址并由 MetadataService 同步写入 `url` 与 `functionCode`。该能力要求 MetadataService `1.1.57` 或更高版本。
 

@@ -26,6 +26,8 @@ var lowCodeShortcutDomains = map[string]string{
 	"dupeCatcher":            "dupe-catchers",
 	"dashboard":              "dashboards",
 	"fields":                 "fields",
+	"field":                  "fields",
+	"fieldId":                "fields",
 	"companyFiscalYear":      "fiscal-years",
 	"company-fiscal-year":    "fiscal-years",
 	"fiscalYear":             "fiscal-years",
@@ -130,6 +132,8 @@ var lowCodeShortcutActions = map[string]bool{
 	"deactivate":             true,
 	"purge":                  true,
 	"runtime":                true,
+	"audit":                  true,
+	"repair":                 true,
 }
 
 // IsLowCodeShortcut returns true for legacy low-code metadata CLI shortcuts that
@@ -151,6 +155,20 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 		return fmt.Errorf("unsupported low-code metadata shortcut resource: %s", resource)
 	}
 	projectPath, rest := shortcutProjectPath(args, cwd)
+	if domain == "fields" && strings.TrimSpace(action) == "audit" {
+		return handleFieldIdAuditShortcut(projectPath, rest, stdout, cwd)
+	}
+	if domain == "fields" && strings.TrimSpace(action) == "repair" {
+		spec, operation, err := fieldIdRepairShortcutSpec(rest)
+		if err != nil {
+			return err
+		}
+		body, err := json.Marshal(spec)
+		if err != nil {
+			return err
+		}
+		return Handle("plan", "msapi", []string{projectPath, domain, string(body), operation}, stdout, cwd)
+	}
 	if resource == "profile" {
 		return handleProfileShortcut(action, projectPath, rest, stdout, cwd)
 	}
@@ -510,6 +528,49 @@ func handleFieldsReadShortcut(action string, projectPath string, args []string, 
 		return err
 	}
 	return c.getJSON(stdout, "/metadata/v1/fields?object="+url.QueryEscape(strings.TrimSpace(args[0])))
+}
+
+func handleFieldIdAuditShortcut(projectPath string, args []string, stdout io.Writer, cwd string) error {
+	if len(args) > 2 {
+		return fmt.Errorf("cloudcc audit fields <projectPath> [object-id-apiName-or-prefix] [fieldId]")
+	}
+	c, _, err := newClient([]string{projectPath}, cwd)
+	if err != nil {
+		return err
+	}
+	values := url.Values{}
+	if len(args) > 0 && strings.TrimSpace(args[0]) != "" {
+		values.Set("object", strings.TrimSpace(args[0]))
+	}
+	if len(args) > 1 && strings.TrimSpace(args[1]) != "" {
+		values.Set("fieldId", strings.TrimSpace(args[1]))
+	}
+	path := "/metadata/v1/fields:id-audit"
+	if encoded := values.Encode(); encoded != "" {
+		path += "?" + encoded
+	}
+	return c.getJSON(stdout, path)
+}
+
+func fieldIdRepairShortcutSpec(args []string) (map[string]any, string, error) {
+	if len(args) > 0 && looksLikeJSONArg(args[0]) {
+		body, err := parseObject(args[0], "cloudcc repair fields")
+		return body, "repair-id", err
+	}
+	if len(args) < 1 || len(args) > 4 || strings.TrimSpace(args[0]) == "" {
+		return nil, "", fmt.Errorf("cloudcc repair fields <projectPath> <oldFieldId> [newFieldId|auto] [objectId] [expectedApiName]")
+	}
+	body := map[string]any{"oldFieldId": strings.TrimSpace(args[0]), "newFieldId": "auto"}
+	if len(args) > 1 && strings.TrimSpace(args[1]) != "" {
+		body["newFieldId"] = strings.TrimSpace(args[1])
+	}
+	if len(args) > 2 && strings.TrimSpace(args[2]) != "" {
+		body["objectId"] = strings.TrimSpace(args[2])
+	}
+	if len(args) > 3 && strings.TrimSpace(args[3]) != "" {
+		body["expectedApiName"] = strings.TrimSpace(args[3])
+	}
+	return body, "repair-id", nil
 }
 
 func handleValidationRuleReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
