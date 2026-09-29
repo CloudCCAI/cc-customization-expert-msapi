@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.84"
+const Version = "2.2.85"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -33,13 +33,22 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		Help(stdout, stderr)
 		return nil
 	case "domains":
-		return domaincatalog.WriteList(stdout)
+		options, err := parseDomainListArgs(args)
+		if err != nil {
+			return err
+		}
+		return domaincatalog.WriteListWithOptions(stdout, options)
 	case "domain":
 		if len(args) == 0 || strings.TrimSpace(args[0]) == "" {
-			return fmt.Errorf("cloudcc domain <name>")
+			return fmt.Errorf("usage: cloudcc domain <group-or-resource> [--format json|table]")
 		}
-		return domaincatalog.WriteDetail(stdout, args[0])
+		format, err := parseDomainDetailArgs(args[1:])
+		if err != nil {
+			return err
+		}
+		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- Domain discovery is now hierarchical and offline: metadata exposes 26 concrete resources, highcode exposes 9 resources, leaf lookups such as cloudcc domain fields/classes return aliases, provider routes, executable command forms, and focused documentation, while table/category filters and strict argument validation improve interactive use.")
 		fmt.Fprintln(stderr, "- Page-layout create/clone can now atomically assign the new layout with --assign. Repeated --profile and --record-type selectors expand as a Cartesian product; omitted profiles default to all profiles, omitted record types default to the main type, and --include-main-record-type adds the main type to explicit record types. Clone now preserves related-list buttons and rejects cross-object single-layout cloning. Requires MetadataService 1.1.74.")
 		fmt.Fprintln(stderr, "- OpenAPI now uploads and binds local attachments to existing business records through api-svc and submits existing business records for configured approval processes; multipart uploads stream from disk, two-stage failures preserve unbound file identifiers, and Manual approval responses explain the required fprId retry.")
 		fmt.Fprintln(stderr, "- OpenAPI is now documented and discovered as the normal business-data CRUD Domain for both standard CRM and custom objects; dataBulk is reserved for large-volume import, and dataIndex for database index optimization.")
@@ -285,12 +294,54 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	return nil
 }
 
+func parseDomainListArgs(args []string) (domaincatalog.ListOptions, error) {
+	options := domaincatalog.ListOptions{Format: "json"}
+	for index := 0; index < len(args); index++ {
+		switch strings.TrimSpace(args[index]) {
+		case "--format":
+			if index+1 >= len(args) {
+				return options, fmt.Errorf("usage: cloudcc domains [--category <name>] [--format json|table]")
+			}
+			index++
+			options.Format = strings.ToLower(strings.TrimSpace(args[index]))
+		case "--category":
+			if index+1 >= len(args) || strings.TrimSpace(args[index+1]) == "" {
+				return options, fmt.Errorf("usage: cloudcc domains [--category <name>] [--format json|table]")
+			}
+			index++
+			options.Category = strings.TrimSpace(args[index])
+		default:
+			return options, fmt.Errorf("usage: cloudcc domains [--category <name>] [--format json|table]")
+		}
+	}
+	if options.Format != "json" && options.Format != "table" {
+		return options, fmt.Errorf("usage: cloudcc domains [--category <name>] [--format json|table]")
+	}
+	return options, nil
+}
+
+func parseDomainDetailArgs(args []string) (string, error) {
+	if len(args) == 0 {
+		return "json", nil
+	}
+	if len(args) != 2 || strings.TrimSpace(args[0]) != "--format" {
+		return "", fmt.Errorf("usage: cloudcc domain <group-or-resource> [--format json|table]")
+	}
+	format := strings.ToLower(strings.TrimSpace(args[1]))
+	if format != "json" && format != "table" {
+		return "", fmt.Errorf("usage: cloudcc domain <group-or-resource> [--format json|table]")
+	}
+	return format, nil
+}
+
 func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "CloudCC CLI Go")
 	fmt.Fprintln(stdout)
 	fmt.Fprintln(stdout, "Usage:")
 	fmt.Fprintln(stdout, "  cloudcc --version")
 	fmt.Fprintln(stdout, "  cloudcc doc <layer>/<module> introduction|devguide")
+	fmt.Fprintln(stdout, "  cloudcc domains [--category <name>] [--format json|table]")
+	fmt.Fprintln(stdout, "  cloudcc domain <group-or-resource> [--format json|table]")
 	fmt.Fprintln(stdout, "  cloudcc doctor project-governance [projectPath]")
 	fmt.Fprintln(stdout, "  cloudcc init project-outputs <projectPath> <projectCode>")
 	fmt.Fprintln(stdout, "  cloudcc doctor project-outputs [projectPath]")

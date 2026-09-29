@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.84-msapi
+# cc-customization-expert-msapi v2.2.85-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -12,6 +12,8 @@ tools/bin/cloudcc plan dataIndex /path/to/project Account --fields ownerId,creat
 tools/bin/cloudcc create dataIndex /path/to/project Account --fields ownerId,createdDate --confirm --wait
 tools/bin/cloudcc analyze dataIndex /path/to/project Account
 tools/bin/cloudcc domains
+tools/bin/cloudcc domain metadata
+tools/bin/cloudcc domain classes
 tools/bin/cloudcc doc platform/openapi introduction
 tools/bin/cloudcc create openapi /path/to/project '{"objectApiName":"Account","data":[{"name":"Example account"}]}'
 tools/bin/cloudcc uploadAttachment openapi /path/to/project <recordId> <filePath> '[optionsJson|@file]'
@@ -32,6 +34,8 @@ Strict MetadataService package: low-code operations require MetadataService.
 从技能 `2.2.77` 开始，关系字段完整入库要求 MetadataService `1.1.69` 或更高版本：自动反向相关列表必须传 `childrelationName`，按 setup-svc 的 `custom` 类型和 `aee`/`afa`/`bcb` 标识规则写入，并按自然键安全收敛历史错误类型行。
 
 从技能 `2.2.80` 开始，使用 `tools/bin/cloudcc domains` 查看统一一级 Domain 分类。`dataIndex`、`dataBulk` 是 MSAPI-only Data Extension Domain，要求 MetadataService `1.1.71`；它们由 MetadataService 承载但不属于元数据。`openapi` 是 Integration Domain，继续直接调用 `api-svc`。
+
+从技能 `2.2.85` 开始，Domain 发现采用能力组与叶子资源两层目录：`domain metadata|highcode` 返回子资源，`domain fields|classes` 返回 provider 路由、命令形式和文档；默认查询完全离线，也可用 `domains --format table` 和 `--category` 筛选。
 
 从技能 `2.2.81` 开始，普通业务数据 CRUD 统一使用 `openapi`，标准 CRM 对象和自定义对象都支持。`dataBulk` 仅用于大批量数据导入、初始化和离线批处理，不用于日常业务操作；`dataIndex` 仅用于数据库索引优化；对象、字段、页面、权限和流程等平台二开配置使用对应元数据 Domain。
 

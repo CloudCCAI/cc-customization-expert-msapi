@@ -21,4 +21,18 @@
 
 ## 发现与文档
 
-`cloudcc domains` 返回当前包的分类、后端和有效可用性；`cloudcc domain <name>` 返回一个 Domain 的动作、版本要求和文档入口。Domain 行为以嵌入 CLI 的 Domain Catalog 为事实源，帮助、发行包配置和运行时门禁必须保持一致。
+```bash
+cloudcc domains
+cloudcc domain metadata
+cloudcc domain fields
+cloudcc domain highcode
+cloudcc domain classes
+```
+
+`cloudcc domains` 返回当前包的能力组、独立能力、子资源数量和包可用性；
+`cloudcc domain <group>` 返回 `resourceDetails` 子资源摘要，`cloudcc domain <resource>` 返回别名、provider
+路由、动作、可执行命令和文档入口。支持 `--format json|table`，列表支持
+`--category <name>`。不支持的参数必须返回 usage 错误。
+
+Domain 行为以嵌入 CLI 的 Domain Catalog 为事实源，帮助、发行包配置和运行时门禁必须保持一致。
+目录查询固定离线，不代表目标租户的实时能力，也不把发行包声明伪装成租户探测结果。

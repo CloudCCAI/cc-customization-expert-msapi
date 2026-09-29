@@ -1,11 +1,11 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.2.84-msapi",
+  "version": "2.2.85-msapi",
   "releaseDate": "2026-09-29",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
   "domainCatalog": {
-    "schemaVersion": "cloudcc-domain-catalog/v1",
+    "schemaVersion": "cloudcc-domain-catalog/v2",
     "source": "cli/internal/domaincatalog/domain-catalog.json",
     "packageKind": "msapi",
     "categories": [
@@ -40,9 +40,10 @@
         "name": "metadata",
         "label": "CloudCC metadata configuration",
         "level": "first-class",
+        "kind": "group",
         "category": "metadata",
-        "backend": "metadata-service",
-        "transport": "msapi",
+        "backend": "provider-selected",
+        "transport": "provider-selected",
         "packageAvailability": "enabled",
         "availability": {
           "msapi": "enabled",
@@ -50,7 +51,7 @@
           "universal": "provider-selected"
         },
         "minimumBackendVersion": null,
-        "documentationCommand": "cloudcc doc platform/capabilityMap introduction",
+        "documentationCommand": "cloudcc doc platform/metadata introduction",
         "actions": [
           "get",
           "detail",
@@ -60,12 +61,56 @@
           "plan",
           "apply",
           "rollback"
+        ],
+        "actionSemantics": "union-of-child-resources",
+        "resources": [
+          "objects",
+          "fields",
+          "global-select-lists",
+          "record-types",
+          "layouts",
+          "profiles",
+          "permissions",
+          "sharing-rules",
+          "validation-rules",
+          "applications",
+          "menus",
+          "buttons",
+          "roles",
+          "custom-settings",
+          "dupe-catchers",
+          "single-sign-ons",
+          "identity-providers",
+          "approval-processes",
+          "reports",
+          "dashboards",
+          "object-views",
+          "api-registrars",
+          "fiscal-years",
+          "areas",
+          "currencies",
+          "workflows"
+        ],
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          }
         ]
       },
       {
         "name": "dataIndex",
         "label": "Database index lifecycle and optimization",
         "level": "first-class",
+        "kind": "resource",
         "category": "data-extension",
         "backend": "metadata-service",
         "transport": "msapi",
@@ -85,12 +130,25 @@
           "optimization-plan",
           "optimize",
           "status"
+        ],
+        "actionSemantics": null,
+        "resources": [
+          null
+        ],
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          }
         ]
       },
       {
         "name": "dataBulk",
         "label": "Large-volume data import jobs",
         "level": "first-class",
+        "kind": "resource",
         "category": "data-extension",
         "backend": "metadata-service",
         "transport": "msapi",
@@ -110,12 +168,25 @@
           "resume",
           "retry",
           "cancel"
+        ],
+        "actionSemantics": null,
+        "resources": [
+          null
+        ],
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          }
         ]
       },
       {
         "name": "openapi",
         "label": "Standard and custom object business-data CRUD, attachments, and approval submission",
         "level": "first-class",
+        "kind": "resource",
         "category": "integration",
         "backend": "api-svc",
         "transport": "direct",
@@ -136,12 +207,25 @@
           "upsert",
           "uploadAttachment",
           "submitApproval"
+        ],
+        "actionSemantics": null,
+        "resources": [
+          null
+        ],
+        "routes": [
+          {
+            "provider": "all",
+            "backend": "api-svc",
+            "transport": "direct",
+            "availability": "enabled"
+          }
         ]
       },
       {
         "name": "highcode",
         "label": "CloudCC high-code resources",
         "level": "first-class",
+        "kind": "group",
         "category": "high-code",
         "backend": "setup-svc/devconsole",
         "transport": "direct",
@@ -152,7 +236,7 @@
           "universal": "enabled"
         },
         "minimumBackendVersion": null,
-        "documentationCommand": "cloudcc doc platform/lowcodeHighcode introduction",
+        "documentationCommand": "cloudcc doc platform/highcode introduction",
         "actions": [
           "create",
           "validate",
@@ -160,12 +244,33 @@
           "get",
           "detail",
           "delete"
+        ],
+        "actionSemantics": "union-of-child-resources",
+        "resources": [
+          "classes",
+          "triggers",
+          "timer",
+          "script",
+          "html",
+          "staticResource",
+          "pagecomponent",
+          "customPage",
+          "sidecar"
+        ],
+        "routes": [
+          {
+            "provider": "all",
+            "backend": "setup-svc/devconsole",
+            "transport": "direct",
+            "availability": "enabled"
+          }
         ]
       },
       {
         "name": "projectOutputs",
         "label": "Project output governance",
         "level": "first-class",
+        "kind": "resource",
         "category": "governance",
         "backend": "local",
         "transport": "local",
@@ -180,12 +285,25 @@
         "actions": [
           "init",
           "doctor"
+        ],
+        "actionSemantics": null,
+        "resources": [
+          null
+        ],
+        "routes": [
+          {
+            "provider": "all",
+            "backend": "local",
+            "transport": "local",
+            "availability": "enabled"
+          }
         ]
       },
       {
         "name": "testing",
         "label": "Test governance",
         "level": "first-class",
+        "kind": "resource",
         "category": "governance",
         "backend": "local",
         "transport": "local",
@@ -203,7 +321,1618 @@
           "decide",
           "record",
           "doctor"
+        ],
+        "actionSemantics": null,
+        "resources": [
+          null
+        ],
+        "routes": [
+          {
+            "provider": "all",
+            "backend": "local",
+            "transport": "local",
+            "availability": "enabled"
+          }
         ]
+      }
+    ],
+    "resources": [
+      {
+        "name": "objects",
+        "label": "Objects",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "object"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "create",
+          "update",
+          "delete",
+          "plan"
+        ],
+        "commands": [
+          "cloudcc get object <projectPath> [id-or-apiName]",
+          "cloudcc create object <projectPath> <spec>",
+          "cloudcc update object <projectPath> <spec>",
+          "cloudcc delete object <projectPath> <spec>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/object introduction",
+          "devguide": "cloudcc doc platform/object devguide"
+        }
+      },
+      {
+        "name": "fields",
+        "label": "Fields",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "field",
+          "fieldId"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "create",
+          "update",
+          "delete",
+          "audit",
+          "repair"
+        ],
+        "commands": [
+          "cloudcc get fields <projectPath> [object]",
+          "cloudcc create fields <projectPath> <spec>",
+          "cloudcc audit fields <projectPath> [options]",
+          "cloudcc repair fields <projectPath> <spec>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/fields introduction",
+          "devguide": "cloudcc doc platform/fields devguide"
+        }
+      },
+      {
+        "name": "global-select-lists",
+        "label": "Global select lists",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "globalSelectList"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "create",
+          "update",
+          "delete"
+        ],
+        "commands": [
+          "cloudcc get globalSelectList <projectPath> [selector]",
+          "cloudcc create globalSelectList <projectPath> <spec>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/globalSelectList introduction",
+          "devguide": "cloudcc doc platform/globalSelectList devguide"
+        }
+      },
+      {
+        "name": "record-types",
+        "label": "Record types",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "recordType"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "create",
+          "update",
+          "delete",
+          "saveDependency"
+        ],
+        "commands": [
+          "cloudcc get recordType <projectPath> <object>",
+          "cloudcc create recordType <projectPath> <spec>",
+          "cloudcc saveDependency recordType <projectPath> <spec>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/recordType introduction",
+          "devguide": "cloudcc doc platform/recordType devguide"
+        }
+      },
+      {
+        "name": "layouts",
+        "label": "Page layouts",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "pagelayout"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "create",
+          "update",
+          "delete",
+          "assign"
+        ],
+        "commands": [
+          "cloudcc get pagelayout <projectPath> <object>",
+          "cloudcc create pagelayout <projectPath> <spec>",
+          "cloudcc assign pagelayout <projectPath> <spec>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/pagelayout introduction",
+          "devguide": "cloudcc doc platform/pagelayout devguide"
+        }
+      },
+      {
+        "name": "profiles",
+        "label": "Profiles",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "profile"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "create",
+          "update",
+          "delete"
+        ],
+        "commands": [
+          "cloudcc get profile <projectPath> [selector]",
+          "cloudcc create profile <projectPath> <spec>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/profile introduction",
+          "devguide": "cloudcc doc platform/profile devguide"
+        }
+      },
+      {
+        "name": "permissions",
+        "label": "Permission sets",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "permission"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "create",
+          "update",
+          "delete",
+          "assign",
+          "remove"
+        ],
+        "commands": [
+          "cloudcc get permission <projectPath> [selector]",
+          "cloudcc create permission <projectPath> <spec>",
+          "cloudcc assign permission <projectPath> <spec>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/permission introduction",
+          "devguide": "cloudcc doc platform/permission devguide"
+        }
+      },
+      {
+        "name": "sharing-rules",
+        "label": "Sharing rules",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "sharingRule"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "create",
+          "update",
+          "delete"
+        ],
+        "commands": [
+          "cloudcc get sharingRule <projectPath> [selector]",
+          "cloudcc create sharingRule <projectPath> <spec>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/sharingRule introduction",
+          "devguide": "cloudcc doc platform/sharingRule devguide"
+        }
+      },
+      {
+        "name": "validation-rules",
+        "label": "Validation rules",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "validationRule"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "create",
+          "update",
+          "delete",
+          "validate"
+        ],
+        "commands": [
+          "cloudcc get validationRule <projectPath> [selector]",
+          "cloudcc create validationRule <projectPath> <spec>",
+          "cloudcc validate validationRule <projectPath> <spec>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/validationRule introduction",
+          "devguide": "cloudcc doc platform/validationRule devguide"
+        }
+      },
+      {
+        "name": "applications",
+        "label": "Applications",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "application"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "create",
+          "update",
+          "delete"
+        ],
+        "commands": [
+          "cloudcc get application <projectPath> [selector]",
+          "cloudcc create application <projectPath> <spec>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/application introduction",
+          "devguide": "cloudcc doc platform/application devguide"
+        }
+      },
+      {
+        "name": "menus",
+        "label": "Menus",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "menu"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "create",
+          "update",
+          "delete"
+        ],
+        "commands": [
+          "cloudcc get menu <projectPath> [selector]",
+          "cloudcc create menu <projectPath> <spec>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/menu introduction",
+          "devguide": "cloudcc doc platform/menu devguide"
+        }
+      },
+      {
+        "name": "buttons",
+        "label": "Buttons",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "button"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "create",
+          "update",
+          "delete"
+        ],
+        "commands": [
+          "cloudcc get button <projectPath> [selector]",
+          "cloudcc create button <projectPath> <spec>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/button introduction",
+          "devguide": "cloudcc doc platform/button devguide"
+        }
+      },
+      {
+        "name": "roles",
+        "label": "Roles",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "role"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "create",
+          "update",
+          "delete"
+        ],
+        "commands": [
+          "cloudcc get role <projectPath> [selector]",
+          "cloudcc create role <projectPath> <spec>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/role introduction",
+          "devguide": "cloudcc doc platform/role devguide"
+        }
+      },
+      {
+        "name": "custom-settings",
+        "label": "Custom settings",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "customSetting"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "create",
+          "update",
+          "delete"
+        ],
+        "commands": [
+          "cloudcc get customSetting <projectPath> [selector]",
+          "cloudcc create customSetting <projectPath> <spec>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/customSetting introduction",
+          "devguide": "cloudcc doc platform/customSetting devguide"
+        }
+      },
+      {
+        "name": "dupe-catchers",
+        "label": "Duplicate catchers",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "dupeCatcher"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "create",
+          "update",
+          "delete"
+        ],
+        "commands": [
+          "cloudcc get dupeCatcher <projectPath> [selector]",
+          "cloudcc create dupeCatcher <projectPath> <spec>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/dupeCatcher introduction",
+          "devguide": "cloudcc doc platform/dupeCatcher devguide"
+        }
+      },
+      {
+        "name": "single-sign-ons",
+        "label": "Single sign-on",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "singleSignOn"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "create",
+          "update",
+          "delete"
+        ],
+        "commands": [
+          "cloudcc get singleSignOn <projectPath> [selector]",
+          "cloudcc create singleSignOn <projectPath> <spec>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/singleSignOn introduction",
+          "devguide": "cloudcc doc platform/singleSignOn devguide"
+        }
+      },
+      {
+        "name": "identity-providers",
+        "label": "Identity providers",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "identityProvider"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "create",
+          "update",
+          "delete"
+        ],
+        "commands": [
+          "cloudcc get identityProvider <projectPath> [selector]",
+          "cloudcc create identityProvider <projectPath> <spec>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/identityProvider introduction",
+          "devguide": "cloudcc doc platform/identityProvider devguide"
+        }
+      },
+      {
+        "name": "approval-processes",
+        "label": "Approval processes",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "approval",
+          "approvalProcess"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "create",
+          "update",
+          "delete",
+          "activate",
+          "deactivate"
+        ],
+        "commands": [
+          "cloudcc get approval <projectPath> [selector]",
+          "cloudcc create approval <projectPath> <spec>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/approval introduction",
+          "devguide": "cloudcc doc platform/approval devguide"
+        }
+      },
+      {
+        "name": "reports",
+        "label": "Reports and report folders",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "report",
+          "reportFolder"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "create",
+          "update",
+          "delete"
+        ],
+        "commands": [
+          "cloudcc get report <projectPath> [selector]",
+          "cloudcc create report <projectPath> <spec>",
+          "cloudcc create reportFolder <projectPath> <name> [options]"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/report introduction",
+          "devguide": "cloudcc doc platform/report devguide"
+        }
+      },
+      {
+        "name": "dashboards",
+        "label": "Dashboards",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "dashboard"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "create",
+          "update",
+          "replace",
+          "delete",
+          "runtime"
+        ],
+        "commands": [
+          "cloudcc get dashboard <projectPath> [filter]",
+          "cloudcc create dashboard <projectPath> <spec>",
+          "cloudcc runtime dashboard <projectPath> [options]"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/dashboard introduction",
+          "devguide": "cloudcc doc platform/dashboard devguide"
+        }
+      },
+      {
+        "name": "object-views",
+        "label": "Object views",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "view"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "create",
+          "update",
+          "delete"
+        ],
+        "commands": [
+          "cloudcc get view <projectPath> [object-or-filter]",
+          "cloudcc detail view <projectPath> <view-id>",
+          "cloudcc create view <projectPath> <spec>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/view introduction",
+          "devguide": "cloudcc doc platform/view devguide"
+        }
+      },
+      {
+        "name": "api-registrars",
+        "label": "API registrar",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "apiRegistrar",
+          "apiRegister"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "create",
+          "update",
+          "delete",
+          "debug",
+          "logs"
+        ],
+        "commands": [
+          "cloudcc get apiRegistrar <projectPath> [search]",
+          "cloudcc create apiRegistrar <projectPath> <spec>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/apiRegistrar introduction",
+          "devguide": "cloudcc doc platform/apiRegistrar devguide"
+        }
+      },
+      {
+        "name": "fiscal-years",
+        "label": "Fiscal years and quarters",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "fiscalYear",
+          "companyFiscalYear"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "create",
+          "update",
+          "delete",
+          "saveFiscalQuarter"
+        ],
+        "commands": [
+          "cloudcc get fiscalYear <projectPath> [filter]",
+          "cloudcc create fiscalYear <projectPath> <spec>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/fiscalYear introduction",
+          "devguide": "cloudcc doc platform/fiscalYear devguide"
+        }
+      },
+      {
+        "name": "areas",
+        "label": "Area hierarchy",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "area",
+          "region",
+          "hierarchicalStructure"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "create",
+          "update",
+          "delete"
+        ],
+        "commands": [
+          "cloudcc get area <projectPath> [filter]",
+          "cloudcc create area <projectPath> <spec>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/area introduction",
+          "devguide": "cloudcc doc platform/area devguide"
+        }
+      },
+      {
+        "name": "currencies",
+        "label": "Company currencies",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "currency",
+          "companyCurrency"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "create",
+          "update",
+          "delete",
+          "updateRate",
+          "changeCorporate"
+        ],
+        "commands": [
+          "cloudcc get currency <projectPath> [filter]",
+          "cloudcc create currency <projectPath> <spec>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/currency introduction",
+          "devguide": "cloudcc doc platform/currency devguide"
+        }
+      },
+      {
+        "name": "workflows",
+        "label": "Workflow rules",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "workflow",
+          "workflowRule"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "create",
+          "update",
+          "delete",
+          "activate",
+          "deactivate"
+        ],
+        "commands": [
+          "cloudcc get workflow <projectPath> [selector]",
+          "cloudcc create workflow <projectPath> <spec>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/workflow introduction",
+          "devguide": "cloudcc doc platform/workflow devguide"
+        }
+      },
+      {
+        "name": "classes",
+        "label": "Custom Java classes",
+        "kind": "resource",
+        "parent": "highcode",
+        "category": "high-code",
+        "aliases": [
+          "class"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "enabled",
+          "universal": "enabled"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "all",
+            "backend": "setup-svc",
+            "transport": "direct",
+            "availability": "enabled"
+          }
+        ],
+        "actions": [
+          "create",
+          "format",
+          "doctor",
+          "validate",
+          "publish"
+        ],
+        "commands": [
+          "cloudcc create classes <ClassName> [projectPath]",
+          "cloudcc format classes <ClassName> [projectPath] --check|--write",
+          "cloudcc doctor classes [projectPath]",
+          "cloudcc validate classes <ClassName> [projectPath]",
+          "cloudcc publish classes <ClassName> [projectPath]"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/classes introduction",
+          "devguide": "cloudcc doc platform/classes devguide"
+        }
+      },
+      {
+        "name": "triggers",
+        "label": "Object triggers",
+        "kind": "resource",
+        "parent": "highcode",
+        "category": "high-code",
+        "aliases": [
+          "trigger"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "enabled",
+          "universal": "enabled"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "all",
+            "backend": "setup-svc",
+            "transport": "direct",
+            "availability": "enabled"
+          }
+        ],
+        "actions": [
+          "create",
+          "format",
+          "validate",
+          "publish"
+        ],
+        "commands": [
+          "cloudcc create trigger <objectApi/TriggerName> [projectPath]",
+          "cloudcc format trigger <objectApi/TriggerName> [projectPath] --check|--write",
+          "cloudcc publish trigger <objectApi/TriggerName> [projectPath]"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/triggers introduction",
+          "devguide": "cloudcc doc platform/triggers devguide"
+        }
+      },
+      {
+        "name": "timer",
+        "label": "Scheduled Java classes",
+        "kind": "resource",
+        "parent": "highcode",
+        "category": "high-code",
+        "aliases": [
+          "schedule"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "enabled",
+          "universal": "enabled"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "all",
+            "backend": "setup-svc",
+            "transport": "direct",
+            "availability": "enabled"
+          }
+        ],
+        "actions": [
+          "create",
+          "format",
+          "validate",
+          "publish"
+        ],
+        "commands": [
+          "cloudcc create timer <TimerName> [projectPath]",
+          "cloudcc format timer <TimerName> [projectPath] --check|--write",
+          "cloudcc publish timer <TimerName> [projectPath]"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/timer introduction",
+          "devguide": "cloudcc doc platform/timer devguide"
+        }
+      },
+      {
+        "name": "script",
+        "label": "Client scripts",
+        "kind": "resource",
+        "parent": "highcode",
+        "category": "high-code",
+        "aliases": [
+          "clientScript"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "enabled",
+          "universal": "enabled"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "all",
+            "backend": "setup-svc/devconsole",
+            "transport": "direct",
+            "availability": "enabled"
+          }
+        ],
+        "actions": [
+          "create",
+          "get",
+          "detail",
+          "publish",
+          "delete"
+        ],
+        "commands": [
+          "cloudcc create script <name> [projectPath]",
+          "cloudcc publish script <name> [projectPath]"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/script introduction",
+          "devguide": "cloudcc doc platform/script devguide"
+        }
+      },
+      {
+        "name": "html",
+        "label": "HTML components",
+        "kind": "resource",
+        "parent": "highcode",
+        "category": "high-code",
+        "aliases": [
+          "htmlComponent"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "enabled",
+          "universal": "enabled"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "all",
+            "backend": "setup-svc/devconsole",
+            "transport": "direct",
+            "availability": "enabled"
+          }
+        ],
+        "actions": [
+          "create",
+          "get",
+          "detail",
+          "publish",
+          "delete"
+        ],
+        "commands": [
+          "cloudcc create html <name> [projectPath]",
+          "cloudcc publish html <name> [projectPath]"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/html introduction",
+          "devguide": "cloudcc doc platform/html devguide"
+        }
+      },
+      {
+        "name": "staticResource",
+        "label": "Static resources",
+        "kind": "resource",
+        "parent": "highcode",
+        "category": "high-code",
+        "aliases": [
+          "staticResources"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "enabled",
+          "universal": "enabled"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "all",
+            "backend": "setup-svc/devconsole",
+            "transport": "direct",
+            "availability": "enabled"
+          }
+        ],
+        "actions": [
+          "create",
+          "get",
+          "detail",
+          "publish",
+          "delete"
+        ],
+        "commands": [
+          "cloudcc create staticResource <name> [projectPath]",
+          "cloudcc publish staticResource <name> [projectPath]"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/staticResource introduction",
+          "devguide": "cloudcc doc platform/staticResource devguide"
+        }
+      },
+      {
+        "name": "pagecomponent",
+        "label": "Page components",
+        "kind": "resource",
+        "parent": "highcode",
+        "category": "high-code",
+        "aliases": [
+          "plugin"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "enabled",
+          "universal": "enabled"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "all",
+            "backend": "devconsole",
+            "transport": "direct",
+            "availability": "enabled"
+          }
+        ],
+        "actions": [
+          "create",
+          "package",
+          "publish",
+          "bind",
+          "get",
+          "detail",
+          "pull",
+          "delete"
+        ],
+        "commands": [
+          "cloudcc create pagecomponent <name>",
+          "cloudcc package pagecomponent <name> [projectPath] --dry-run",
+          "cloudcc publish pagecomponent <name> [projectPath]",
+          "cloudcc bind pagecomponent <projectPath> <pageApi> <componentIdOrName>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/pagecomponent introduction",
+          "devguide": "cloudcc doc platform/pagecomponent devguide"
+        }
+      },
+      {
+        "name": "customPage",
+        "label": "Custom pages",
+        "kind": "resource",
+        "parent": "highcode",
+        "category": "high-code",
+        "aliases": [
+          "customPages"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "enabled",
+          "universal": "enabled"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "all",
+            "backend": "devconsole",
+            "transport": "direct",
+            "availability": "enabled"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "create",
+          "update",
+          "delete"
+        ],
+        "commands": [
+          "cloudcc get customPage <projectPath> [pageApi]",
+          "cloudcc create customPage <projectPath> <payload>",
+          "cloudcc update customPage <projectPath> <pageApi-or-id> <payload>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/customPage introduction",
+          "devguide": "cloudcc doc platform/customPage devguide"
+        }
+      },
+      {
+        "name": "sidecar",
+        "label": "External sidecar services",
+        "kind": "resource",
+        "parent": "highcode",
+        "category": "high-code",
+        "aliases": [],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "enabled",
+          "universal": "enabled"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "all",
+            "backend": "external-runtime",
+            "transport": "direct",
+            "availability": "enabled"
+          }
+        ],
+        "actions": [
+          "scan"
+        ],
+        "commands": [
+          "cloudcc scan msapi <projectPath> highcode"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/integrationArchitecture introduction",
+          "devguide": "cloudcc doc platform/integrationArchitecture devguide"
+        }
       }
     ]
   },
