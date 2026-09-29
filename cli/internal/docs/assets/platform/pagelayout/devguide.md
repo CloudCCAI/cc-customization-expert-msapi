@@ -60,10 +60,10 @@ cloudcc get pagelayout . 001
 ### 创建页面布局
 
 ```bash
-cloudcc create pagelayout <projectPath> <objId> <layoutName> [sourceLayoutId] [isCloneDynamic]
+cloudcc create pagelayout <projectPath> <objId> <layoutName> [sourceLayoutId] [isCloneDynamic] [--assign] [--profile <profileId>]... [--record-type <recordTypeId>]... [--include-main-record-type]
 ```
 
-`create pagelayout` 只创建或复制页面布局，不分配简档。使用 MetadataService `1.1.62+` 时，最简单的命令会自动读取对象字段、详情按钮和入向查找/主详关系并设计布局：
+`create pagelayout` 默认只创建或复制页面布局；只有显式传入 `--assign` 才会在同一个 plan/apply 中分配新布局。使用 MetadataService `1.1.62+` 时，最简单的命令会自动读取对象字段、详情按钮和入向查找/主详关系并设计布局：
 
 ```bash
 cloudcc create pagelayout . 20267D1465464C5OB6m5 "课程表2"
@@ -89,7 +89,7 @@ cloudcc create pagelayout . 20267D1465464C5OB6m5 "课程表2"
 - 详情按钮只从当前对象可见的 `detailBtn` 中选择，标准按钮优先，隐藏按钮和列表按钮不进入详情布局。
 - 相关列表只从真实的入向查找/主详关系生成；显示列优先名称/编号、状态、金额/数量、日期、负责人，最多 7 列；列表按钮只从子对象可见 `listBtn` 中选择。
 
-创建完成后，如需让简档使用该布局，再执行独立的 `assign pagelayout` 命令。创建成功不等于用户已经能看到布局；验收时分别检查布局内容和布局分配结果。
+创建时可直接增加分配参数；已有布局仍可使用独立的 `assign pagelayout` 命令。创建成功不等于用户已经能看到布局；验收时分别检查布局内容和布局分配结果。
 
 **参数说明：**
 
@@ -99,7 +99,11 @@ cloudcc create pagelayout . 20267D1465464C5OB6m5 "课程表2"
 | `objId` | 是 | 对象 ID |
 | `layoutName` | 是 | 新页面布局名称 |
 | `sourceLayoutId` | 否 | 要复制的真实源布局 ID；只有传入时才进入 `clone` 模式，不传时默认自动设计 |
-| `isCloneDynamic` | 否 | 是否复制动态布局规则，默认 `true` |
+| `isCloneDynamic` | 否 | 是否复制动态布局规则，默认 `false`；当前动态规则复制尚未实现，传 `true` 且源布局存在动态规则时会失败关闭 |
+| `--assign` | 否 | 启用创建/复制后的原子分配；未传时不分配 |
+| `--profile` | 否 | 目标简档 ID，可重复；启用分配但全部省略时默认全部简档 |
+| `--record-type` | 否 | 目标记录类型 ID，可重复；启用分配但全部省略时默认主类型 |
+| `--include-main-record-type` | 否 | 在显式记录类型之外同时分配主类型；必须和 `--assign` 一起使用 |
 
 **示例：**
 
@@ -113,6 +117,14 @@ cloudcc create pagelayout . 20267D1465464C5OB6m5 "课程表2" add20261DA7347CZPA
 # 不复制动态布局规则
 cloudcc create pagelayout . 20267D1465464C5OB6m5 "课程表2" add20261DA7347CZPAUz false
 
+# 分配给全部简档的主类型
+cloudcc create pagelayout . 20267D1465464C5OB6m5 "课程表2" --assign
+
+# 两个简档 × 两个记录类型，并额外包含主类型
+cloudcc create pagelayout . 20267D1465464C5OB6m5 "课程表2" --assign \
+  --profile aaaSales --profile aaaSupport \
+  --record-type rtDomestic --record-type rtOverseas --include-main-record-type
+
 ```
 
 自动模式也可以使用 MetadataService JSON，并在 plan 阶段查看设计结果：
@@ -121,9 +133,17 @@ cloudcc create pagelayout . 20267D1465464C5OB6m5 "课程表2" add20261DA7347CZPA
 {
   "objectId": "20267D1465464C5OB6m5",
   "layoutName": "课程自动布局",
-  "contentMode": "auto"
+  "contentMode": "auto",
+  "assignment": {
+    "enabled": true,
+    "profileIds": ["aaaSales", "aaaSupport"],
+    "recordTypeIds": ["rtDomestic", "rtOverseas"],
+    "includeMainRecordType": true
+  }
 }
 ```
+
+`assignment.enabled=true` 是唯一启用开关，`enabled` 和 `includeMainRecordType` 必须使用 JSON 布尔值，不能写成字符串。`profileIds` 省略表示全部简档，`recordTypeIds` 省略表示主类型；两个数组都提供时按笛卡尔积展开。显式空数组、未知简档、跨对象记录类型、重复历史分配或超过 5000 个展开结果都会在 plan 阶段失败，不产生部分写入。旧式创建参数 `assignments[]` 和 `autoAssignProfiles` 不再静默忽略，会返回明确错误。
 
 ```bash
 cloudcc plan msapi . layouts @layout-auto.json create
@@ -173,15 +193,21 @@ cloudcc detail pagelayout . 20267D1465464C5OB6m5 <layoutId>
 已有页面布局需要补做、改配或增加记录类型分配时，使用独立的 `assign pagelayout`。该操作只写布局分配，不重写 sections、按钮或相关列表：
 
 ```bash
-cloudcc assign pagelayout <projectPath> <objectId|apiName|prefix> <layoutId> --profile <profileId> [--record-type <recordTypeId>]
+cloudcc assign pagelayout <projectPath> <objectId|apiName|prefix> <layoutId> --profile <profileId>... [--record-type <recordTypeId>]... [--include-main-record-type]
 ```
 
-`--profile` 可重复传入。`--record-type` 不是必填；省略时分配到对象的主类型，传入时分配到该记录类型。
+`--profile` 和 `--record-type` 都可重复传入，最终按“简档 × 记录类型”笛卡尔积生成分配。`--record-type` 省略时只分配对象的主类型；显式传入记录类型时默认不包含主类型，如需同时包含主类型，增加 `--include-main-record-type`。独立分配命令不使用 `--assign`，因为执行该命令本身就表示要分配。
 
 示例：
 
 ```bash
 cloudcc assign pagelayout . 20267D1465464C5OB6m5 layout_course_sales --profile aaa000001 --record-type rt_course_domestic
+
+# 两个简档 × 两个记录类型，并同时包含主类型，共生成 6 个分配范围
+cloudcc assign pagelayout . 20267D1465464C5OB6m5 layout_course_sales \
+  --profile aaa000001 --profile aaa000002 \
+  --record-type rt_course_domestic --record-type rt_course_overseas \
+  --include-main-record-type
 
 # 分配到主类型
 cloudcc assign pagelayout . 20267D1465464C5OB6m5 layout_course_main --profile aaa000001 --profile aaa000002
@@ -205,6 +231,8 @@ cloudcc assign pagelayout . 20267D1465464C5OB6m5 layout_course_main --profile aa
   ]
 }
 ```
+
+JSON 中省略 `recordTypeId` 表示主类型。重复的简档或记录类型选择器会去重；显式空数组、未知简档、未知或跨对象记录类型、目标布局不存在、目标不是该对象的根页面布局、同一范围存在重复历史数据时会在 plan 阶段失败，不产生部分写入。
 
 执行：
 

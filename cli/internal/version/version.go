@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.83"
+const Version = "2.2.84"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -40,6 +40,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetail(stdout, args[0])
 	case "changelog":
+		fmt.Fprintln(stderr, "- Page-layout create/clone can now atomically assign the new layout with --assign. Repeated --profile and --record-type selectors expand as a Cartesian product; omitted profiles default to all profiles, omitted record types default to the main type, and --include-main-record-type adds the main type to explicit record types. Clone now preserves related-list buttons and rejects cross-object single-layout cloning. Requires MetadataService 1.1.74.")
 		fmt.Fprintln(stderr, "- OpenAPI now uploads and binds local attachments to existing business records through api-svc and submits existing business records for configured approval processes; multipart uploads stream from disk, two-stage failures preserve unbound file identifiers, and Manual approval responses explain the required fprId retry.")
 		fmt.Fprintln(stderr, "- OpenAPI is now documented and discovered as the normal business-data CRUD Domain for both standard CRM and custom objects; dataBulk is reserved for large-volume import, and dataIndex for database index optimization.")
 		fmt.Fprintln(stderr, "- Unified first-class Domain discovery now classifies metadata, data extensions, integrations, high-code, and governance. dataIndex and dataBulk are MSAPI-only Data Extension Domains backed by MetadataService 1.1.71; UIAPI rejects them before credentials or network access, Universal requires an MSAPI provider, and openapi remains a direct api-svc integration.")
@@ -353,11 +354,11 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc get profile <projectPath> [filter]")
 	fmt.Fprintln(stdout, "  cloudcc detail profile <projectPath> <id|name|apiName>")
 	fmt.Fprintln(stdout, "  cloudcc delete profile <projectPath> <id|name|apiName>  # resolves uniquely and creates a guarded MetadataService plan")
-	fmt.Fprintln(stdout, "  cloudcc create pagelayout <projectPath> <object> <layoutName> [sourceLayoutId] [isCloneDynamic]")
-	fmt.Fprintln(stdout, "  cloudcc assign pagelayout <projectPath> <object> <layoutId> --profile <profileId> [--record-type <recordTypeId>]")
+	fmt.Fprintln(stdout, "  cloudcc create pagelayout <projectPath> <object> <layoutName> [sourceLayoutId] [isCloneDynamic] [--assign] [--profile <profileId>]... [--record-type <recordTypeId>]... [--include-main-record-type]")
+	fmt.Fprintln(stdout, "  cloudcc assign pagelayout <projectPath> <object> <layoutId> --profile <profileId>... [--record-type <recordTypeId>]... [--include-main-record-type]")
 	fmt.Fprintln(stdout, "    No source/content: auto-design fields, detail buttons, and related lists; basic short fields are balanced into two columns first")
 	fmt.Fprintln(stdout, "    sourceLayoutId: clone that exact layout; JSON contentMode supports auto|explicit|clone|blank")
-	fmt.Fprintln(stdout, "    MSAPI create/clone does not assign profiles; assign separately, omitting --record-type for the main type")
+	fmt.Fprintln(stdout, "    Without --assign, create/clone only creates the layout; with --assign, omitted profiles mean all profiles and omitted record types mean the main type")
 	fmt.Fprintln(stdout, "  cloudcc get fiscalYear <projectPath> [filterJson|year]")
 	fmt.Fprintln(stdout, "  cloudcc detail fiscalYear <projectPath> <id|year>")
 	fmt.Fprintln(stdout, "  cloudcc create fiscalYear <projectPath> <year> <startDate> <endDate> [description]")

@@ -7844,6 +7844,8 @@ func setupSvcLiveReplayRuntimeEffectEvidenceTables(effect string) []string {
 		return []string{"tp_sys_layout", "tp_sys_layout_section", "tp_sys_section_field"}
 	case "profile-layout-and-button-link-expansion":
 		return []string{"tp_sys_profile_layout", "tp_sys_layout_button"}
+	case "layout-button-related-list-expansion":
+		return []string{"tp_sys_layout_button", "tp_sys_relatedlist", "tp_sys_relatedlist_field", "tp_sys_relatedlist_button"}
 	case "object-field-layout-recordtype-grant-expansion":
 		return []string{"tp_sys_profile", "tp_sys_profile_infoset", "tp_sys_profile_field", "tp_sys_profile_layout"}
 	case "permission-definition-label-expansion":
@@ -15737,7 +15739,7 @@ func setupSvcLiveReplayRuntimeEffects(domain string) []string {
 	case "record-types":
 		return []string{"record-type-profile-infoset-expansion", "record-type-profile-layout-expansion", "object-recordtype-enable-expansion", "record-type-field-dependency-expansion", "translated-label-expansion", "delete-cleanup"}
 	case "layouts":
-		return []string{"layout-section-field-expansion", "profile-layout-and-button-link-expansion", "translated-label-expansion", "delete-cleanup"}
+		return []string{"layout-section-field-expansion", "layout-button-related-list-expansion", "translated-label-expansion", "delete-cleanup"}
 	case "profiles":
 		return []string{"object-field-layout-recordtype-grant-expansion", "translated-label-expansion", "profile-delete-cleanup"}
 	case "permissions":

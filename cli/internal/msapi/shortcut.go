@@ -2057,14 +2057,14 @@ func pageLayoutShortcutSpec(action string, args []string) (map[string]any, strin
 		return body, operation, nil
 	}
 
-	filtered, assignment, err := extractPageLayoutAssignmentFlags(args)
+	filtered, assignmentFlags, err := extractPageLayoutAssignmentFlags(args)
 	if err != nil {
 		return nil, "", err
 	}
 	switch strings.TrimSpace(action) {
 	case "create":
 		if len(filtered) < 2 || strings.TrimSpace(filtered[0]) == "" || strings.TrimSpace(filtered[1]) == "" {
-			return nil, "", fmt.Errorf("cloudcc create pagelayout <projectPath> <object-id-apiName-or-prefix> <layoutName> [sourceLayoutId] [isCloneDynamic]")
+			return nil, "", fmt.Errorf("cloudcc create pagelayout <projectPath> <object-id-apiName-or-prefix> <layoutName> [sourceLayoutId] [isCloneDynamic] [--assign] [--profile <profileId>]... [--record-type <recordTypeId>]... [--include-main-record-type]")
 		}
 		spec := map[string]any{
 			"objectId":   strings.TrimSpace(filtered[0]),
@@ -2079,24 +2079,52 @@ func pageLayoutShortcutSpec(action string, args []string) (map[string]any, strin
 		if len(filtered) > 4 {
 			return nil, "", fmt.Errorf("cloudcc create pagelayout received too many positional arguments; use JSON for advanced layout specs")
 		}
+		if assignmentFlags.hasSelectors() && !assignmentFlags.enabled {
+			return nil, "", fmt.Errorf("page-layout create assignment selectors require --assign")
+		}
+		if assignmentFlags.enabled {
+			assignment := map[string]any{"enabled": true}
+			if len(assignmentFlags.profiles) > 0 {
+				assignment["profileIds"] = uniqueStrings(assignmentFlags.profiles)
+			}
+			if len(assignmentFlags.recordTypes) > 0 {
+				assignment["recordTypeIds"] = uniqueStrings(assignmentFlags.recordTypes)
+			}
+			if assignmentFlags.includeMain {
+				assignment["includeMainRecordType"] = true
+			}
+			spec["assignment"] = assignment
+		}
 		return spec, "create", nil
 	case "assign":
 		if len(filtered) < 2 || strings.TrimSpace(filtered[0]) == "" || strings.TrimSpace(filtered[1]) == "" {
-			return nil, "", fmt.Errorf("cloudcc assign pagelayout <projectPath> <object-id-apiName-or-prefix> <layout-id-apiName-or-name> --profile <profileId> [--record-type <recordTypeId>]")
+			return nil, "", fmt.Errorf("cloudcc assign pagelayout <projectPath> <object-id-apiName-or-prefix> <layout-id-apiName-or-name> --profile <profileId>... [--record-type <recordTypeId>]... [--include-main-record-type]")
 		}
-		if len(assignment) == 0 {
+		if len(assignmentFlags.profiles) == 0 {
 			return nil, "", fmt.Errorf("cloudcc assign pagelayout requires at least one --profile <profileId>")
 		}
 		objectId := strings.TrimSpace(filtered[0])
 		layoutId := strings.TrimSpace(filtered[1])
-		for _, item := range assignment {
-			item["objectId"] = objectId
-			item["layoutId"] = layoutId
+		profiles := uniqueStrings(assignmentFlags.profiles)
+		recordTypes := uniqueStrings(assignmentFlags.recordTypes)
+		assignments := make([]map[string]any, 0)
+		for _, profile := range profiles {
+			if len(recordTypes) == 0 || assignmentFlags.includeMain {
+				assignments = append(assignments, map[string]any{
+					"profileId": profile, "objectId": objectId, "layoutId": layoutId,
+				})
+			}
+			for _, recordType := range recordTypes {
+				assignments = append(assignments, map[string]any{
+					"profileId": profile, "recordTypeId": recordType,
+					"objectId": objectId, "layoutId": layoutId,
+				})
+			}
 		}
 		return map[string]any{
 			"objectId":    objectId,
 			"layoutId":    layoutId,
-			"assignments": assignment,
+			"assignments": assignments,
 		}, "assign", nil
 	default:
 		return shortcutBodySpec(action, "pagelayout", args)
@@ -2192,53 +2220,79 @@ func pageLayoutKindShortcutSpec(action string, kind string, args []string) (map[
 	}
 }
 
-func extractPageLayoutAssignmentFlags(args []string) ([]string, []map[string]any, error) {
+type pageLayoutAssignmentFlags struct {
+	enabled     bool
+	includeMain bool
+	profiles    []string
+	recordTypes []string
+}
+
+func (flags pageLayoutAssignmentFlags) hasSelectors() bool {
+	return flags.includeMain || len(flags.profiles) > 0 || len(flags.recordTypes) > 0
+}
+
+func extractPageLayoutAssignmentFlags(args []string) ([]string, pageLayoutAssignmentFlags, error) {
 	filtered := make([]string, 0, len(args))
-	profiles := []string{}
-	recordTypeId := ""
+	flags := pageLayoutAssignmentFlags{}
 	for i := 0; i < len(args); i++ {
 		arg := strings.TrimSpace(args[i])
 		switch {
+		case arg == "--assign":
+			flags.enabled = true
+		case arg == "--include-main-record-type":
+			flags.includeMain = true
 		case arg == "--profile" || arg == "--profile-id" || arg == "--profileId":
 			if i+1 >= len(args) || strings.TrimSpace(args[i+1]) == "" {
-				return nil, nil, fmt.Errorf("%s requires a profile id", arg)
+				return nil, pageLayoutAssignmentFlags{}, fmt.Errorf("%s requires a profile id", arg)
 			}
 			i++
-			profiles = append(profiles, strings.TrimSpace(args[i]))
+			flags.profiles = append(flags.profiles, strings.TrimSpace(args[i]))
 		case strings.HasPrefix(arg, "--profile="):
-			profiles = append(profiles, strings.TrimSpace(strings.TrimPrefix(arg, "--profile=")))
+			flags.profiles = append(flags.profiles, strings.TrimSpace(strings.TrimPrefix(arg, "--profile=")))
 		case strings.HasPrefix(arg, "--profile-id="):
-			profiles = append(profiles, strings.TrimSpace(strings.TrimPrefix(arg, "--profile-id=")))
+			flags.profiles = append(flags.profiles, strings.TrimSpace(strings.TrimPrefix(arg, "--profile-id=")))
 		case strings.HasPrefix(arg, "--profileId="):
-			profiles = append(profiles, strings.TrimSpace(strings.TrimPrefix(arg, "--profileId=")))
+			flags.profiles = append(flags.profiles, strings.TrimSpace(strings.TrimPrefix(arg, "--profileId=")))
 		case arg == "--record-type" || arg == "--recordtype" || arg == "--recordTypeId":
 			if i+1 >= len(args) || strings.TrimSpace(args[i+1]) == "" {
-				return nil, nil, fmt.Errorf("%s requires a record type id", arg)
+				return nil, pageLayoutAssignmentFlags{}, fmt.Errorf("%s requires a record type id", arg)
 			}
 			i++
-			recordTypeId = strings.TrimSpace(args[i])
+			flags.recordTypes = append(flags.recordTypes, strings.TrimSpace(args[i]))
 		case strings.HasPrefix(arg, "--record-type="):
-			recordTypeId = strings.TrimSpace(strings.TrimPrefix(arg, "--record-type="))
+			flags.recordTypes = append(flags.recordTypes, strings.TrimSpace(strings.TrimPrefix(arg, "--record-type=")))
 		case strings.HasPrefix(arg, "--recordtype="):
-			recordTypeId = strings.TrimSpace(strings.TrimPrefix(arg, "--recordtype="))
+			flags.recordTypes = append(flags.recordTypes, strings.TrimSpace(strings.TrimPrefix(arg, "--recordtype=")))
 		case strings.HasPrefix(arg, "--recordTypeId="):
-			recordTypeId = strings.TrimSpace(strings.TrimPrefix(arg, "--recordTypeId="))
+			flags.recordTypes = append(flags.recordTypes, strings.TrimSpace(strings.TrimPrefix(arg, "--recordTypeId=")))
 		default:
 			filtered = append(filtered, args[i])
 		}
 	}
-	assignments := make([]map[string]any, 0, len(profiles))
-	for _, profile := range profiles {
-		if profile == "" {
-			continue
+	for _, profile := range flags.profiles {
+		if strings.TrimSpace(profile) == "" {
+			return nil, pageLayoutAssignmentFlags{}, fmt.Errorf("--profile requires a non-empty profile id")
 		}
-		assignment := map[string]any{"profileId": profile}
-		if recordTypeId != "" {
-			assignment["recordTypeId"] = recordTypeId
-		}
-		assignments = append(assignments, assignment)
 	}
-	return filtered, assignments, nil
+	for _, recordType := range flags.recordTypes {
+		if strings.TrimSpace(recordType) == "" {
+			return nil, pageLayoutAssignmentFlags{}, fmt.Errorf("--record-type requires a non-empty record type id")
+		}
+	}
+	return filtered, flags, nil
+}
+
+func uniqueStrings(values []string) []string {
+	seen := map[string]bool{}
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value != "" && !seen[value] {
+			seen[value] = true
+			result = append(result, value)
+		}
+	}
+	return result
 }
 
 func objectShortcutSpec(action string, args []string) map[string]any {
