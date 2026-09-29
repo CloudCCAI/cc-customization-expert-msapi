@@ -314,11 +314,73 @@ cloudcc detail pagelayout . obj_contract layout_contract_sales
 | 节点 | 关键字段 | 说明 |
 |------|----------|------|
 | `sections[]` | `id/name/columns[][]` | 页面字段分组；`columns` 第一层是列，第二层是该列字段。 |
-| `sections[].columns[][]` | `fieldId/required/readonly` | `fieldId` 必须来自目标对象字段回读；不要使用标签代替字段 ID。 |
+| `sections[].columns[][]` | 普通字段：`fieldId/required/readonly`；自定义页面：`type/customPageId/pageApi` | 普通字段的 `fieldId` 必须来自目标对象字段回读；自定义页面必须使用 `type=customPage`，并按下节放入独占单列分组。 |
 | `buttons[]` | `buttonId/seq` | 挂载已经存在的详情页按钮；按钮定义本身先通过 `buttons` domain 创建。 |
 | `relatedLists[]` | `name/objectId/fieldId/relatedListType/seq/show` | `objectId` 是子对象；普通业务列表的 `fieldId` 是子对象上指向当前父对象的查找/主详关系字段；系统列表按下文固定参数填写。 |
 | `relatedLists[].fields[]` | `fieldId/seq/fieldStyle` | 相关列表显示列，字段来自子对象；首列应是可点击名称/编号字段。 |
 | `relatedLists[].buttons[]` | `buttonId/seq` | 挂载已经存在且适用于该相关列表的按钮。 |
+
+### 在页面布局中内嵌自定义页面
+
+项目支持在 PC 页面布局中引用一个已经存在的自定义页面。这里创建或更新的是**页面布局引用**，不是自定义页面资源本身：自定义页面仍应先通过高代码开发流程创建、发布，并用下面的命令读取其真实标识。
+
+```bash
+cloudcc query customPage .
+cloudcc detail customPage . <customPageId|pageApi>
+```
+
+把详情中的自定义页面 ID 填入 `customPageId`，API 名填入 `pageApi`。不要使用页面标签、布局字段 ID，也不要自行拼接 `LIGHTNINGPAGE_` 前缀。推荐的布局 spec 如下：
+
+```json
+{
+  "id": "layout_contract_workbench",
+  "objectId": "obj_contract",
+  "layoutName": "合同工作台布局",
+  "contentMode": "explicit",
+  "sections": [
+    {
+      "id": "section_contract_workbench",
+      "name": "业务工作台",
+      "columns": [
+        [
+          {
+            "type": "customPage",
+            "customPageId": "<自定义页面ID>",
+            "pageApi": "contract_workbench"
+          }
+        ]
+      ]
+    }
+  ]
+}
+```
+
+内嵌自定义页面分组必须同时满足：
+
+- `columns` 只有一列，且该列只有一个 `customPage` 布局项；
+- 不能在同一分组中混入普通字段或第二个自定义页面；
+- `customPageId` 和 `pageApi` 都不能为空；
+- 自定义页面必须已经存在，页面的创建、发布和版本管理不由 `layouts` domain 代办。
+
+计划、执行和验收：
+
+```bash
+cloudcc plan msapi . layouts @layout-contract-workbench.json create
+cloudcc apply msapi . <planId>
+cloudcc detail pagelayout . obj_contract layout_contract_workbench
+```
+
+详情回读会保持同一用户级结构，可直接复制到后续更新 spec：
+
+```json
+{
+  "type": "customPage",
+  "customPageId": "<自定义页面ID>",
+  "pageApi": "contract_workbench"
+}
+```
+
+复制布局时，该引用会随分组一起保留。旧 spec 中的 `fieldId=LIGHTNINGPAGE_<customPageId>` 与 `lightningUrl=<pageApi>` 仍可读取和提交，但只用于历史兼容；新配置统一使用 `type/customPageId/pageApi`。相关列表内嵌页面、移动布局的新嵌入语义和旧式 VisualPage 不属于此能力范围。
 
 ### 批量创建页面布局
 
@@ -687,7 +749,7 @@ cloudcc detail pagelayout . <objectId|apiName|prefix> <layoutId|apiName|name>
 |---|---|
 | `content` | `id/objectId/layoutName/apiName/sections/buttons/relatedLists/assignments` |
 | `content.sections[]` | `id/name/seq/showDetailHeader/showEditHeader/show/columns` |
-| `content.sections[].columns[][]` | `id/fieldId/required/readonly/seq/rowIndex/colIndex` |
+| `content.sections[].columns[][]` | 普通字段返回 `id/fieldId/required/readonly/seq/rowIndex/colIndex`；内嵌自定义页面返回 `id/type/customPageId/pageApi/seq/rowIndex/colIndex` |
 | `content.buttons[]` | `rowId/buttonId/seq` |
 | `content.relatedLists[]` | `id/name/objectId/fieldId/relatedListType/show/seq/fields/buttons` |
 | `content.relatedLists[].fields[]` | `rowId/fieldId/seq/fieldStyle` |

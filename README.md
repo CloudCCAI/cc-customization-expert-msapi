@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.86-msapi
+# cc-customization-expert-msapi v2.2.87-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -32,6 +32,8 @@ tools/bin/cloudcc format highcode /path/to/project --check
 Strict MetadataService package: low-code operations require MetadataService.
 
 从技能 `2.2.86` 开始，`platformMode` 缺省仍是 Lightning，只有显式 `horizontal` 才进入横纵版。可用 `cloudcc create project <name> --platform horizontal` 生成不含 Lightning 凭据的嵌套配置；`auto` 明确选择 UIAPI，横纵版 `msapi` 失败关闭。当前首期仅支持脱敏的 `doctor platform` 与只读 `query openapi`；所有其他远程动作失败关闭，Lightning JSON/accessToken 合同保持不变。
+
+从技能 `2.2.87` 开始，PC 页面布局可在独占单列分组中用 `type=customPage`、`customPageId`、`pageApi` 引用已经存在的自定义页面。布局详情返回相同的可复用结构，布局克隆保留引用，旧 `LIGHTNINGPAGE_` 输入仅作兼容；要求 MetadataService `1.1.75` 或更高版本。运行 `cloudcc doc platform/pagelayout devguide` 查看完整参数、限制、命令和验收方式。
 
 从技能 `2.2.76` 开始，报表和仪表板安全写入要求 MetadataService `1.1.68` 或更高版本，覆盖根更新与聚合替换分流、集合三态、Matrix 两行分组上限、`totalrecord` 闭包、引用保护和完整删除清理。
 

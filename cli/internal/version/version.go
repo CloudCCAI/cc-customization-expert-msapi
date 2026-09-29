@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.86"
+const Version = "2.2.87"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,6 +48,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- Page-layout sections can now embed an existing custom page through the user-level type=customPage, customPageId, and pageApi model. Embedded pages require an isolated one-column section, round-trip through detail/update, survive clone, and retain legacy LIGHTNINGPAGE input compatibility. Requires MetadataService 1.1.75.")
 		fmt.Fprintln(stderr, "- Horizontal guidance, configuration metadata, diagnostics, and Domain discovery now focus on actionable configuration and supported capabilities.")
 		fmt.Fprintln(stderr, "- Horizontal main-app foundation adds an explicit platformMode with a strict Lightning default, --platform horizontal project initialization, platform/provider doctors, platform-aware Domain routes, and read-only query openapi routing with one safe authentication retry; unsupported horizontal MetadataService, low-code, high-code, and write actions fail before any Lightning fallback.")
 		fmt.Fprintln(stderr, "- Domain discovery is now hierarchical and offline: metadata exposes 26 concrete resources, highcode exposes 9 resources, leaf lookups such as cloudcc domain fields/classes return aliases, provider routes, executable command forms, and focused documentation, while table/category filters and strict argument validation improve interactive use.")

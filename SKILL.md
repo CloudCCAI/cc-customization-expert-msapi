@@ -1,12 +1,12 @@
 ---
 name: cc-customization-expert-msapi
-version: 2.2.86-msapi
+version: 2.2.87-msapi
 description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService."
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.2.86-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.2.87-msapi
 
-当前技能版本：`2.2.86-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.2.87-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
 
@@ -35,6 +35,7 @@ description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict Metad
 - 从技能 `2.2.80` 开始，使用 `cloudcc domains` 查看一级 Domain 分类、后端和包可用性。`dataIndex`、`dataBulk` 是 MSAPI-only Data Extension Domain，要求 MetadataService `1.1.71`；UIAPI 在读取凭据和网络请求前拒绝，Universal 仅在选择 MSAPI provider 时允许。`openapi` 是 Integration Domain，直接调用 `api-svc`。
 - 从技能 `2.2.85` 开始，Domain 发现采用能力组与叶子资源两层目录：`cloudcc domain metadata|highcode` 返回子资源，`cloudcc domain fields|classes` 返回别名、provider 路由、命令形式和文档；默认查询完全离线，不代表目标租户实时能力。
 - 从技能 `2.2.86` 开始，CLI 增加横纵版只读基础：`platformMode` 缺省严格按 `lightning` 处理，只有显式 `horizontal` 才进入横纵版；`cloudcc doctor platform` 检查目标、认证状态和能力，`query openapi` 支持只读查询；其他横纵版远程操作必须在 Lightning fallback 前失败关闭。现有 Lightning JSON/accessToken 请求契约不得变化。
+- 从技能 `2.2.87` 开始，PC 页面布局可通过 `type=customPage`、`customPageId`、`pageApi` 引用已经存在的自定义页面。该布局项必须独占一个单列分组，支持 `detail pagelayout` 规范化回读、更新复用和布局克隆；旧 `LIGHTNINGPAGE_` 输入仅作兼容。要求 MetadataService `1.1.75` 或更高版本，完整用户参数和命令见 `cloudcc doc platform/pagelayout devguide`。
 - 从技能 `2.2.81` 开始，普通业务数据查询、新增、修改、删除和 upsert 统一使用 `openapi`，标准 CRM 对象和自定义对象都支持。`dataBulk` 仅用于大批量数据导入、初始化和离线批处理，不适用于日常业务场景；`dataIndex` 仅用于数据库索引优化；对象、字段、页面、权限和流程等平台二开配置使用对应元数据 Domain。
 - 从技能 `2.2.83` 开始，`openapi` 增加已有业务记录附件上传绑定与提交审批：`uploadAttachment openapi` 流式调用 api-svc `/api/file/upload` 后自动调用 `/api/file/bind`，绑定失败保留 `fileContentId/fileinfoid` 且不自动删除；`submitApproval openapi` 调用 `/api/approval/submitApproval`，要求真实 `relatedId`，可选 `fprId/comments/appPath`，`Manual` 响应要求补有效 `fprId` 重试。两项能力均不进入 MetadataService plan/apply。
 - 从技能 `2.2.41` 开始，`cloudcc get/getList view` 统一作为对象视图列表查询，可传对象 ID/API 名/前缀或 JSON filter；`detail/editInfo view` 才按 viewId 查详情。字段文档明确 `P`、`c`、`N`、`LT` 的 create/update/upsert 精度规则为 `length + decimalPlaces <= 18`，历史非法字段需要先修复字段定义，CLI 不自动缩短字段。
