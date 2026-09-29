@@ -1,14 +1,17 @@
 package openapi
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"cloudcc-customization-expert-go/internal/config"
+	"cloudcc-customization-expert-go/internal/horizontal"
 	"cloudcc-customization-expert-go/internal/httpclient"
 	"cloudcc-customization-expert-go/internal/jsonx"
 )
@@ -60,6 +63,9 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer, cw
 	if err != nil {
 		return err
 	}
+	if config.IsHorizontal(cfg) {
+		return handleHorizontal(action, sp, body, isMCP, projectPath, cfg, stdout)
+	}
 	apiSvc := strings.TrimRight(first(config.String(cfg, "apiSvc"), config.String(cfg, "apisvc")), "/")
 	accessToken := first(config.String(cfg, "accessToken"), config.String(cfg, "token"))
 	if apiSvc == "" || accessToken == "" {
@@ -94,6 +100,65 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer, cw
 		}
 	}
 	return nil
+}
+
+func handleHorizontal(action string, sp spec, body map[string]any, isMCP bool, projectPath string, cfg config.Config, stdout io.Writer) error {
+	if action != "query" {
+		return fmt.Errorf("%s OpenAPI is not yet supported for platformMode=horizontal; the first horizontal slice is read-only query", sp.label)
+	}
+	mainAppURL := config.String(cfg, "mainAppUrl")
+	client, err := horizontal.New(mainAppURL)
+	if err != nil {
+		return err
+	}
+	session, err := client.AcquireSession(context.Background(), projectPath, cfg)
+	if err != nil {
+		return err
+	}
+	form := url.Values{
+		"serviceName": {sp.serviceName},
+		"binding":     {session.Binding},
+	}
+	for key, value := range body {
+		form.Set(key, horizontalFormValue(value))
+	}
+	response, err := client.Post(context.Background(), form)
+	if err != nil {
+		return err
+	}
+	if !responseSucceeded(response) && fmt.Sprint(response["returnCode"]) == "-2" {
+		if err := config.ClearCacheEntry(projectPath); err != nil {
+			return fmt.Errorf("AUTH_BINDING_EXPIRED: cannot clear horizontal session cache: %w", err)
+		}
+		session, err = client.AcquireSession(context.Background(), projectPath, cfg)
+		if err != nil {
+			return err
+		}
+		form.Set("binding", session.Binding)
+		response, err = client.Post(context.Background(), form)
+		if err != nil {
+			return err
+		}
+	}
+	if !responseSucceeded(response) {
+		return responseError(sp.label, response, "horizontal query failed")
+	}
+	if !isMCP {
+		encoded, _ := json.Marshal(response)
+		fmt.Fprintln(stdout, string(encoded))
+	}
+	return nil
+}
+
+func horizontalFormValue(value any) string {
+	if text, ok := value.(string); ok {
+		return text
+	}
+	encoded, err := json.Marshal(value)
+	if err != nil {
+		return fmt.Sprint(value)
+	}
+	return string(encoded)
 }
 
 func uploadAttachment(args []string, stdout io.Writer, cwd string) error {
@@ -251,6 +316,9 @@ func loadEndpoint(projectPath string) (string, string, error) {
 	cfg, err := config.Load(projectPath)
 	if err != nil {
 		return "", "", err
+	}
+	if config.IsHorizontal(cfg) {
+		return "", "", fmt.Errorf("this OpenAPI action is not yet supported for platformMode=horizontal")
 	}
 	apiSvc := strings.TrimRight(first(config.String(cfg, "apiSvc"), config.String(cfg, "apisvc")), "/")
 	accessToken := first(config.String(cfg, "accessToken"), config.String(cfg, "token"))

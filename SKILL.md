@@ -1,18 +1,19 @@
 ---
 name: cc-customization-expert-msapi
-version: 2.2.85-msapi
+version: 2.2.86-msapi
 description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService."
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.2.85-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.2.86-msapi
 
-当前技能版本：`2.2.85-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.2.86-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
 
 - 低代码元数据统一使用稳定的 CloudCC CLI 词汇和共享能力矩阵；高代码资源继续使用 CloudCC 原有 resource/API 通道。
 - 执行模式从 `CLOUDCC_EXECUTION_MODE`、当前环境 `executionMode` / `execution_mode`、包默认值依次解析；仅支持 `auto`、`msapi`、`uiapi`。
-- 技能包根目录默认带 `cloudcc-cli.config.json`。首次初始化技能配置时先问用户公有云还是私有云；公有云使用默认 `metadataService.url=https://dc52.apis.cloudcc.cn/metadata`，私有云再提示用户提供 MetadataService URL 并更新该文件。
+- 技能包根目录默认带 Lightning `cloudcc-cli.config.json`。首次初始化先问平台是 `lightning` 还是 `horizontal`，未指定时必须保持 Lightning。Lightning 再区分公有云/私有云；横纵版运行 `cloudcc create project <name|.> --platform horizontal`，替换 `mainAppUrl`、`username`、`password` 占位值后运行 `cloudcc doctor platform` 和 `cloudcc doctor provider`。
+- 横纵版首期 `executionMode=auto` 选择 UIAPI，`msapi` 失败关闭；仅 `query openapi` 已启用，其他低代码和高代码远程动作不得回落到 Lightning 路由。
 - 每次环境切换或首次写入前运行：`tools/bin/cloudcc doctor provider <projectPath>`。输出会明确所选 provider、原因、安全级别和目标 MetadataService/setup-svc 兼容性。
 - `auto` 仅对已配置的 MetadataService 做 `GET /metadata/v1/capabilities` 只读探测；未配置时选择 UIAPI。已配置但不可用、认证失败或不兼容时失败关闭，绝不静默降级。
 - MSAPI 原生提供服务端 plan/apply/changes/rollback；UIAPI 是直接 CloudCC UI/API 调用，不承诺服务端 ledger 或 rollback。不要把 UIAPI 补偿操作当作 MSAPI 回滚。
@@ -33,6 +34,7 @@ description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict Metad
 - 从技能 `2.2.40` 开始，CloudCC `accessToken` 自动刷新如果在 `/api/cauth/token` 失败，会立即返回接口失败原因并提示检查当前环境的 `cloudcc-cli.config.json` 配置，不再继续请求到只剩通用缺 token 错误。
 - 从技能 `2.2.80` 开始，使用 `cloudcc domains` 查看一级 Domain 分类、后端和包可用性。`dataIndex`、`dataBulk` 是 MSAPI-only Data Extension Domain，要求 MetadataService `1.1.71`；UIAPI 在读取凭据和网络请求前拒绝，Universal 仅在选择 MSAPI provider 时允许。`openapi` 是 Integration Domain，直接调用 `api-svc`。
 - 从技能 `2.2.85` 开始，Domain 发现采用能力组与叶子资源两层目录：`cloudcc domain metadata|highcode` 返回子资源，`cloudcc domain fields|classes` 返回别名、provider 路由、命令形式和文档；默认查询完全离线，不代表目标租户实时能力。
+- 从技能 `2.2.86` 开始，CLI 增加横纵版只读基础：`platformMode` 缺省严格按 `lightning` 处理，只有显式 `horizontal` 才进入横纵版；`cloudcc doctor platform` 检查目标、认证状态和能力，`query openapi` 支持只读查询；其他横纵版远程操作必须在 Lightning fallback 前失败关闭。现有 Lightning JSON/accessToken 请求契约不得变化。
 - 从技能 `2.2.81` 开始，普通业务数据查询、新增、修改、删除和 upsert 统一使用 `openapi`，标准 CRM 对象和自定义对象都支持。`dataBulk` 仅用于大批量数据导入、初始化和离线批处理，不适用于日常业务场景；`dataIndex` 仅用于数据库索引优化；对象、字段、页面、权限和流程等平台二开配置使用对应元数据 Domain。
 - 从技能 `2.2.83` 开始，`openapi` 增加已有业务记录附件上传绑定与提交审批：`uploadAttachment openapi` 流式调用 api-svc `/api/file/upload` 后自动调用 `/api/file/bind`，绑定失败保留 `fileContentId/fileinfoid` 且不自动删除；`submitApproval openapi` 调用 `/api/approval/submitApproval`，要求真实 `relatedId`，可选 `fprId/comments/appPath`，`Manual` 响应要求补有效 `fprId` 重试。两项能力均不进入 MetadataService plan/apply。
 - 从技能 `2.2.41` 开始，`cloudcc get/getList view` 统一作为对象视图列表查询，可传对象 ID/API 名/前缀或 JSON filter；`detail/editInfo view` 才按 viewId 查详情。字段文档明确 `P`、`c`、`N`、`LT` 的 create/update/upsert 精度规则为 `length + decimalPlaces <= 18`，历史非法字段需要先修复字段定义，CLI 不自动缩短字段。

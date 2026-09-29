@@ -1029,6 +1029,13 @@ func newClient(args []string, cwd string) (*client, []string, error) {
 		projectPath = remaining[0]
 		remaining = remaining[1:]
 	}
+	platformMode, err := config.ProjectPlatformMode(projectPath)
+	if err != nil {
+		return nil, nil, err
+	}
+	if platformMode == config.PlatformHorizontal {
+		return nil, nil, fmt.Errorf("MetadataService/MSAPI is not yet enabled for platformMode=horizontal; no Lightning MetadataService fallback is allowed")
+	}
 	baseURL, err := configuredServiceURL(projectPath)
 	if err != nil {
 		return nil, nil, err

@@ -1,6 +1,6 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.2.85-msapi",
+  "version": "2.2.86-msapi",
   "releaseDate": "2026-09-29",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
@@ -215,9 +215,31 @@
         "routes": [
           {
             "provider": "all",
+            "platform": "lightning",
             "backend": "api-svc",
             "transport": "direct",
-            "availability": "enabled"
+            "availability": "enabled",
+            "actions": [
+              "query",
+              "pageQuery",
+              "create",
+              "update",
+              "delete",
+              "upsert",
+              "uploadAttachment",
+              "submitApproval"
+            ]
+          },
+          {
+            "provider": "all",
+            "platform": "horizontal",
+            "backend": "main-app",
+            "transport": "platform-api",
+            "availability": "read-only",
+            "actions": [
+              "query"
+            ],
+            "reason": "phase-1 read-only route; horizontal writes fail closed"
           }
         ]
       },
@@ -1936,6 +1958,22 @@
       }
     ]
   },
+  "platformSupport": {
+    "default": "lightning",
+    "supported": [
+      "lightning",
+      "horizontal"
+    ],
+    "horizontal": {
+      "executionMode": "uiapi-read-only",
+      "enabledOperations": [
+        "doctor platform",
+        "doctor provider",
+        "query openapi"
+      ],
+      "unsupportedPolicy": "fail-before-lightning-fallback"
+    }
+  },
   "javaFormatter": {
     "name": "cloudcc-go-layout",
     "version": "1",
@@ -1984,7 +2022,7 @@
     "promptWhenMissing": true,
     "publicCloudDefaultUrl": "https://dc52.apis.cloudcc.cn/metadata",
     "skillConfigFile": "cloudcc-cli.config.json",
-    "skillInitPrompt": "public-or-private-cloud",
+    "skillInitPrompt": "platform-first-then-lightning-public-or-private-cloud",
     "env": "CLOUDCC_METADATA_SERVICE_URL",
     "projectConfigKeys": [
       "metadataService.url",

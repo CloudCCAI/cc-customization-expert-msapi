@@ -24,4 +24,3 @@ cloudcc domain recordType
 Domain Catalog 描述 CLI 发行包声明的能力。目标租户实际可用能力还受后端部署版本、权限、
 feature flag 和租户元数据影响。需要实时验证时使用具体资源读命令、provider doctor 或
 MetadataService capabilities 扫描，不能把 `cloudcc domains` 当作租户探测结果。
-

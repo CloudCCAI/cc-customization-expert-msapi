@@ -45,8 +45,9 @@ type Check struct {
 }
 
 type Report struct {
-	Status string  `json:"status"`
-	Checks []Check `json:"checks"`
+	Status       string  `json:"status"`
+	PlatformMode string  `json:"platformMode,omitempty"`
+	Checks       []Check `json:"checks"`
 }
 
 func Requirements() []Requirement {
@@ -75,6 +76,25 @@ func Requirements() []Requirement {
 
 func CheckProject(projectPath string, capabilities ...string) Report {
 	cfg, cfgErr := config.Load(projectPath)
+	if cfgErr == nil && config.IsHorizontal(cfg) {
+		checks := make([]Check, 0, len(capabilities))
+		for _, capability := range capabilities {
+			req, ok := requirementByCapability(capability)
+			if !ok {
+				continue
+			}
+			checks = append(checks, Check{
+				Capability:           req.Capability,
+				Label:                req.Label,
+				Status:               "not_applicable",
+				CurrentSkillVersion:  version.Current(),
+				RequiredSkillVersion: req.IntroducedInSkillVersion,
+				Message:              "This compatibility rule targets Lightning MetadataService/setup-svc routes; the horizontal adapter is not enabled for this capability.",
+				Reason:               req.Reason,
+			})
+		}
+		return Report{Status: "not_applicable", PlatformMode: config.PlatformHorizontal, Checks: checks}
+	}
 	metadataVersion, metadataSource := resolveMetadataServiceVersion(projectPath, cfg)
 	setupVersion, setupSource := resolveSetupSvcVersion(cfg)
 	checks := make([]Check, 0, len(capabilities))

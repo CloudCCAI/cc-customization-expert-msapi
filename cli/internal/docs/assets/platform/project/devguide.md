@@ -4,7 +4,7 @@
 
 - 适用人群：CloudCC 前端组件、客户端脚本、后端类、触发器、定时器等二次开发工程师。
 - Go 版技能不要求在线安装 `cloudcc-cli`，也不依赖全局 Node/npm。
-- 工程根目录下必须提供 `cloudcc-cli.config.json`，用于配置开发者密钥、安全标记及当前环境 `use`。
+- 工程根目录下必须提供 `cloudcc-cli.config.json`；Lightning 使用开发者密钥/安全标记，横纵版使用 main-app 登录配置。
 - Go 版 CLI 优先执行技能内置 wrapper：`tools/bin/cloudcc`。
 
 ## 2. 验证 Go 版 CLI
@@ -42,7 +42,17 @@ tools/bin/cloudcc doc platform/config devguide
 }
 ```
 
-技能包初始化时会先确认公有云或私有云。公有云使用技能根配置的默认地址 `https://dc52.apis.cloudcc.cn/metadata`；私有云需要把技能根配置当前环境的 `metadataService.url` 改为本环境的 MetadataService 地址。项目级配置可在需要隔离项目环境时覆盖该配置。
+技能包初始化时先确认 `lightning|horizontal`，未指定时保持 Lightning。Lightning 再确认公有云或私有云：公有云使用技能根配置的默认地址 `https://dc52.apis.cloudcc.cn/metadata`；私有云需要把当前环境的 `metadataService.url` 改为本环境地址。项目级配置可在需要隔离项目环境时覆盖该配置。
+
+横纵版必须显式初始化，不会改变默认 Lightning 模板：
+
+```bash
+cloudcc create project horizontal-demo --platform horizontal \
+  --main-app-url https://tenant.example.com \
+  --username user@example.com
+```
+
+生成的配置包含 `platformMode=horizontal`、`executionMode=auto`、`endpoints.mainAppUrl`、`auth.username/password/language` 和 `metadataService.url`。替换占位值后先运行 `cloudcc doctor platform`，再运行 `cloudcc doctor provider`。当前横纵版远程能力仅开放 `query openapi`。
 
 Go 版优先支持 `cloudcc-cli.config.json`。历史 `cloudcc-cli.config.js` 不能由 Go 直接执行，建议迁移为 JSON。
 `username/baseUrl/orgId/clientId/openSecretKey` 是兼容旧明文配置或 `CloudCCDev` 解析后的字段，不是新项目最小必需配置。

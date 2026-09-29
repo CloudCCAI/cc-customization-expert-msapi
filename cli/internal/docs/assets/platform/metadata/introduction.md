@@ -19,4 +19,3 @@ provider 路由、动作、可执行命令形式和文档入口。目录是当�
 MSAPI 路由由 MetadataService 承载，支持计划、显式执行和服务端回滚语义。UIAPI 路由通过
 setup-svc adapter 执行，安全语义可能不同。Universal 包在未读取项目上下文时只声明
 `provider-selected`，不会假定当前选择了哪条路由。
-

@@ -954,7 +954,11 @@ func handleProject(action string, args []string, stderr io.Writer, cwd string) e
 		return fmt.Errorf("unsupported project action: %s", action)
 	}
 	if len(args) < 1 || strings.TrimSpace(args[0]) == "" {
-		return fmt.Errorf("cloudcc create project <name|.>")
+		return fmt.Errorf("cloudcc create project <name|.> [--platform lightning|horizontal]")
+	}
+	options, err := projectCreationOptions(args[1:])
+	if err != nil {
+		return err
 	}
 	target := strings.TrimSpace(args[0])
 	if target == "." {
@@ -962,12 +966,67 @@ func handleProject(action string, args []string, stderr io.Writer, cwd string) e
 	} else if !filepath.IsAbs(target) {
 		target = filepath.Join(cwd, target)
 	}
-	if err := projecttemplates.WriteProject(target, filepath.Base(target)); err != nil {
+	if err := projecttemplates.WriteProjectWithOptions(target, filepath.Base(target), options); err != nil {
 		return err
 	}
 	fmt.Fprintf(stderr, "Created CloudCC project: %s\n", target)
-	fmt.Fprintln(stderr, "Compatibility check pending: provide CloudCCDev/setupSvc and MetadataService config, then run cloudcc doctor provider <projectPath>.")
+	if options.PlatformMode == config.PlatformHorizontal {
+		fmt.Fprintln(stderr, "Horizontal config created: replace mainAppUrl/username/password placeholders, then run cloudcc doctor platform <projectPath> and cloudcc doctor provider <projectPath>.")
+	} else {
+		fmt.Fprintln(stderr, "Compatibility check pending: provide CloudCCDev/setupSvc and MetadataService config, then run cloudcc doctor provider <projectPath>.")
+	}
 	return nil
+}
+
+func projectCreationOptions(args []string) (projecttemplates.ProjectOptions, error) {
+	options := projecttemplates.ProjectOptions{PlatformMode: config.PlatformLightning}
+	for index := 0; index < len(args); index++ {
+		name, value, consumed, err := projectOption(args, index)
+		if err != nil {
+			return options, err
+		}
+		index += consumed
+		switch name {
+		case "platform":
+			options.PlatformMode = strings.ToLower(value)
+		case "execution-mode":
+			options.ExecutionMode = strings.ToLower(value)
+		case "main-app-url":
+			options.MainAppURL = value
+		case "username":
+			options.Username = value
+		case "language":
+			options.Language = value
+		case "metadata-service-url":
+			options.MetadataServiceURL = value
+		default:
+			return options, fmt.Errorf("unsupported project option --%s", name)
+		}
+	}
+	if options.PlatformMode != config.PlatformHorizontal {
+		if options.ExecutionMode != "" || options.MainAppURL != "" || options.Username != "" || options.Language != "" || options.MetadataServiceURL != "" {
+			return options, fmt.Errorf("horizontal project options require --platform horizontal")
+		}
+	}
+	return options, nil
+}
+
+func projectOption(args []string, index int) (name string, value string, consumed int, err error) {
+	arg := strings.TrimSpace(args[index])
+	if !strings.HasPrefix(arg, "--") {
+		return "", "", 0, fmt.Errorf("unexpected project argument %q", arg)
+	}
+	option := strings.TrimPrefix(arg, "--")
+	if before, after, found := strings.Cut(option, "="); found {
+		if strings.TrimSpace(after) == "" {
+			return "", "", 0, fmt.Errorf("--%s requires a value", before)
+		}
+		return before, strings.TrimSpace(after), 0, nil
+	}
+	if index+1 >= len(args) || strings.HasPrefix(strings.TrimSpace(args[index+1]), "--") {
+		return "", "", 0, fmt.Errorf("--%s requires a value", option)
+	}
+	return option, strings.TrimSpace(args[index+1]), 1, nil
 }
 
 func handleConfig(action string, args []string, stdout io.Writer, cwd string) error {
@@ -978,8 +1037,9 @@ func handleConfig(action string, args []string, stdout io.Writer, cwd string) er
 		if err != nil {
 			return err
 		}
-		cfg["compatibility"] = compatibility.CheckAll(projectPath)
-		return printJSON(stdout, cfg)
+		displayCfg := config.ForDisplay(cfg)
+		displayCfg["compatibility"] = compatibility.CheckAll(projectPath)
+		return printJSON(stdout, displayCfg)
 	case "use":
 		if len(args) == 0 {
 			return fmt.Errorf("cloudcc use config <env> [projectPath]")
@@ -1740,6 +1800,9 @@ func cloudCCResponseFailure(response map[string]any) string {
 }
 
 func validateRemoteCustomCode(projectPath string, cfg config.Config, resource string, name string, path string, body map[string]any) (map[string]any, error) {
+	if err := requireLightningRemote(cfg, "remote "+resource+" validation"); err != nil {
+		return nil, err
+	}
 	base := strings.TrimRight(config.String(cfg, "setupSvc"), "/")
 	accessToken := firstNonBlankString(strings.TrimSpace(os.Getenv("CLOUDCC_ACCESS_TOKEN")), config.String(cfg, "accessToken"))
 	response, err := validateRemoteCustomCodeWithBase(base, accessToken, resource, name, path, body)
@@ -1963,6 +2026,9 @@ func handleHTML(action string, args []string, stdout io.Writer, stderr io.Writer
 		if err != nil {
 			return err
 		}
+		if err := requireLightningRemote(cfg, "HTML component publish"); err != nil {
+			return err
+		}
 		var res map[string]any
 		if err := httpclient.New().PostRaw(baseURL(cfg)+"/devconsole/htmlComponent/saveHtmlComponent", local, map[string]string{"accessToken": config.String(cfg, "pluginToken")}, &res); err != nil {
 			return err
@@ -2020,6 +2086,9 @@ func postClassResponse(projectPath string, cfg config.Config, base string, apiPa
 }
 
 func postClassAbsoluteResponse(projectPath string, cfg config.Config, endpoint string, body map[string]any, res *map[string]any) error {
+	if err := requireLightningRemote(cfg, "setup/api service request"); err != nil {
+		return err
+	}
 	accessToken := firstNonBlankString(strings.TrimSpace(os.Getenv("CLOUDCC_ACCESS_TOKEN")), config.String(cfg, "accessToken"))
 	if err := httpclient.New().PostClass(endpoint, body, accessToken, res); err != nil {
 		if refreshed, refreshErr := refreshConfigAfterAccessTokenError(projectPath, err); refreshErr != nil {
@@ -2054,6 +2123,9 @@ func postClassAbsoluteResponse(projectPath string, cfg config.Config, endpoint s
 }
 
 func postDevconsoleEnvelopeResponse(projectPath string, cfg config.Config, apiPath string, body map[string]any, header func(config.Config) map[string]any, res *map[string]any) error {
+	if err := requireLightningRemote(cfg, "devconsole request"); err != nil {
+		return err
+	}
 	endpoint := strings.TrimRight(baseURL(cfg), "/") + pageComponentDevDispatch(cfg) + apiPath
 	if err := httpclient.New().PostEnvelope(endpoint, body, header(cfg), res); err != nil {
 		if refreshed, refreshErr := refreshConfigAfterAccessTokenError(projectPath, err); refreshErr != nil {
@@ -2088,6 +2160,9 @@ func postDevconsoleEnvelopeResponse(projectPath string, cfg config.Config, apiPa
 }
 
 func postDevconsoleRawEnvelopeResponse(projectPath string, cfg config.Config, apiPath string, body map[string]any, header func(config.Config) map[string]any, res *map[string]any) error {
+	if err := requireLightningRemote(cfg, "devconsole request"); err != nil {
+		return err
+	}
 	endpoint := strings.TrimRight(baseURL(cfg), "/") + pageComponentDevDispatch(cfg) + apiPath
 	envelope := map[string]any{"head": header(cfg), "body": body}
 	if err := httpclient.New().PostRaw(endpoint, envelope, nil, res); err != nil {
@@ -2129,6 +2204,13 @@ func postClassServiceBase(cfg config.Config, base string) string {
 		return strings.TrimRight(config.String(cfg, "apiSvc"), "/")
 	}
 	return strings.TrimRight(config.String(cfg, "setupSvc"), "/")
+}
+
+func requireLightningRemote(cfg config.Config, capability string) error {
+	if config.IsHorizontal(cfg) {
+		return fmt.Errorf("%s is not yet supported for platformMode=horizontal; no Lightning setup-svc/api-svc fallback is allowed", capability)
+	}
+	return nil
 }
 
 func refreshConfigAfterAccessTokenError(projectPath string, tokenError any) (config.Config, error) {

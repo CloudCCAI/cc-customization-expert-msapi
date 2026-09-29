@@ -2,7 +2,9 @@ package templates
 
 import (
 	"embed"
+	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -19,6 +21,15 @@ type projectFile struct {
 }
 
 const DefaultMetadataServiceURL = "https://dc52.apis.cloudcc.cn/metadata"
+
+type ProjectOptions struct {
+	PlatformMode       string
+	ExecutionMode      string
+	MainAppURL         string
+	Username           string
+	Language           string
+	MetadataServiceURL string
+}
 
 var projectFiles = []projectFile{
 	{asset: "assets/cloudcc-cli.config.json", path: "cloudcc-cli.config.json", text: true},
@@ -40,7 +51,15 @@ var projectDirs = []string{
 }
 
 func WriteProject(target string, projectName string) error {
-	target, err := filepath.Abs(target)
+	return WriteProjectWithOptions(target, projectName, ProjectOptions{PlatformMode: "lightning"})
+}
+
+func WriteProjectWithOptions(target string, projectName string, options ProjectOptions) error {
+	options, err := normalizeProjectOptions(options)
+	if err != nil {
+		return err
+	}
+	target, err = filepath.Abs(target)
 	if err != nil {
 		return err
 	}
@@ -79,7 +98,70 @@ func WriteProject(target string, projectName string) error {
 			return err
 		}
 	}
+	if options.PlatformMode == "horizontal" {
+		root := map[string]any{
+			"use": "dev",
+			"dev": map[string]any{
+				"platformMode":  "horizontal",
+				"executionMode": options.ExecutionMode,
+				"endpoints":     map[string]any{"mainAppUrl": options.MainAppURL},
+				"auth": map[string]any{
+					"username": options.Username,
+					"password": "CLOUDCC_PASSWORD",
+					"language": options.Language,
+				},
+				"metadataService": map[string]any{"url": options.MetadataServiceURL},
+			},
+		}
+		data, err := json.MarshalIndent(root, "", "  ")
+		if err != nil {
+			return err
+		}
+		data = append(data, '\n')
+		if err := os.WriteFile(filepath.Join(target, "cloudcc-cli.config.json"), data, 0644); err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+func normalizeProjectOptions(options ProjectOptions) (ProjectOptions, error) {
+	options.PlatformMode = strings.ToLower(strings.TrimSpace(options.PlatformMode))
+	if options.PlatformMode == "" {
+		options.PlatformMode = "lightning"
+	}
+	if options.PlatformMode != "lightning" && options.PlatformMode != "horizontal" {
+		return options, fmt.Errorf("unsupported platform %q; use lightning or horizontal", options.PlatformMode)
+	}
+	if options.PlatformMode == "lightning" {
+		return options, nil
+	}
+	options.ExecutionMode = strings.ToLower(strings.TrimSpace(options.ExecutionMode))
+	if options.ExecutionMode == "" {
+		options.ExecutionMode = "auto"
+	}
+	if options.ExecutionMode != "auto" && options.ExecutionMode != "uiapi" {
+		return options, fmt.Errorf("horizontal project execution mode must be auto or uiapi")
+	}
+	if strings.TrimSpace(options.MainAppURL) == "" {
+		options.MainAppURL = "https://tenant.example.com"
+	}
+	if strings.TrimSpace(options.Username) == "" {
+		options.Username = "user@example.com"
+	}
+	if strings.TrimSpace(options.Language) == "" {
+		options.Language = "zh"
+	}
+	if strings.TrimSpace(options.MetadataServiceURL) == "" {
+		options.MetadataServiceURL = "https://metadata.example.com"
+	}
+	for label, value := range map[string]string{"main-app URL": options.MainAppURL, "MetadataService URL": options.MetadataServiceURL} {
+		parsed, err := url.Parse(strings.TrimSpace(value))
+		if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+			return options, fmt.Errorf("invalid horizontal %s %q", label, value)
+		}
+	}
+	return options, nil
 }
 
 func ensureWritableProjectTarget(target string) error {

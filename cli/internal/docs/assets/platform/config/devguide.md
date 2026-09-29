@@ -38,18 +38,57 @@ Go 版不执行历史 `cloudcc-cli.config.js`，请迁移为 JSON。
 }
 ```
 
-技能初始化时先询问环境类型：
+技能初始化时先询问平台类型，未指定时保持 Lightning。Lightning 再询问环境类型：
 
 - 选择公有云或直接回车时，自动写入默认 MetadataService 地址 `https://dc52.apis.cloudcc.cn/metadata`，无需再输入 URL。
 - 选择私有云时，继续提示输入私有云 MetadataService 地址，并写入技能根配置当前环境的 `metadataService.url`。
 
 `username/baseUrl/orgId/clientId/openSecretKey` 是兼容旧明文配置或 `CloudCCDev` 解析后的字段，不应作为新项目最小必需配置展示。
 
+### 横纵版配置
+
+未配置 `platformMode` 时严格保持现有 Lightning 行为。只有显式设置为 `horizontal` 才启用横纵版客户端：
+
+```bash
+cloudcc create project horizontal-demo --platform horizontal \
+  --main-app-url https://tenant.example.com \
+  --username user@example.com
+```
+
+```json
+{
+  "use": "dev",
+  "dev": {
+    "platformMode": "horizontal",
+    "executionMode": "auto",
+    "endpoints": {
+      "mainAppUrl": "https://tenant.example.com"
+    },
+    "auth": {
+      "username": "user@example.com",
+      "password": "CLOUDCC_PASSWORD",
+      "language": "zh"
+    },
+    "metadataService": {
+      "url": "https://metadata.example.com"
+    }
+  }
+}
+```
+
+- `platformMode` 的空值或缺省值等价于 `lightning`；未知非空值直接报错。
+- `executionMode=auto` 在横纵版首期明确选择 UIAPI，不探测 Lightning MetadataService；显式 `msapi` 失败关闭。
+- 横纵版首期只开放 `doctor platform` 和 `query openapi`；写操作失败关闭。
+- password 不写入项目缓存；配置、日志和命令输出不得打印真实 password、token 或 Cookie。
+- 只读 `query openapi` 在认证状态失效时会重新认证并重试一次；横纵版写操作不采用自动重试。
+
 ## 4. 命令总览
 
 ```bash
 cloudcc use config <env> [projectPath]
 cloudcc get config [projectPath]
+cloudcc doctor platform [projectPath]
+cloudcc doctor provider [projectPath]
 cloudcc doc platform/config devguide
 ```
 
@@ -72,7 +111,7 @@ cloudcc use config dev .
 cloudcc get config .
 ```
 
-命令会解析当前环境配置，并在需要时从 `CloudCCDev` 补齐 `apiSvc`、`setupSvc`、`accessToken`、`secretKey`、`pluginToken` 等字段。
+Lightning 命令会解析当前环境配置，并在需要时从 `CloudCCDev` 补齐 `apiSvc`、`setupSvc`、`accessToken`、`secretKey`、`pluginToken` 等字段。横纵版不会执行这套 Lightning 解析，输出中的敏感认证字段会脱敏；附带兼容性报告会把仅适用于 Lightning 的检查标为 `not_applicable`，且不会探测 setup-svc。
 
 ## 7. MetadataService/MSAPI 地址
 

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -17,7 +18,19 @@ import (
 
 const defaultBaseURL = "https://developer.apis.cloudcc.cn"
 
+const (
+	PlatformLightning  = "lightning"
+	PlatformHorizontal = "horizontal"
+)
+
 type Config map[string]any
+
+type HorizontalSessionCache struct {
+	Binding  string         `json:"binding"`
+	Token    string         `json:"token,omitempty"`
+	UserInfo map[string]any `json:"userInfo,omitempty"`
+	SavedAt  int64          `json:"savedAt"`
+}
 
 func Load(projectPath string) (Config, error) {
 	if projectPath == "" {
@@ -36,13 +49,13 @@ func Load(projectPath string) (Config, error) {
 			if old, oldErr := loadOldPackage(projectPath); oldErr == nil && old != nil {
 				mergeMissingConfig(cfg, old)
 			}
-			return resolveDevConsoleConfig(projectPath, cfg, false)
+			return resolveConfig(projectPath, cfg, false)
 		}
 		if old, oldErr := loadOldPackage(projectPath); oldErr == nil && old != nil {
-			return resolveDevConsoleConfig(projectPath, old, false)
+			return resolveConfig(projectPath, old, false)
 		}
 	} else if old, err := loadOldPackage(projectPath); err == nil && old != nil {
-		return resolveDevConsoleConfig(projectPath, old, false)
+		return resolveConfig(projectPath, old, false)
 	}
 	if _, err := os.Stat(filepath.Join(projectPath, "cloudcc-cli.config.js")); err == nil {
 		return nil, fmt.Errorf("cloudcc-cli.config.js is not executable by the Go CLI; migrate to cloudcc-cli.config.json")
@@ -63,10 +76,10 @@ func RefreshAccessToken(projectPath string) (Config, error) {
 		if old, oldErr := loadOldPackage(projectPath); oldErr == nil && old != nil {
 			mergeMissingConfig(cfg, old)
 		}
-		return resolveDevConsoleConfig(projectPath, cfg, true)
+		return resolveConfig(projectPath, cfg, true)
 	}
 	if old, err := loadOldPackage(projectPath); err == nil && old != nil {
-		return resolveDevConsoleConfig(projectPath, old, true)
+		return resolveConfig(projectPath, old, true)
 	}
 	return nil, fmt.Errorf("CloudCC accessToken refresh failed before /api/cauth/token: no refreshable CloudCC credentials found; check cloudcc-cli.config.json active env for CloudCCDev or username/safetyMark/clientId/openSecretKey/orgId/apiSvc")
 }
@@ -87,6 +100,28 @@ func Use(projectPath string, env string) error {
 func Root(projectPath string) (map[string]any, error) {
 	file := filepath.Join(projectPath, "cloudcc-cli.config.json")
 	return jsonx.ReadObjectFile(file)
+}
+
+// ProjectPlatformMode reads only the active environment's platform selector.
+// It deliberately does not resolve credentials or perform network requests so
+// command routing and diagnostics can select a platform safely.
+func ProjectPlatformMode(projectPath string) (string, error) {
+	root, err := Root(projectPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return PlatformLightning, nil
+		}
+		return "", err
+	}
+	use, _ := root["use"].(string)
+	if strings.TrimSpace(use) == "" {
+		return "", fmt.Errorf("cloudcc-cli.config.json missing use")
+	}
+	active, _ := root[use].(map[string]any)
+	if active == nil {
+		return "", fmt.Errorf("cloudcc-cli.config.json missing env %s", use)
+	}
+	return platformModeValue(active["platformMode"])
 }
 
 func loadOldPackage(projectPath string) (Config, error) {
@@ -171,6 +206,10 @@ func loadCache(projectPath string) (Config, error) {
 	if active == nil {
 		return nil, nil
 	}
+	mode, err := platformModeValue(active["platformMode"])
+	if err != nil || mode == PlatformHorizontal {
+		return nil, err
+	}
 	key := stringValue(active["safetyMark"])
 	if key == "" {
 		key = stringValue(active["secretKey"])
@@ -197,6 +236,96 @@ func loadCache(projectPath string) (Config, error) {
 		return nil, nil
 	}
 	return Config(entry), nil
+}
+
+func resolveConfig(projectPath string, cfg Config, forceAccessTokenRefresh bool) (Config, error) {
+	if err := normalizePlatform(cfg); err != nil {
+		return nil, err
+	}
+	if PlatformMode(cfg) == PlatformHorizontal {
+		return cfg, nil
+	}
+	return resolveDevConsoleConfig(projectPath, cfg, forceAccessTokenRefresh)
+}
+
+func normalizePlatform(cfg Config) error {
+	mode, err := platformModeValue(cfg["platformMode"])
+	if err != nil {
+		return err
+	}
+	cfg["platformMode"] = mode
+	if mode != PlatformHorizontal {
+		return nil
+	}
+	if endpoints, _ := cfg["endpoints"].(map[string]any); endpoints != nil {
+		copyMissing(cfg, endpoints, "mainAppUrl")
+	}
+	if auth, _ := cfg["auth"].(map[string]any); auth != nil {
+		copyMissing(cfg, auth, "username")
+		copyMissing(cfg, auth, "password")
+		copyMissing(cfg, auth, "language")
+	}
+	if strings.TrimSpace(stringValue(cfg["language"])) == "" {
+		cfg["language"] = "zh"
+	}
+	return nil
+}
+
+func copyMissing(dst Config, src map[string]any, key string) {
+	if strings.TrimSpace(stringValue(dst[key])) == "" && src[key] != nil {
+		dst[key] = src[key]
+	}
+}
+
+func platformModeValue(value any) (string, error) {
+	mode := strings.ToLower(strings.TrimSpace(stringValue(value)))
+	if mode == "" {
+		return PlatformLightning, nil
+	}
+	switch mode {
+	case PlatformLightning, PlatformHorizontal:
+		return mode, nil
+	default:
+		return "", fmt.Errorf("unsupported platformMode %q; use lightning or horizontal", mode)
+	}
+}
+
+func PlatformMode(cfg Config) string {
+	mode, err := platformModeValue(cfg["platformMode"])
+	if err != nil {
+		return ""
+	}
+	return mode
+}
+
+func IsHorizontal(cfg Config) bool {
+	return PlatformMode(cfg) == PlatformHorizontal
+}
+
+func ForDisplay(cfg Config) Config {
+	out := Config{}
+	for key, value := range cfg {
+		out[key] = value
+	}
+	if !IsHorizontal(cfg) {
+		return out
+	}
+	for _, key := range []string{"password", "binding", "token", "accessToken", "pluginToken", "secretKey", "openSecretKey"} {
+		if _, exists := out[key]; exists {
+			out[key] = "[REDACTED]"
+		}
+	}
+	if auth, _ := cfg["auth"].(map[string]any); auth != nil {
+		redactedAuth := map[string]any{}
+		for key, value := range auth {
+			redactedAuth[key] = value
+		}
+		if _, exists := redactedAuth["password"]; exists {
+			redactedAuth["password"] = "[REDACTED]"
+		}
+		out["auth"] = redactedAuth
+	}
+	return out
 }
 
 func resolveDevConsoleConfig(projectPath string, cfg Config, forceAccessTokenRefresh bool) (Config, error) {
@@ -374,6 +503,57 @@ func ClearCacheEntry(projectPath string) error {
 	return jsonx.WriteObjectFile(file, cache)
 }
 
+func LoadHorizontalSession(projectPath string) (HorizontalSessionCache, bool) {
+	key, err := activeCacheKey(projectPath)
+	if err != nil || !strings.HasPrefix(key, "horizontal:") {
+		return HorizontalSessionCache{}, false
+	}
+	cache, err := readCache(projectPath)
+	if err != nil {
+		return HorizontalSessionCache{}, false
+	}
+	raw, _ := cache[key].(map[string]any)
+	if raw == nil {
+		return HorizontalSessionCache{}, false
+	}
+	encoded, err := json.Marshal(raw)
+	if err != nil {
+		return HorizontalSessionCache{}, false
+	}
+	var session HorizontalSessionCache
+	if err := json.Unmarshal(encoded, &session); err != nil || strings.TrimSpace(session.Binding) == "" {
+		return HorizontalSessionCache{}, false
+	}
+	if session.SavedAt <= 0 || time.Since(time.UnixMilli(session.SavedAt)) > time.Hour {
+		return HorizontalSessionCache{}, false
+	}
+	if tokenNearExpiry(session.Token, 5*time.Minute) {
+		return HorizontalSessionCache{}, false
+	}
+	return session, true
+}
+
+func SaveHorizontalSession(projectPath string, session HorizontalSessionCache) error {
+	key, err := activeCacheKey(projectPath)
+	if err != nil {
+		return err
+	}
+	if !strings.HasPrefix(key, "horizontal:") {
+		return fmt.Errorf("cannot save horizontal session for a non-horizontal active environment")
+	}
+	if strings.TrimSpace(session.Binding) == "" {
+		return fmt.Errorf("cannot cache an empty horizontal binding")
+	}
+	session.SavedAt = time.Now().UnixMilli()
+	cache, _ := readCache(projectPath)
+	cache[key] = session
+	file := filepath.Join(projectPath, ".cloudcc-cache.json")
+	if err := jsonx.WriteObjectFile(file, cache); err != nil {
+		return err
+	}
+	return os.Chmod(file, 0600)
+}
+
 func writeCacheEntry(projectPath string, cfg Config) error {
 	key := cacheKey(cfg)
 	if key == "" {
@@ -394,7 +574,37 @@ func activeCacheKey(projectPath string) (string, error) {
 	if active == nil {
 		return "", nil
 	}
+	mode, err := platformModeValue(active["platformMode"])
+	if err != nil {
+		return "", err
+	}
+	if mode == PlatformHorizontal {
+		endpoints, _ := active["endpoints"].(map[string]any)
+		auth, _ := active["auth"].(map[string]any)
+		origin := normalizedHorizontalBase(firstNonBlank(stringValue(active["mainAppUrl"]), stringValue(endpoints["mainAppUrl"])))
+		username := strings.ToLower(strings.TrimSpace(firstNonBlank(stringValue(active["username"]), stringValue(auth["username"]))))
+		sum := sha256.Sum256([]byte(use + "|" + mode + "|" + origin + "|" + username))
+		return fmt.Sprintf("horizontal:%x", sum[:]), nil
+	}
 	return cacheKey(Config(active)), nil
+}
+
+func normalizedHorizontalBase(value string) string {
+	value = strings.TrimRight(strings.TrimSpace(value), "/")
+	parsed, err := url.Parse(value)
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return value
+	}
+	return strings.ToLower(parsed.Scheme) + "://" + strings.ToLower(parsed.Host) + strings.TrimRight(parsed.EscapedPath(), "/")
+}
+
+func firstNonBlank(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return strings.TrimSpace(value)
+		}
+	}
+	return ""
 }
 
 func cacheKey(cfg Config) string {

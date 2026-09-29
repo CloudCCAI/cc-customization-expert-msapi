@@ -12,6 +12,7 @@ import (
 	"cloudcc-customization-expert-go/internal/openapi"
 	"cloudcc-customization-expert-go/internal/projectoutputs"
 	"cloudcc-customization-expert-go/internal/provider"
+	"cloudcc-customization-expert-go/internal/target"
 	"cloudcc-customization-expert-go/internal/testgovernance"
 	"cloudcc-customization-expert-go/internal/version"
 )
@@ -39,7 +40,7 @@ func Run(args []string, stdout io.Writer, stderr io.Writer, cwd string) int {
 	action, resource := args[0], args[1]
 	rest := args[2:]
 
-	if version.IsVersionAction(action) && resource != "version" && !(action == "doctor" && (resource == "classes" || resource == "provider" || resource == "project-governance" || resource == "project-outputs" || resource == "test-governance")) {
+	if version.IsVersionAction(action) && resource != "version" && !(action == "doctor" && (resource == "classes" || resource == "provider" || resource == "platform" || resource == "project-governance" || resource == "project-outputs" || resource == "test-governance")) {
 		if err := version.Handle(action, append([]string{resource}, rest...), stdout, stderr); err != nil {
 			fmt.Fprintln(stderr, err)
 			return 1
@@ -54,6 +55,9 @@ func Run(args []string, stdout io.Writer, stderr io.Writer, cwd string) int {
 	case action == "doctor" && resource == "provider":
 		projectPath := firstOr(rest, cwd)
 		err = provider.WriteDoctor(projectPath, stdout)
+	case action == "doctor" && resource == "platform":
+		projectPath := firstOr(rest, cwd)
+		err = target.WriteDoctor(projectPath, stdout)
 	case action == "doctor" && resource == "project-governance":
 		projectPath := firstOr(rest, cwd)
 		err = governance.WriteDoctor(projectPath, stdout)
@@ -97,6 +101,9 @@ func handleLowCodeShortcut(action string, resource string, args []string, stdout
 	selection, err := provider.ResolveForArgs(args, cwd)
 	if err != nil {
 		return err
+	}
+	if selection.PlatformMode == "horizontal" {
+		return fmt.Errorf("%s %s is not yet supported for platformMode=horizontal; no Lightning setup-svc fallback is allowed", action, resource)
 	}
 	fmt.Fprintf(stderr, "cloudcc low-code provider: %s (%s; safety=%s)\n", selection.SelectedMode, selection.Reason, selection.SafetyLevel)
 	if selection.SelectedMode == provider.ModeMSAPI {

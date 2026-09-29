@@ -62,10 +62,13 @@ type DomainView struct {
 }
 
 type Route struct {
-	Provider     string `json:"provider"`
-	Backend      string `json:"backend"`
-	Transport    string `json:"transport"`
-	Availability string `json:"availability"`
+	Provider     string   `json:"provider"`
+	Platform     string   `json:"platform,omitempty"`
+	Backend      string   `json:"backend"`
+	Transport    string   `json:"transport"`
+	Availability string   `json:"availability"`
+	Actions      []string `json:"actions,omitempty"`
+	Reason       string   `json:"reason,omitempty"`
 }
 
 type Documentation struct {
@@ -289,6 +292,11 @@ func availabilityForResource(resource Resource, packageKind string) string {
 }
 
 func effectiveRoute(routes []Route, packageKind string) (*Route, string) {
+	for _, route := range routes {
+		if strings.TrimSpace(route.Platform) != "" && !strings.EqualFold(strings.TrimSpace(route.Platform), "all") {
+			return nil, "platform selection requires project context; inspect routes for lightning and horizontal availability"
+		}
+	}
 	provider := strings.ToLower(strings.TrimSpace(packageKind))
 	for _, route := range routes {
 		if route.Provider == "all" {

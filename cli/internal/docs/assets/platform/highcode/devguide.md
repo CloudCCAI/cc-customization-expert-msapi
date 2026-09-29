@@ -13,4 +13,3 @@ cloudcc domain timer
 
 `classes` 发布执行本地编译、目标 setup-svc validate 和 save；触发器与定时类执行目标
 validate 后 save；页面组件和自定义页面使用 devconsole 边界；sidecar 运行在平台外部。
-

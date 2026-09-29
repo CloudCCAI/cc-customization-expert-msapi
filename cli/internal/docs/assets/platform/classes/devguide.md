@@ -43,7 +43,7 @@ CloudCC 自定义类不是普通 Maven 项目。技能已经把平台编译所�
 4. 远程 validate 通过后，才调用 class save/detail。
 5. 保存后按 ID 读回源码并比较 SHA-256；一致才报告 `published_and_verified`，并把线上 ID 与版本写回本地 `config.json`。
 
-目标平台内部如何路由到其部署服务不属于开发者依赖。技能不会读取服务源码、启动本地服务、探测本地端口或要求 main-svc binding。
+目标平台内部如何路由到其部署服务不属于开发者依赖。技能不会读取服务源码、启动本地服务或探测本地端口。
 
 ## 3. 独立开发与发布环境
 
@@ -56,7 +56,7 @@ CloudCC 自定义类不是普通 Maven 项目。技能已经把平台编译所�
 | 发布入口 | 目标 CloudCC 公共网关 | `CloudCCDev`/`baseUrl` 自动解析，或 `classPublishUrl` |
 | 发布认证 | 目标环境有效凭据 | 常规项目配置，或短期 `CLOUDCC_ACCESS_TOKEN` |
 
-不需要平台源码、本机 Maven 仓库、Node/npm、setup-svc/main-svc 进程、runtime URL 或 binding。
+不需要平台源码、本机 Maven 仓库、Node/npm、setup-svc/main-svc 进程或 runtime URL。
 
 ### 3.2 项目配置
 

@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.85"
+const Version = "2.2.86"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,6 +48,8 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- Horizontal guidance, configuration metadata, diagnostics, and Domain discovery now focus on actionable configuration and supported capabilities.")
+		fmt.Fprintln(stderr, "- Horizontal main-app foundation adds an explicit platformMode with a strict Lightning default, --platform horizontal project initialization, platform/provider doctors, platform-aware Domain routes, and read-only query openapi routing with one safe authentication retry; unsupported horizontal MetadataService, low-code, high-code, and write actions fail before any Lightning fallback.")
 		fmt.Fprintln(stderr, "- Domain discovery is now hierarchical and offline: metadata exposes 26 concrete resources, highcode exposes 9 resources, leaf lookups such as cloudcc domain fields/classes return aliases, provider routes, executable command forms, and focused documentation, while table/category filters and strict argument validation improve interactive use.")
 		fmt.Fprintln(stderr, "- Page-layout create/clone can now atomically assign the new layout with --assign. Repeated --profile and --record-type selectors expand as a Cartesian product; omitted profiles default to all profiles, omitted record types default to the main type, and --include-main-record-type adds the main type to explicit record types. Clone now preserves related-list buttons and rejects cross-object single-layout cloning. Requires MetadataService 1.1.74.")
 		fmt.Fprintln(stderr, "- OpenAPI now uploads and binds local attachments to existing business records through api-svc and submits existing business records for configured approval processes; multipart uploads stream from disk, two-stage failures preserve unbound file identifiers, and Manual approval responses explain the required fprId retry.")
@@ -57,7 +59,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		fmt.Fprintln(stderr, "- Relationship fields now require childrelationName for automatic inverse lists and require MetadataService 1.1.69 for setup-svc-compatible custom related-list persistence, aee/afa/bcb identities, and natural-key convergence of historical rows.")
 		fmt.Fprintln(stderr, "- Validation-rule validate/plan/create/update now compile expressions locally through packaged cceg, preserve string literals, resolve standard and relationship fields, infer update objects from rule details, type-check dynamic $User.<schemefieldName> values, send shortcut edits as partial UPDATE plans that preserve API and creation audit fields, and block invalid plans with UTF-8 diagnostics.")
 		fmt.Fprintln(stderr, "- Formula field user docs now distinguish platform functions from target-database functions and document common MySQL LEAST, GREATEST, TRIM, ABS, CEILING, FLOOR, MOD, ROUND, SQRT, POWER, LOG, LN, and EXP functions with target-validation guidance.")
-		fmt.Fprintln(stderr, "- Trigger local scaffolding now prefers objectApi/TriggerName and records the object API name in config.json schemetableName; flat TriggerName remains compatible, targetObjectId remains the authoritative binding, and both layouts create real CCTrigger wrappers with constructor-scoped SOURCE markers.")
+		fmt.Fprintln(stderr, "- Trigger local scaffolding now prefers objectApi/TriggerName and records the object API name in config.json schemetableName; flat TriggerName remains compatible, targetObjectId remains the authoritative target-object identifier, and both layouts create real CCTrigger wrappers with constructor-scoped SOURCE markers.")
 		fmt.Fprintln(stderr, "- High-code Java layout cleanup now runs as a lightweight single-pass Go formatter with no JVM or formatter JAR; publish reports formatting problems as warnings and continues to the existing structure, compile, remote validation, save, and readback gates.")
 		fmt.Fprintln(stderr, "- High-code publish auto-formats classes, triggers, and timers in the local project before validation and remote requests; release 2.2.71 changes formatter failures from local blockers to structured warnings.")
 		fmt.Fprintln(stderr, "- Page layout auto-design covers sections, detail buttons, related lists, related-list fields, and related-list buttons; current create/clone assignment behavior is documented by the latest changelog entry.")
@@ -133,7 +135,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		fmt.Fprintln(stderr, "- Field docs now explicitly require lookupObj/lookupObjectId to be the referenced object's tp_sys_object.ID, with custom-object examples that avoid API-name ambiguity.")
 		fmt.Fprintln(stderr, "- Report typed CLI closure: reportTabular/reportSummary/reportMatrix/reportRatio now normalize main-svc saveReport payloads, validate type-specific required fields, preserve current service-zone report defaults, and generate ratio tbhbexpression from structured ratioExpressions.")
 		fmt.Fprintln(stderr, "- Report Matrix CLI closure: reportMatrix create/update now normalizes Matrix payloads, validates row and column groups, source relation option/findId, selected fields, and maps main-svc ReportReqVo aliases into MetadataService report type custom data sources.")
-		fmt.Fprintln(stderr, "- Standalone custom-class compiler/publisher: the skill packages cceg.jar, CloudCC cclib, and 30 integrity-checked compiler artifacts; doctor/validate/publish require only JDK 21, project source, and the target CloudCC public gateway, with no platform checkout, local setup-svc/main-svc, Maven cache, runtime URL, or binding.")
+		fmt.Fprintln(stderr, "- Standalone custom-class compiler/publisher: the skill packages cceg.jar, CloudCC cclib, and 30 integrity-checked compiler artifacts; doctor/validate/publish require only JDK 21, project source, and the target CloudCC public gateway, with no platform checkout, local setup-svc/main-svc, Maven cache, or runtime URL.")
 		fmt.Fprintln(stderr, "- Complete field-type metadata parity: all setup-svc public custom field types share one validated expansion path, including formula/summary, master-detail, address/location children, picklists, media/files, encryption, lookup filters, permissions, and delete cleanup.")
 		fmt.Fprintln(stderr, "- Trigger save/publish now normalizes isactive/isActive values to boolean strings, so numeric 1/0 in local trigger specs are sent as true/false to setup-svc.")
 		fmt.Fprintln(stderr, "- Report docs now match current MetadataService report persistence: source.objects drives reporttypecustom data sources, top-level objects drives tp_sys_report_object, invalid filter rows are skipped with compressed logic indexes, Matrix groups follow main-service storage semantics, and expression IDs are rebound to the saved report.")
@@ -342,6 +344,7 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc doc <layer>/<module> introduction|devguide")
 	fmt.Fprintln(stdout, "  cloudcc domains [--category <name>] [--format json|table]")
 	fmt.Fprintln(stdout, "  cloudcc domain <group-or-resource> [--format json|table]")
+	fmt.Fprintln(stdout, "  cloudcc doctor platform [projectPath]")
 	fmt.Fprintln(stdout, "  cloudcc doctor project-governance [projectPath]")
 	fmt.Fprintln(stdout, "  cloudcc init project-outputs <projectPath> <projectCode>")
 	fmt.Fprintln(stdout, "  cloudcc doctor project-outputs [projectPath]")
@@ -352,7 +355,8 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc doctor test-governance [projectPath]")
 	fmt.Fprintln(stdout, "  cloudcc get config [projectPath]")
 	fmt.Fprintln(stdout, "  cloudcc use config <env> [projectPath]")
-	fmt.Fprintln(stdout, "  cloudcc create project <name|.>")
+	fmt.Fprintln(stdout, "  cloudcc create project <name|.> [--platform lightning|horizontal]")
+	fmt.Fprintln(stdout, "    horizontal options: [--main-app-url <url>] [--username <name>] [--language <lang>] [--metadata-service-url <url>] [--execution-mode auto|uiapi]")
 	fmt.Fprintln(stdout, "  cloudcc format <classes|trigger|timer> <name> [projectPath] [--check|--write]")
 	fmt.Fprintln(stdout, "  cloudcc format highcode [projectPath] --check")
 	fmt.Fprintln(stdout, "  Normal business-data operations (standard CRM and custom objects):")
