@@ -77,10 +77,10 @@ cloudcc create project horizontal-demo --platform horizontal \
 ```
 
 - `platformMode` 的空值或缺省值等价于 `lightning`；未知非空值直接报错。
-- `executionMode=auto` 在横纵版首期明确选择 UIAPI，不探测 Lightning MetadataService；显式 `msapi` 失败关闭。
-- 横纵版首期只开放 `doctor platform` 和 `query openapi`；写操作失败关闭。
+- `executionMode=auto` 在配置 MetadataService 时执行能力探测，探测成功选择 MSAPI；未配置时选择横纵版 UIAPI。也可显式使用 `msapi` 或 `uiapi`。
+- 横纵版 MSAPI 支持共享低代码、接口注册器完整元数据 CRUD、`dataIndex` 和 `dataBulk`；报表/仪表板写入仍失败关闭。OpenAPI 支持 query/pageQuery/create/update/delete/upsert。横纵版 UIAPI 首批支持对象/应用/记录类型读取、对象视图 CRUD、PC 页面布局详情与保存；接口注册器 UIAPI 管理及其他未适配动作失败关闭。
 - password 不写入项目缓存；配置、日志和命令输出不得打印真实 password、token 或 Cookie。
-- 只读 `query openapi` 在认证状态失效时会重新认证并重试一次；横纵版写操作不采用自动重试。
+- `query/pageQuery openapi` 在认证状态失效时会重新认证并重试一次；横纵版写操作不采用自动重试。
 
 ## 4. 命令总览
 

@@ -64,7 +64,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer, cw
 		return err
 	}
 	if config.IsHorizontal(cfg) {
-		return handleHorizontal(action, sp, body, isMCP, projectPath, cfg, stdout)
+		return handleHorizontal(action, sp, body, isMCP, projectPath, cfg, stdout, stderr)
 	}
 	apiSvc := strings.TrimRight(first(config.String(cfg, "apiSvc"), config.String(cfg, "apisvc")), "/")
 	accessToken := first(config.String(cfg, "accessToken"), config.String(cfg, "token"))
@@ -102,10 +102,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer, cw
 	return nil
 }
 
-func handleHorizontal(action string, sp spec, body map[string]any, isMCP bool, projectPath string, cfg config.Config, stdout io.Writer) error {
-	if action != "query" {
-		return fmt.Errorf("%s OpenAPI is not yet supported for platformMode=horizontal; the first horizontal slice is read-only query", sp.label)
-	}
+func handleHorizontal(action string, sp spec, body map[string]any, isMCP bool, projectPath string, cfg config.Config, stdout io.Writer, stderr io.Writer) error {
 	mainAppURL := config.String(cfg, "mainAppUrl")
 	client, err := horizontal.New(mainAppURL)
 	if err != nil {
@@ -120,13 +117,25 @@ func handleHorizontal(action string, sp spec, body map[string]any, isMCP bool, p
 		"binding":     {session.Binding},
 	}
 	for key, value := range body {
+		if key == "Data" || key == "data" {
+			continue
+		}
 		form.Set(key, horizontalFormValue(value))
+	}
+	if value, ok := body["Data"]; ok {
+		form.Set("data", horizontalFormValue(normalizeData(value, sp.wrapArray)))
+	}
+	if value, ok := body["data"]; ok {
+		form.Set("data", horizontalFormValue(normalizeData(value, sp.wrapArray)))
 	}
 	response, err := client.Post(context.Background(), form)
 	if err != nil {
+		if !isHorizontalReadAction(action) {
+			return fmt.Errorf("WRITE_RESULT_AMBIGUOUS: %s OpenAPI did not receive a conclusive response; the write was not replayed. Verify the record before retrying: %w", sp.label, err)
+		}
 		return err
 	}
-	if !responseSucceeded(response) && fmt.Sprint(response["returnCode"]) == "-2" {
+	if !responseSucceeded(response) && fmt.Sprint(response["returnCode"]) == "-2" && isHorizontalReadAction(action) {
 		if err := config.ClearCacheEntry(projectPath); err != nil {
 			return fmt.Errorf("AUTH_BINDING_EXPIRED: cannot clear horizontal session cache: %w", err)
 		}
@@ -141,13 +150,25 @@ func handleHorizontal(action string, sp spec, body map[string]any, isMCP bool, p
 		}
 	}
 	if !responseSucceeded(response) {
-		return responseError(sp.label, response, "horizontal query failed")
+		if fmt.Sprint(response["returnCode"]) == "-2" && !isHorizontalReadAction(action) {
+			return fmt.Errorf("WRITE_RESULT_AMBIGUOUS: %s OpenAPI lost its horizontal session; the write was not replayed. Verify the record before retrying", sp.label)
+		}
+		return responseError(sp.label, response, "horizontal "+action+" failed")
 	}
 	if !isMCP {
 		encoded, _ := json.Marshal(response)
 		fmt.Fprintln(stdout, string(encoded))
+		if sp.successLabel != "" {
+			fmt.Fprintln(stderr)
+			fmt.Fprintln(stderr, sp.successLabel)
+			fmt.Fprintln(stderr)
+		}
 	}
 	return nil
+}
+
+func isHorizontalReadAction(action string) bool {
+	return action == "query" || action == "pageQuery"
 }
 
 func horizontalFormValue(value any) string {

@@ -7,6 +7,7 @@ import (
 
 	"cloudcc-customization-expert-go/internal/docs"
 	"cloudcc-customization-expert-go/internal/governance"
+	"cloudcc-customization-expert-go/internal/horizontalui"
 	"cloudcc-customization-expert-go/internal/modules"
 	"cloudcc-customization-expert-go/internal/msapi"
 	"cloudcc-customization-expert-go/internal/openapi"
@@ -102,12 +103,12 @@ func handleLowCodeShortcut(action string, resource string, args []string, stdout
 	if err != nil {
 		return err
 	}
-	if selection.PlatformMode == "horizontal" {
-		return fmt.Errorf("%s %s is not yet supported for platformMode=horizontal; no Lightning setup-svc fallback is allowed", action, resource)
-	}
 	fmt.Fprintf(stderr, "cloudcc low-code provider: %s (%s; safety=%s)\n", selection.SelectedMode, selection.Reason, selection.SafetyLevel)
 	if selection.SelectedMode == provider.ModeMSAPI {
 		return msapi.HandleLowCodeShortcut(action, resource, args, stdout, cwd)
+	}
+	if selection.PlatformMode == "horizontal" {
+		return horizontalui.HandleLowCode(action, resource, args, stdout, cwd)
 	}
 	return modules.Handle(action, resource, args, stdout, stderr, cwd)
 }

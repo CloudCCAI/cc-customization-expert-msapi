@@ -2781,6 +2781,10 @@ func shortcutOperation(action string, resource string) string {
 	if resource == "object" && strings.TrimSpace(action) == "purge" {
 		return "physical-purge"
 	}
+	if resource == "object" &&
+		(strings.TrimSpace(action) == "update" || strings.TrimSpace(action) == "modify" || strings.TrimSpace(action) == "editSave") {
+		return "update"
+	}
 	if resource == "view" && (strings.TrimSpace(action) == "update" || strings.TrimSpace(action) == "editSave" || strings.TrimSpace(action) == "modify") {
 		return "update"
 	}

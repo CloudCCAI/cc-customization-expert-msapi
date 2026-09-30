@@ -66,18 +66,6 @@ func Resolve(projectPath string) (Selection, error) {
 		StrictMode:    edition.StrictExecutionMode,
 		Endpoint:      endpoint,
 	}
-	if platformMode == config.PlatformHorizontal {
-		if strings.TrimSpace(edition.StrictExecutionMode) == ModeMSAPI || requested == ModeMSAPI {
-			return Selection{}, fmt.Errorf("horizontal platform does not enable MetadataService/MSAPI execution yet; use executionMode=auto or uiapi")
-		}
-		if strings.TrimSpace(edition.StrictExecutionMode) == "" && requested == ModeAuto {
-			selection.SelectedMode = ModeUIAPI
-			selection.Reason = "horizontal_msapi_not_enabled"
-			selection.SafetyLevel = safetyLevel(ModeUIAPI)
-			return selection, nil
-		}
-	}
-
 	if strict := strings.TrimSpace(edition.StrictExecutionMode); strict != "" {
 		if requested != ModeAuto && requested != strict {
 			return Selection{}, fmt.Errorf("%s is a strict %s distribution; executionMode=%s is not allowed", edition.PackageName, strict, requested)

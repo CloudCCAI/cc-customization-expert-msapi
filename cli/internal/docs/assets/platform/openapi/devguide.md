@@ -3,8 +3,8 @@
 ## 能力定位
 
 常规业务记录操作统一使用 `openapi`，包括标准 CRM 对象和自定义对象。Lightning 默认直接调用平台
-`api-svc` 的带权限接口，不走 MetadataService。显式 `platformMode=horizontal` 时，首期由 main-app
-提供只读查询。
+`api-svc` 的带权限接口，不走 MetadataService。显式 `platformMode=horizontal` 时，常规业务数据 CRUD
+由 main-app 提供。
 
 - 标准对象示例：客户、联系人、商机等，使用目标租户真实标准对象 API Name。
 - 自定义对象：使用目标租户真实自定义对象 API Name，能力和命令与标准对象相同。
@@ -25,11 +25,11 @@ cloudcc doctor platform <projectPath>
 cloudcc domain openapi
 ```
 
-横纵版当前只支持 `query openapi`。`pageQuery/create/update/delete/upsert`、附件和审批仍然失败关闭；不要把
-Lightning 的 `/api/file/*` 或 `/api/approval/*` 地址套用到横纵版。
+横纵版支持 `query/pageQuery/create/update/delete/upsert openapi`。附件和审批仍然失败关闭；不要把
+Lightning 的附件或审批调用方式套用到横纵版。
 
-CLI 会自动维护横纵版认证状态，password 不写入项目缓存。只读 query 在认证状态失效时会重新认证并重试一次；
-写请求不会采用自动重放策略。若目标环境要求额外认证步骤，CLI 会返回明确错误并停止请求。
+CLI 会自动维护横纵版认证状态，password 不写入项目缓存。query/pageQuery 在认证状态失效时会重新认证并重试一次；
+写请求不会自动重放，返回结果不确定时必须先核对目标记录再决定是否重试。若目标环境要求额外认证步骤，CLI 会返回明确错误并停止请求。
 
 记录中的对象、字段和记录 ID 必须来自目标租户，不得猜测或自造。调用身份还必须具有对应对象、字段和记录权限。
 

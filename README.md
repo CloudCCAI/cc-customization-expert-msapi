@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.87-msapi
+# cc-customization-expert-msapi v2.2.90-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -31,7 +31,11 @@ tools/bin/cloudcc format highcode /path/to/project --check
 
 Strict MetadataService package: low-code operations require MetadataService.
 
-从技能 `2.2.86` 开始，`platformMode` 缺省仍是 Lightning，只有显式 `horizontal` 才进入横纵版。可用 `cloudcc create project <name> --platform horizontal` 生成不含 Lightning 凭据的嵌套配置；`auto` 明确选择 UIAPI，横纵版 `msapi` 失败关闭。当前首期仅支持脱敏的 `doctor platform` 与只读 `query openapi`；所有其他远程动作失败关闭，Lightning JSON/accessToken 合同保持不变。
+从技能 `2.2.86` 开始，`platformMode` 缺省仍是 Lightning，只有显式 `horizontal` 才进入横纵版。可用 `cloudcc create project <name> --platform horizontal` 生成不含 Lightning 凭据的嵌套配置，Lightning JSON/accessToken 合同保持不变。
+
+从技能 `2.2.88` 开始，横纵版配置 MetadataService 后可由 `auto` 探测或显式 `msapi` 执行共享低代码、`dataIndex` 和 `dataBulk`，常规 OpenAPI query/pageQuery/create/update/delete/upsert 通过 main-app 执行。从 `2.2.89` 开始，接口注册器 MSAPI 支持完整元数据 CRUD，并增加对象/应用/记录类型读取、对象视图 CRUD、PC 页面布局详情与保存的首批 UIAPI 适配；接口注册器 UIAPI 管理和其他未验证远程通道继续失败关闭。
+
+从技能 `2.2.90` 开始，横纵版第一版统一收口 UIAPI 敏感输出、HTTP 200 业务失败、记录类型读取、对象详情选择器和对象部分更新语义；对象编辑不会再因缺省 API 名退化为 upsert 并覆盖既有对象 API 名。
 
 从技能 `2.2.87` 开始，PC 页面布局可在独占单列分组中用 `type=customPage`、`customPageId`、`pageApi` 引用已经存在的自定义页面。布局详情返回相同的可复用结构，布局克隆保留引用，旧 `LIGHTNINGPAGE_` 输入仅作兼容；要求 MetadataService `1.1.75` 或更高版本。运行 `cloudcc doc platform/pagelayout devguide` 查看完整参数、限制、命令和验收方式。
 
@@ -134,7 +138,7 @@ Bulk API 按 MetadataService 的对象/字段到物理表映射直接写业务�
 
 从技能 `2.2.50` 开始，记录类型详情的选项列表值分配纳入 MetadataService：`saveDependency/assignPicklistValues recordType` 生成 `record-types save-dependency` 计划，对齐 setup-svc `/api/recordType/saveDependency` 的所选值全量替换、未选旧值删除和默认值设置语义，要求 MetadataService `1.1.52` 或更高版本。
 
-CloudCC 高代码主动调用外部 HTTP 服务时，先读取 `cloudcc doc platform/apiRegistrar devguide`。接口注册器的配置 CRUD 属于 MetadataService 域，调试和日志属于 setup-svc 实时运行态；业务源码只引用调试成功且为 `ACTIVE` 的 `apiCode`。从技能 `2.2.33` 开始，接口注册器运行态调试/日志和高代码远程调用调整要求 MetadataService `1.1.41` 或更高版本，并建议 setup-svc `19.7.R8` 或更高版本。
+CloudCC 高代码主动调用外部 HTTP 服务时，先读取 `cloudcc doc platform/apiRegistrar devguide`。接口注册器的配置 CRUD 属于 MetadataService 域；Lightning 的调试和日志属于 setup-svc 实时运行态，横纵版不开放 `debug/logs/logDetail`；业务源码只引用调试成功且为 `ACTIVE` 的 `apiCode`。从技能 `2.2.33` 开始，接口注册器运行态调试/日志和高代码远程调用调整要求 MetadataService `1.1.41` 或更高版本，并建议 setup-svc `19.7.R8` 或更高版本。
 
 ## Package Purity
 

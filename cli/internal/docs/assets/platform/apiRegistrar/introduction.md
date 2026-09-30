@@ -27,5 +27,6 @@
 
 - MetadataService `api-registrars`：创建、更新、逻辑删除、列表、详情和变更账本。
 - setup-svc 运行态：调试、日志列表和日志详情；这些操作不是元数据 apply，也没有 MetadataService rollback 语义。
+- 横纵版仅开放 MetadataService CRUD，不开放 `debug/logs/logDetail`；已注册接口仍可由 main-app 高代码运行时调用。
 - 当前注册 URL 只要求 CloudCC 服务端网络可访问，不附加域名白名单或客户端可访问要求。
 - 当前日志查看没有额外权限控制；方案不能虚构尚不存在的权限模型。

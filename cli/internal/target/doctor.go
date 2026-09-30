@@ -48,12 +48,23 @@ func WriteDoctor(projectPath string, stdout io.Writer) error {
 		return json.NewEncoder(stdout).Encode(result)
 	}
 
-	result.SelectedProvider = "uiapi"
+	result.SelectedProvider = selectedHorizontalProvider(cfg)
+	metadataAvailability := "provider-adapter"
+	metadataReason := "source-backed UIAPI batch supports object/application/record-type reads, object-view CRUD, and PC page-layout detail/save"
+	dataExtensionAvailability := "requires-msapi"
+	dataExtensionReason := "configure MetadataService and select msapi or auto"
+	if hasMetadataService(cfg) {
+		metadataAvailability = "partial"
+		metadataReason = "shared domains and complete API-registrar metadata CRUD are available through MetadataService; report/dashboard writes remain closed"
+		dataExtensionAvailability = "enabled"
+		dataExtensionReason = "available through MetadataService"
+	}
 	result.Capabilities = []CapabilityStatus{
-		{Domain: "openapi", Actions: "query", Availability: "read-only"},
-		{Domain: "metadata", Actions: "*", Availability: "unsupported", Reason: "not enabled for horizontal"},
-		{Domain: "dataIndex,dataBulk", Actions: "*", Availability: "unsupported", Reason: "not enabled for horizontal"},
-		{Domain: "highcode", Actions: "remote", Availability: "unsupported", Reason: "not enabled for horizontal"},
+		{Domain: "openapi", Actions: "query,pageQuery,create,update,delete,upsert", Availability: "enabled"},
+		{Domain: "metadata", Actions: "*", Availability: metadataAvailability, Reason: metadataReason},
+		{Domain: "api-registrars", Actions: "uiapi-management", Availability: "unsupported", Reason: "main-app exposes no registered management controller; select MSAPI"},
+		{Domain: "dataIndex,dataBulk", Actions: "*", Availability: dataExtensionAvailability, Reason: dataExtensionReason},
+		{Domain: "highcode", Actions: "remote", Availability: "pending-evidence", Reason: "main-app high-code adapter is not enabled"},
 	}
 	result.MainAppOrigin = origin(config.String(cfg, "mainAppUrl"))
 	result.AuthConfigured = strings.TrimSpace(config.String(cfg, "username")) != "" && config.String(cfg, "password") != ""
@@ -78,6 +89,25 @@ func WriteDoctor(projectPath string, stdout io.Writer) error {
 		return fmt.Errorf("horizontal session validation failed after login")
 	}
 	return json.NewEncoder(stdout).Encode(result)
+}
+
+func selectedHorizontalProvider(cfg config.Config) string {
+	mode := strings.ToLower(strings.TrimSpace(config.String(cfg, "executionMode")))
+	if mode == "msapi" || mode == "uiapi" {
+		return mode
+	}
+	if hasMetadataService(cfg) {
+		return "auto"
+	}
+	return "uiapi"
+}
+
+func hasMetadataService(cfg config.Config) bool {
+	if strings.TrimSpace(config.String(cfg, "metadataServiceUrl")) != "" {
+		return true
+	}
+	metadata, _ := cfg["metadataService"].(map[string]any)
+	return strings.TrimSpace(fmt.Sprint(metadata["url"])) != "" && fmt.Sprint(metadata["url"]) != "<nil>"
 }
 
 func origin(value string) string {

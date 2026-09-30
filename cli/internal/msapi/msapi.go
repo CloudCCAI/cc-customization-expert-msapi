@@ -3,6 +3,7 @@ package msapi
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"encoding/csv"
 	"encoding/json"
 	"errors"
@@ -18,6 +19,7 @@ import (
 	"time"
 
 	"cloudcc-customization-expert-go/internal/config"
+	"cloudcc-customization-expert-go/internal/horizontal"
 	"cloudcc-customization-expert-go/internal/jsonx"
 )
 
@@ -31,6 +33,8 @@ type client struct {
 	token            string
 	cloudccUserToken string
 	projectPath      string
+	platformMode     string
+	horizontalAuth   bool
 	http             *http.Client
 }
 
@@ -39,6 +43,9 @@ type client struct {
 // The legacy setup/UI API commands remain available; this module is the
 // explicit plan/apply/rollback path for metadata changes that need a ledger.
 func Handle(action string, resource string, args []string, stdout io.Writer, cwd string) error {
+	if err := rejectHorizontalRestrictedBeforeClient(action, args, cwd); err != nil {
+		return err
+	}
 	c, remaining, err := newClient(args, cwd)
 	if err != nil {
 		return err
@@ -124,6 +131,9 @@ func Handle(action string, resource string, args []string, stdout io.Writer, cwd
 		if len(remaining) < 1 || strings.TrimSpace(remaining[0]) == "" {
 			return fmt.Errorf("cloudcc apply %s <planId> [encodedApplyRequest]", resource)
 		}
+		if err := c.ensureHorizontalPlanAllowed(remaining[0]); err != nil {
+			return err
+		}
 		body := map[string]any{}
 		if len(remaining) > 1 && strings.TrimSpace(remaining[1]) != "" {
 			body, err = parseObject(remaining[1], "cloudcc apply "+resource)
@@ -192,6 +202,51 @@ func Handle(action string, resource string, args []string, stdout io.Writer, cwd
 	default:
 		return fmt.Errorf("unsupported MetadataService command: cloudcc %s %s", action, resource)
 	}
+}
+
+func rejectHorizontalRestrictedBeforeClient(action string, args []string, cwd string) error {
+	if action != "plan" && action != "mutate" {
+		return nil
+	}
+	projectPath := cwd
+	remaining := args
+	if len(remaining) > 0 && isProjectPath(remaining[0]) {
+		projectPath = remaining[0]
+		remaining = remaining[1:]
+	}
+	mode, err := config.ProjectPlatformMode(projectPath)
+	if err != nil || mode != config.PlatformHorizontal || len(remaining) == 0 {
+		return err
+	}
+	domain := remaining[0]
+	if strings.HasPrefix(strings.TrimSpace(domain), "{") {
+		body, parseErr := parseObject(domain, "horizontal "+action+" preflight")
+		if parseErr != nil {
+			return parseErr
+		}
+		domain = stringValue(body["domain"])
+	}
+	return rejectHorizontalRestrictedDomain(domain)
+}
+
+func rejectHorizontalRestrictedDomain(domain string) error {
+	switch normalizeDomain(domain) {
+	case "reports", "dashboards":
+		return fmt.Errorf("horizontal %s writes are pending a verified main-app persistence projection", normalizeDomain(domain))
+	default:
+		return nil
+	}
+}
+
+func (c *client) ensureHorizontalPlanAllowed(planID string) error {
+	if c.platformMode != config.PlatformHorizontal {
+		return nil
+	}
+	plan, err := c.requestJSONMap(http.MethodGet, "/metadata/v1/plans/"+url.PathEscape(strings.TrimSpace(planID)), nil)
+	if err != nil {
+		return fmt.Errorf("cannot verify horizontal plan domain before apply: %w", err)
+	}
+	return rejectHorizontalRestrictedDomain(stringValue(plan["domain"]))
 }
 
 func IsDataIndexDomain(value string) bool {
@@ -1033,9 +1088,6 @@ func newClient(args []string, cwd string) (*client, []string, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	if platformMode == config.PlatformHorizontal {
-		return nil, nil, fmt.Errorf("MetadataService/MSAPI is not yet enabled for platformMode=horizontal; no Lightning MetadataService fallback is allowed")
-	}
 	baseURL, err := configuredServiceURL(projectPath)
 	if err != nil {
 		return nil, nil, err
@@ -1048,13 +1100,49 @@ func newClient(args []string, cwd string) (*client, []string, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	horizontalAuth := false
+	if platformMode == config.PlatformHorizontal && (token == "" || userToken == "") {
+		sessionToken, sessionErr := horizontalSessionToken(projectPath)
+		if sessionErr != nil {
+			return nil, nil, sessionErr
+		}
+		if token == "" {
+			token = sessionToken
+			horizontalAuth = true
+		}
+		if userToken == "" {
+			userToken = sessionToken
+		}
+	}
 	return &client{
 		baseURL:          strings.TrimRight(baseURL, "/"),
 		token:            token,
 		cloudccUserToken: userToken,
 		projectPath:      projectPath,
+		platformMode:     platformMode,
+		horizontalAuth:   horizontalAuth,
 		http:             &http.Client{Timeout: 180 * time.Second},
 	}, remaining, nil
+}
+
+func horizontalSessionToken(projectPath string) (string, error) {
+	cfg, err := config.Load(projectPath)
+	if err != nil {
+		return "", err
+	}
+	client, err := horizontal.New(config.String(cfg, "mainAppUrl"))
+	if err != nil {
+		return "", err
+	}
+	session, err := client.AcquireSession(context.Background(), projectPath, cfg)
+	if err != nil {
+		return "", err
+	}
+	token := trimBearer(session.Token)
+	if token == "" {
+		return "", fmt.Errorf("horizontal login did not return a token usable by MetadataService")
+	}
+	return token, nil
 }
 
 func serviceURL(projectPath string) (string, error) {
@@ -2160,8 +2248,20 @@ func (c *client) refreshTokenAfterInvalidToken(statusCode int, resBody []byte) (
 	if strings.TrimSpace(os.Getenv("CLOUDCC_METADATA_SERVICE_ACCESS_TOKEN")) != "" {
 		return false, nil
 	}
+	if c.platformMode == config.PlatformHorizontal && !c.horizontalAuth {
+		return false, nil
+	}
 	if err := config.ClearCacheEntry(c.projectPath); err != nil {
 		return false, nil
+	}
+	if c.platformMode == config.PlatformHorizontal {
+		token, err := horizontalSessionToken(c.projectPath)
+		if err != nil {
+			return false, fmt.Errorf("metadata service rejected the horizontal session token, and session refresh failed: %w", err)
+		}
+		c.token = token
+		c.cloudccUserToken = token
+		return true, nil
 	}
 	cfg, err := config.RefreshAccessToken(c.projectPath)
 	if err != nil {

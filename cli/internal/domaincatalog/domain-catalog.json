@@ -45,7 +45,7 @@
       "actions": ["query", "pageQuery", "create", "update", "delete", "upsert", "uploadAttachment", "submitApproval"],
       "routes": [
         {"provider": "all", "platform": "lightning", "backend": "api-svc", "transport": "direct", "availability": "enabled", "actions": ["query", "pageQuery", "create", "update", "delete", "upsert", "uploadAttachment", "submitApproval"]},
-        {"provider": "all", "platform": "horizontal", "backend": "main-app", "transport": "platform-api", "availability": "read-only", "actions": ["query"], "reason": "phase-1 read-only route; horizontal writes fail closed"}
+        {"provider": "all", "platform": "horizontal", "backend": "main-app", "transport": "platform-api", "availability": "enabled", "actions": ["query", "pageQuery", "create", "update", "delete", "upsert"]}
       ]
     },
     {

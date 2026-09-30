@@ -15,14 +15,22 @@
   },
   "horizontalFoundation": {
     "defaultPlatform": "lightning",
-    "executionMode": "uiapi-read-only",
+    "executionModes": ["auto", "msapi", "uiapi"],
     "operations": {
       "openapi.query": "contract_tested",
-      "openapi.write": "unsupported",
-      "metadata.*": "unsupported",
-      "dataIndex.*": "unsupported",
-      "dataBulk.*": "unsupported",
-      "highcode.remote": "unsupported"
+      "openapi.pageQuery": "contract_tested",
+      "openapi.create|update|delete|upsert": "contract_tested_no_automatic_write_replay",
+      "metadata.msapi.shared": "enabled",
+      "metadata.msapi.reports|dashboards.write": "pending_projection",
+      "metadata.msapi.api-registrars.write": "enabled",
+      "metadata.uiapi.objects|applications|record-types.read": "contract_tested",
+      "metadata.uiapi.object-views.crud": "contract_tested_with_readback",
+      "metadata.uiapi.layouts.detail|save": "contract_tested_with_readback",
+      "metadata.uiapi.api-registrars.*": "unsupported_no_mainapp_controller",
+      "metadata.uiapi.other": "pending_adapter",
+      "dataIndex.msapi.*": "enabled",
+      "dataBulk.msapi.*": "enabled",
+      "highcode.remote": "pending_adapter"
     }
   },
   "domains": [

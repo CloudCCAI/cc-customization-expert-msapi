@@ -140,8 +140,8 @@ func normalizeProjectOptions(options ProjectOptions) (ProjectOptions, error) {
 	if options.ExecutionMode == "" {
 		options.ExecutionMode = "auto"
 	}
-	if options.ExecutionMode != "auto" && options.ExecutionMode != "uiapi" {
-		return options, fmt.Errorf("horizontal project execution mode must be auto or uiapi")
+	if options.ExecutionMode != "auto" && options.ExecutionMode != "uiapi" && options.ExecutionMode != "msapi" {
+		return options, fmt.Errorf("horizontal project execution mode must be auto, msapi, or uiapi")
 	}
 	if strings.TrimSpace(options.MainAppURL) == "" {
 		options.MainAppURL = "https://tenant.example.com"

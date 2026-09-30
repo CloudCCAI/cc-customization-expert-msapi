@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.87"
+const Version = "2.2.90"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,9 +48,12 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- Horizontal first-release hardening redacts UIAPI credentials and binding-bearing URLs recursively, rejects HTTP 200 business failures without exposing server stacks, routes record-type reads through object metadata, resolves case-insensitive object detail selectors, and preserves object API names by dispatching object edits as partial updates instead of upserts.")
+		fmt.Fprintln(stderr, "- Horizontal API-registrar metadata CRUD is fully available through MSAPI. The source-backed horizontal UIAPI first batch adds object/application/record-type reads, object-view CRUD, and PC page-layout detail/save with decoded success checks and authoritative mutation readback; unexposed API-registrar UIAPI management fails closed.")
+		fmt.Fprintln(stderr, "- Horizontal main-app support now enables MetadataService-backed low-code, dataIndex, and dataBulk through auto or msapi provider selection, and supports common OpenAPI query/pageQuery/create/update/delete/upsert actions. Lightning remains the default and horizontal UIAPI/high-code gaps continue to fail closed without Lightning fallback.")
 		fmt.Fprintln(stderr, "- Page-layout sections can now embed an existing custom page through the user-level type=customPage, customPageId, and pageApi model. Embedded pages require an isolated one-column section, round-trip through detail/update, survive clone, and retain legacy LIGHTNINGPAGE input compatibility. Requires MetadataService 1.1.75.")
 		fmt.Fprintln(stderr, "- Horizontal guidance, configuration metadata, diagnostics, and Domain discovery now focus on actionable configuration and supported capabilities.")
-		fmt.Fprintln(stderr, "- Horizontal main-app foundation adds an explicit platformMode with a strict Lightning default, --platform horizontal project initialization, platform/provider doctors, platform-aware Domain routes, and read-only query openapi routing with one safe authentication retry; unsupported horizontal MetadataService, low-code, high-code, and write actions fail before any Lightning fallback.")
+		fmt.Fprintln(stderr, "- Horizontal main-app foundation adds an explicit platformMode with a strict Lightning default, --platform horizontal project initialization, platform/provider doctors, and platform-aware Domain routes.")
 		fmt.Fprintln(stderr, "- Domain discovery is now hierarchical and offline: metadata exposes 26 concrete resources, highcode exposes 9 resources, leaf lookups such as cloudcc domain fields/classes return aliases, provider routes, executable command forms, and focused documentation, while table/category filters and strict argument validation improve interactive use.")
 		fmt.Fprintln(stderr, "- Page-layout create/clone can now atomically assign the new layout with --assign. Repeated --profile and --record-type selectors expand as a Cartesian product; omitted profiles default to all profiles, omitted record types default to the main type, and --include-main-record-type adds the main type to explicit record types. Clone now preserves related-list buttons and rejects cross-object single-layout cloning. Requires MetadataService 1.1.74.")
 		fmt.Fprintln(stderr, "- OpenAPI now uploads and binds local attachments to existing business records through api-svc and submits existing business records for configured approval processes; multipart uploads stream from disk, two-stage failures preserve unbound file identifiers, and Manual approval responses explain the required fprId retry.")
@@ -357,7 +360,7 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc get config [projectPath]")
 	fmt.Fprintln(stdout, "  cloudcc use config <env> [projectPath]")
 	fmt.Fprintln(stdout, "  cloudcc create project <name|.> [--platform lightning|horizontal]")
-	fmt.Fprintln(stdout, "    horizontal options: [--main-app-url <url>] [--username <name>] [--language <lang>] [--metadata-service-url <url>] [--execution-mode auto|uiapi]")
+	fmt.Fprintln(stdout, "    horizontal options: [--main-app-url <url>] [--username <name>] [--language <lang>] [--metadata-service-url <url>] [--execution-mode auto|msapi|uiapi]")
 	fmt.Fprintln(stdout, "  cloudcc format <classes|trigger|timer> <name> [projectPath] [--check|--write]")
 	fmt.Fprintln(stdout, "  cloudcc format highcode [projectPath] --check")
 	fmt.Fprintln(stdout, "  Normal business-data operations (standard CRM and custom objects):")

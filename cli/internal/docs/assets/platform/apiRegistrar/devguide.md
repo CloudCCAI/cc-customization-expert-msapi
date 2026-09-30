@@ -37,6 +37,9 @@ cloudcc logs apiRegistrar <projectPath> @query.json
 cloudcc logDetail apiRegistrar <projectPath> @detail.json
 ```
 
+以上运行态命令只适用于 Lightning。横纵版接口注册器仅支持 MetadataService CRUD；由于 main-app 没有
+对外管理控制器，且调试日志的权威数据位于按租户路由的 Mongo，横纵版不支持 `debug/logs/logDetail`。
+
 CLI 输出 `debug`、`logs` 和 `logDetail` 结果前会递归脱敏常见敏感字段和值，包括 `Authorization`、`Cookie`、`accessToken`、`token`、`secret`、`password`、`apiKey` 等字段，以及字符串中的 `Bearer ...`、`access_token=...`、`token=...` 等片段。脱敏只作用于 CLI 返回给调用方的显示数据，不改变 setup-svc 的实际执行和平台原始日志存储。
 
 真实端点均为 `POST`：

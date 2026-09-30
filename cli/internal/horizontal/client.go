@@ -44,6 +44,7 @@ func (e *RemoteError) Error() string {
 }
 
 type Client struct {
+	baseURL        string
 	distributorURL string
 	http           *http.Client
 }
@@ -68,7 +69,7 @@ func NewWithHTTPClient(mainAppURL string, client *http.Client) (*Client, error) 
 			},
 		}
 	}
-	return &Client{distributorURL: base + DistributorPath, http: client}, nil
+	return &Client{baseURL: base, distributorURL: base + DistributorPath, http: client}, nil
 }
 
 func (c *Client) Login(ctx context.Context, username string, password string, language string) (Session, error) {
@@ -182,6 +183,67 @@ func (c *Client) Post(ctx context.Context, form url.Values) (map[string]any, err
 		return nil, fmt.Errorf("ACTION_REDIRECT_LOGIN: horizontal distributor returned non-JSON response")
 	}
 	return result, nil
+}
+
+// PostJSON invokes an existing main-app JSON endpoint with the authenticated
+// binding. It is intentionally separate from the distributor protocol so UIAPI
+// adapters cannot accidentally send REST payloads through the login channel.
+func (c *Client) PostJSON(ctx context.Context, path string, binding string, query url.Values, body map[string]any) (map[string]any, error) {
+	path = strings.TrimSpace(path)
+	if path == "" || !strings.HasPrefix(path, "/") {
+		return nil, fmt.Errorf("invalid horizontal main-app API path %q", path)
+	}
+	if strings.TrimSpace(binding) == "" {
+		return nil, fmt.Errorf("horizontal main-app API request requires binding")
+	}
+	if query == nil {
+		query = url.Values{}
+	}
+	query = cloneValues(query)
+	query.Set("binding", binding)
+	payload, err := json.Marshal(body)
+	if err != nil {
+		return nil, fmt.Errorf("horizontal main-app request encode failed: %w", err)
+	}
+	endpoint := c.baseURL + path
+	if encoded := query.Encode(); encoded != "" {
+		endpoint += "?" + encoded
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, strings.NewReader(string(payload)))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("binding", binding)
+	response, err := c.http.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("horizontal main-app API request failed: %w", err)
+	}
+	defer response.Body.Close()
+	responseBody, err := io.ReadAll(io.LimitReader(response.Body, maxResponseSize+1))
+	if err != nil {
+		return nil, fmt.Errorf("horizontal main-app API response read failed: %w", err)
+	}
+	if len(responseBody) > maxResponseSize {
+		return nil, fmt.Errorf("horizontal main-app API response exceeds %d bytes", maxResponseSize)
+	}
+	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
+		return nil, fmt.Errorf("horizontal main-app API returned HTTP %d", response.StatusCode)
+	}
+	var result map[string]any
+	if err := json.Unmarshal(responseBody, &result); err != nil {
+		return nil, fmt.Errorf("horizontal main-app API returned non-JSON response")
+	}
+	return result, nil
+}
+
+func cloneValues(values url.Values) url.Values {
+	cloned := url.Values{}
+	for key, list := range values {
+		cloned[key] = append([]string(nil), list...)
+	}
+	return cloned
 }
 
 func remoteErrorCategory(code string) string {

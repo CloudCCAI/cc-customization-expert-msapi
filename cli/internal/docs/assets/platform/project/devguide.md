@@ -52,7 +52,7 @@ cloudcc create project horizontal-demo --platform horizontal \
   --username user@example.com
 ```
 
-生成的配置包含 `platformMode=horizontal`、`executionMode=auto`、`endpoints.mainAppUrl`、`auth.username/password/language` 和 `metadataService.url`。替换占位值后先运行 `cloudcc doctor platform`，再运行 `cloudcc doctor provider`。当前横纵版远程能力仅开放 `query openapi`。
+生成的配置包含 `platformMode=horizontal`、`executionMode=auto`、`endpoints.mainAppUrl`、`auth.username/password/language` 和 `metadataService.url`。替换占位值后先运行 `cloudcc doctor platform`，再运行 `cloudcc doctor provider`。配置 MetadataService 后，横纵版低代码、`dataIndex` 和 `dataBulk` 可走 MSAPI；常规 OpenAPI CRUD 走 main-app。
 
 Go 版优先支持 `cloudcc-cli.config.json`。历史 `cloudcc-cli.config.js` 不能由 Go 直接执行，建议迁移为 JSON。
 `username/baseUrl/orgId/clientId/openSecretKey` 是兼容旧明文配置或 `CloudCCDev` 解析后的字段，不是新项目最小必需配置。
