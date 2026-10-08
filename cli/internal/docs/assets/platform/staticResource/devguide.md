@@ -16,6 +16,23 @@
 
 ## 2. 常用 CLI 命令
 
+横纵版使用 main-app 上传表单，支持 `png/jpg/gif/js/css/zip`，单文件上限 5 MiB：
+
+```text
+cloudcc create staticResource <name> <filePath> [description]
+cloudcc update staticResource <projectPath> <resourceId> <name> <filePath> [description]
+cloudcc get staticResource <projectPath>
+cloudcc detail staticResource <projectPath> <resourceId>
+cloudcc pull staticResource <projectPath> <resourceId> <outputPath>
+cloudcc delete staticResource <projectPath> <resourceId>
+```
+
+横纵版创建成功后，CLI 从同源重定向或精确列表中取得 `resourceId`，详情确认后写入
+`staticResource/<name>/config.json`。重复执行同名 create 会优先复用该 ID 进行更新；ID 解析不影响 HTTP
+`submitted` 状态。
+
+以下编码 JSON 说明属于现有 Lightning 路由；CLI 根据项目 `platformMode` 选择协议，不允许横纵版回落到 Lightning 接口。
+
 ### 1) 查看静态资源指导文档
 
 命令：

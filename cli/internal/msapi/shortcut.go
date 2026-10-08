@@ -228,6 +228,9 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 	if isCurrencyShortcutResource(resource) && isShortcutRead(action) {
 		return handleCurrencyReadShortcut(action, projectPath, rest, stdout, cwd)
 	}
+	if isDirectQueryShortcutResource(resource) && isShortcutRead(action) {
+		return handleDirectQueryReadShortcut(action, resource, projectPath, rest, stdout, cwd)
+	}
 	if resource == "reportMatrix" || resource == "reportRatio" ||
 		resource == "reportSummary" || resource == "reportTabular" {
 		return handleTypedReportShortcut(action, resource, projectPath, rest, stdout, cwd)
@@ -245,7 +248,7 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 		return handleDashboardWriteShortcut(action, projectPath, rest, stdout, cwd)
 	}
 	if isShortcutRead(action) {
-		return Handle("scan", "msapi", []string{projectPath, "standard-catalog"}, stdout, cwd)
+		return fmt.Errorf("cloudcc %s %s has no MetadataService read adapter", action, resource)
 	}
 	spec, operation, err := shortcutPlanSpec(action, resource, rest)
 	if err != nil {
@@ -256,6 +259,64 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 		return err
 	}
 	return Handle("plan", "msapi", []string{projectPath, domain, string(body), operation}, stdout, cwd)
+}
+
+type directQueryShortcut struct {
+	path          string
+	listParameter string
+}
+
+var directQueryShortcuts = map[string]directQueryShortcut{
+	"application":      {path: "/metadata/v1/applications", listParameter: "filter"},
+	"menu":             {path: "/metadata/v1/menus", listParameter: "filter"},
+	"button":           {path: "/metadata/v1/buttons", listParameter: "object"},
+	"customSetting":    {path: "/metadata/v1/custom-settings", listParameter: "selector"},
+	"dupeCatcher":      {path: "/metadata/v1/dupe-catchers", listParameter: "filter"},
+	"singleSignOn":     {path: "/metadata/v1/single-sign-ons", listParameter: "selector"},
+	"identityProvider": {path: "/metadata/v1/identity-providers", listParameter: "selector"},
+	"approval":         {path: "/metadata/v1/approval-processes", listParameter: "object"},
+	"approvalProcess":  {path: "/metadata/v1/approval-processes", listParameter: "object"},
+}
+
+func isDirectQueryShortcutResource(resource string) bool {
+	_, ok := directQueryShortcuts[strings.TrimSpace(resource)]
+	return ok
+}
+
+func handleDirectQueryReadShortcut(action string, resource string, projectPath string, args []string, stdout io.Writer, cwd string) error {
+	query, ok := directQueryShortcuts[strings.TrimSpace(resource)]
+	if !ok {
+		return fmt.Errorf("unsupported MetadataService query shortcut resource: %s", resource)
+	}
+	c, _, err := newClient([]string{projectPath}, cwd)
+	if err != nil {
+		return err
+	}
+	action = strings.TrimSpace(action)
+	if action == "detail" || action == "editInfo" || action == "validDelete" {
+		if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
+			return fmt.Errorf("cloudcc %s %s <projectPath> <selector>", action, resource)
+		}
+		return c.getJSON(stdout, query.path+"/"+url.PathEscape(strings.TrimSpace(args[0])))
+	}
+	if len(args) > 1 {
+		return fmt.Errorf("cloudcc %s %s <projectPath> [filter-or-selector]", action, resource)
+	}
+	path := query.path
+	if len(args) == 1 && strings.TrimSpace(args[0]) != "" {
+		values := url.Values{}
+		values.Set(query.listParameter, decodeShortcutFilter(args[0]))
+		path += "?" + values.Encode()
+	}
+	return c.getJSON(stdout, path)
+}
+
+func decodeShortcutFilter(value string) string {
+	value = strings.TrimSpace(value)
+	if decoded, err := url.QueryUnescape(value); err == nil {
+		return decoded
+	}
+	return value
 }
 
 func handleObjectViewReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {

@@ -1,7 +1,7 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.2.90-msapi",
-  "releaseDate": "2026-09-30",
+  "version": "2.2.91-msapi",
+  "releaseDate": "2026-10-08",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
   "domainCatalog": {
@@ -281,14 +281,31 @@
           "staticResource",
           "pagecomponent",
           "customPage",
+          "visualPage",
+          "customComponent",
           "sidecar"
         ],
         "routes": [
           {
             "provider": "all",
+            "platform": "lightning",
             "backend": "setup-svc/devconsole",
             "transport": "direct",
             "availability": "enabled"
+          },
+          {
+            "provider": "all",
+            "platform": "horizontal",
+            "backend": "main-app",
+            "transport": "struts-action",
+            "availability": "enabled",
+            "actions": [
+              "create",
+              "publish",
+              "get",
+              "detail",
+              "delete"
+            ]
           }
         ]
       },
@@ -1617,8 +1634,16 @@
         "routes": [
           {
             "provider": "all",
+            "platform": "lightning",
             "backend": "setup-svc",
             "transport": "direct",
+            "availability": "enabled"
+          },
+          {
+            "provider": "all",
+            "platform": "horizontal",
+            "backend": "main-app",
+            "transport": "struts-action",
             "availability": "enabled"
           }
         ],
@@ -1627,7 +1652,10 @@
           "format",
           "doctor",
           "validate",
-          "publish"
+          "publish",
+          "get",
+          "detail",
+          "delete"
         ],
         "commands": [
           "cloudcc create classes <ClassName> [projectPath]",
@@ -1660,8 +1688,16 @@
         "routes": [
           {
             "provider": "all",
+            "platform": "lightning",
             "backend": "setup-svc",
             "transport": "direct",
+            "availability": "enabled"
+          },
+          {
+            "provider": "all",
+            "platform": "horizontal",
+            "backend": "main-app",
+            "transport": "struts-action",
             "availability": "enabled"
           }
         ],
@@ -1669,7 +1705,10 @@
           "create",
           "format",
           "validate",
-          "publish"
+          "publish",
+          "get",
+          "detail",
+          "delete"
         ],
         "commands": [
           "cloudcc create trigger <objectApi/TriggerName> [projectPath]",
@@ -1700,8 +1739,16 @@
         "routes": [
           {
             "provider": "all",
+            "platform": "lightning",
             "backend": "setup-svc",
             "transport": "direct",
+            "availability": "enabled"
+          },
+          {
+            "provider": "all",
+            "platform": "horizontal",
+            "backend": "main-app",
+            "transport": "struts-action",
             "availability": "enabled"
           }
         ],
@@ -1709,7 +1756,10 @@
           "create",
           "format",
           "validate",
-          "publish"
+          "publish",
+          "get",
+          "detail",
+          "delete"
         ],
         "commands": [
           "cloudcc create timer <TimerName> [projectPath]",
@@ -1740,9 +1790,17 @@
         "routes": [
           {
             "provider": "all",
+            "platform": "lightning",
             "backend": "setup-svc/devconsole",
             "transport": "direct",
             "availability": "enabled"
+          },
+          {
+            "provider": "all",
+            "platform": "horizontal",
+            "backend": "main-app",
+            "transport": "none",
+            "availability": "unsupported"
           }
         ],
         "actions": [
@@ -1780,9 +1838,17 @@
         "routes": [
           {
             "provider": "all",
+            "platform": "lightning",
             "backend": "setup-svc/devconsole",
             "transport": "direct",
             "availability": "enabled"
+          },
+          {
+            "provider": "all",
+            "platform": "horizontal",
+            "backend": "main-app",
+            "transport": "none",
+            "availability": "unsupported"
           }
         ],
         "actions": [
@@ -1820,21 +1886,34 @@
         "routes": [
           {
             "provider": "all",
+            "platform": "lightning",
             "backend": "setup-svc/devconsole",
             "transport": "direct",
+            "availability": "enabled"
+          },
+          {
+            "provider": "all",
+            "platform": "horizontal",
+            "backend": "main-app",
+            "transport": "struts-action",
             "availability": "enabled"
           }
         ],
         "actions": [
           "create",
+          "update",
           "get",
           "detail",
-          "publish",
+          "pull",
           "delete"
         ],
         "commands": [
-          "cloudcc create staticResource <name> [projectPath]",
-          "cloudcc publish staticResource <name> [projectPath]"
+          "cloudcc create staticResource <name> <filePath> [description]",
+          "cloudcc update staticResource <projectPath> <resourceId> <name> <filePath> [description]",
+          "cloudcc get staticResource <projectPath>",
+          "cloudcc detail staticResource <projectPath> <resourceId>",
+          "cloudcc pull staticResource <projectPath> <resourceId> <outputPath>",
+          "cloudcc delete staticResource <projectPath> <resourceId>"
         ],
         "documentation": {
           "introduction": "cloudcc doc platform/staticResource introduction",
@@ -1860,9 +1939,17 @@
         "routes": [
           {
             "provider": "all",
+            "platform": "lightning",
             "backend": "devconsole",
             "transport": "direct",
             "availability": "enabled"
+          },
+          {
+            "provider": "all",
+            "platform": "horizontal",
+            "backend": "main-app",
+            "transport": "none",
+            "availability": "unsupported"
           }
         ],
         "actions": [
@@ -1905,9 +1992,17 @@
         "routes": [
           {
             "provider": "all",
+            "platform": "lightning",
             "backend": "devconsole",
             "transport": "direct",
             "availability": "enabled"
+          },
+          {
+            "provider": "all",
+            "platform": "horizontal",
+            "backend": "main-app",
+            "transport": "none",
+            "availability": "unsupported"
           }
         ],
         "actions": [
@@ -1925,6 +2020,101 @@
         "documentation": {
           "introduction": "cloudcc doc platform/customPage introduction",
           "devguide": "cloudcc doc platform/customPage devguide"
+        }
+      },
+      {
+        "name": "visualPage",
+        "label": "Horizontal VisualPage/JSP pages",
+        "kind": "resource",
+        "parent": "highcode",
+        "category": "high-code",
+        "aliases": [
+          "visualpage",
+          "page"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "enabled",
+          "universal": "enabled"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "all",
+            "platform": "horizontal",
+            "backend": "main-app",
+            "transport": "struts-action",
+            "availability": "enabled"
+          }
+        ],
+        "actions": [
+          "create",
+          "publish",
+          "get",
+          "detail",
+          "assignProfiles",
+          "enableForProfile",
+          "delete"
+        ],
+        "commands": [
+          "cloudcc create visualPage <name>",
+          "cloudcc publish visualPage <name> [projectPath]",
+          "cloudcc get visualPage <projectPath>",
+          "cloudcc detail visualPage <projectPath> <id>",
+          "cloudcc assignProfiles visualPage <projectPath> <pageId> <profileIds>",
+          "cloudcc enableForProfile visualPage <projectPath> <profileId> <pageIds>",
+          "cloudcc delete visualPage <projectPath> <id>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/visualPage introduction",
+          "devguide": "cloudcc doc platform/visualPage devguide"
+        }
+      },
+      {
+        "name": "customComponent",
+        "label": "Horizontal custom components",
+        "kind": "resource",
+        "parent": "highcode",
+        "category": "high-code",
+        "aliases": [
+          "customcomponent"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "enabled",
+          "universal": "enabled"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "all",
+            "platform": "horizontal",
+            "backend": "main-app",
+            "transport": "struts-action",
+            "availability": "enabled"
+          }
+        ],
+        "actions": [
+          "create",
+          "publish",
+          "get",
+          "detail",
+          "used",
+          "delete"
+        ],
+        "commands": [
+          "cloudcc create customComponent <name>",
+          "cloudcc publish customComponent <name> [projectPath]",
+          "cloudcc get customComponent <projectPath>",
+          "cloudcc detail customComponent <projectPath> <id>",
+          "cloudcc used customComponent <projectPath> <id>",
+          "cloudcc delete customComponent <projectPath> <id>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/customComponent introduction",
+          "devguide": "cloudcc doc platform/customComponent devguide"
         }
       },
       {
@@ -1981,6 +2171,9 @@
         "dataIndex",
         "dataBulk",
         "query/pageQuery/create/update/delete/upsert openapi"
+      ],
+      "limitations": [
+        "Horizontal low-code UIAPI does not use legacy main-app Jersey Resource endpoints because they are unmaintained and may be incomplete; only separately verified Struts Action adapters may be enabled."
       ],
       "unsupportedPolicy": "fail-before-lightning-fallback"
     }

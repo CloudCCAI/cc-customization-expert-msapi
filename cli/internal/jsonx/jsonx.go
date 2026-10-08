@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -28,6 +29,33 @@ func ParseEncodedObject(encoded string, label string) (map[string]any, error) {
 		return nil, fmt.Errorf("%s: request body must be a JSON object", label)
 	}
 	return body, nil
+}
+
+func WriteObjectFileAtomic(file string, data map[string]any) error {
+	b, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		return err
+	}
+	b = append(b, '\n')
+	if err := os.MkdirAll(filepath.Dir(file), 0755); err != nil {
+		return err
+	}
+	temp, err := os.CreateTemp(filepath.Dir(file), ".cloudcc-config-*")
+	if err != nil {
+		return err
+	}
+	tempPath := temp.Name()
+	defer os.Remove(tempPath)
+	if _, err = temp.Write(b); err == nil {
+		err = temp.Sync()
+	}
+	if closeErr := temp.Close(); err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		return err
+	}
+	return os.Rename(tempPath, file)
 }
 
 func ReadObjectFile(file string) (map[string]any, error) {

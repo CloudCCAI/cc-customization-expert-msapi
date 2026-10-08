@@ -332,6 +332,10 @@ func Handle(action string, resource string, args []string, stdout io.Writer, std
 		return handleStaticResource(action, args, stdout, stderr, cwd)
 	case "customPage":
 		return handleCustomPage(action, args, stdout, stderr, cwd)
+	case "visualPage", "visualpage", "page":
+		return handleVisualPage(action, args, stdout, stderr, cwd)
+	case "customComponent", "customcomponent":
+		return handleHorizontalCustomComponent(action, args, stdout, stderr, cwd)
 	case "scheduleJob":
 		return handleScheduleJob(action, args, stdout, cwd)
 	case "pagecomponent", "plugin", "plugins":
@@ -1363,6 +1367,11 @@ func handleFieldsGet(args []string, stdout io.Writer, cwd string) error {
 }
 
 func handleCodeResource(action string, resource string, dir string, apiName string, args []string, stdout io.Writer, stderr io.Writer, cwd string) error {
+	if action != "create" && action != "publish" {
+		if handled, err := horizontalCodeRemote(action, resource, args, stdout, cwd); handled || err != nil {
+			return err
+		}
+	}
 	switch action {
 	case "create":
 		return createJavaResource(dir, resource, args, stderr, cwd)
@@ -1511,6 +1520,9 @@ func publishJavaResource(dir string, apiName string, args []string, stdout io.Wr
 	if err != nil {
 		return err
 	}
+	if config.IsHorizontal(cfg) {
+		return horizontalJavaPublish(projectPath, cfg, "timer", name, source, filepath.Join(srcDir, "config.json"), cfgContent, stdout, stderr)
+	}
 	timerID := strings.TrimSpace(fmt.Sprint(configID(cfgContent)))
 	operationEdit := timerID != "" && timerID != "<nil>"
 	var preSaveDetail map[string]any
@@ -1591,6 +1603,10 @@ func publishClassResource(args []string, stdout io.Writer, stderr io.Writer, cwd
 		return err
 	}
 	source = strings.TrimSpace(source)
+	cfg, err := config.Load(opts.ProjectPath)
+	if err != nil {
+		return err
+	}
 	validation := classValidationResult{}
 	if opts.ValidationEvidence != "" {
 		b, readErr := os.ReadFile(opts.ValidationEvidence)
@@ -1614,9 +1630,8 @@ func publishClassResource(args []string, stdout io.Writer, stderr io.Writer, cwd
 	if cfgContent == nil {
 		cfgContent = map[string]any{}
 	}
-	cfg, err := config.Load(opts.ProjectPath)
-	if err != nil {
-		return err
+	if config.IsHorizontal(cfg) {
+		return horizontalJavaPublish(opts.ProjectPath, cfg, "classes", name, source, filepath.Join(srcDir, "config.json"), cfgContent, stdout, stderr)
 	}
 	publishURL, err := classPublishBaseURL(cfg)
 	if err != nil {
@@ -2040,14 +2055,21 @@ func handleHTML(action string, args []string, stdout io.Writer, stderr io.Writer
 }
 
 func handleStaticResource(action string, args []string, stdout io.Writer, stderr io.Writer, cwd string) error {
+	projectPath := cwd
+	if action != "create" {
+		projectPath = firstArg(args, cwd)
+	}
+	cfg, err := config.Load(projectPath)
+	if err != nil {
+		return err
+	}
+	if config.IsHorizontal(cfg) {
+		return handleHorizontalStaticResource(action, args, projectPath, cfg, stdout)
+	}
 	switch action {
 	case "create":
 		if len(args) < 2 {
 			return fmt.Errorf("cloudcc create staticResource <name> <filePath>")
-		}
-		cfg, err := config.Load(cwd)
-		if err != nil {
-			return err
 		}
 		body := map[string]any{"name": args[0], "filePath": args[1]}
 		return postClass(stdout, cwd, cfg, "setup", "/api/staticResource/save", body)

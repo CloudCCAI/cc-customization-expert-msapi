@@ -83,13 +83,19 @@ func CheckProject(projectPath string, capabilities ...string) Report {
 			if !ok {
 				continue
 			}
+			message := "This compatibility rule targets Lightning MetadataService/setup-svc routes and does not apply to horizontal."
+			if capability == CapabilityHighCodePublishValidationGate {
+				message = "This compatibility rule targets Lightning setup-svc validation routes; horizontal high-code uses the independent authenticated main-app Struts Action contract."
+			} else if capability == CapabilityAPIRegistrarRemoteRuntime {
+				message = "This compatibility rule targets Lightning setup-svc runtime routes; horizontal API-registrar runtime debug/log actions remain unsupported, while metadata CRUD uses MetadataService."
+			}
 			checks = append(checks, Check{
 				Capability:           req.Capability,
 				Label:                req.Label,
 				Status:               "not_applicable",
 				CurrentSkillVersion:  version.Current(),
 				RequiredSkillVersion: req.IntroducedInSkillVersion,
-				Message:              "This compatibility rule targets Lightning MetadataService/setup-svc routes; the horizontal adapter is not enabled for this capability.",
+				Message:              message,
 				Reason:               req.Reason,
 			})
 		}

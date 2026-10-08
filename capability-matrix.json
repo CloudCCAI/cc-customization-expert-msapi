@@ -23,14 +23,15 @@
       "metadata.msapi.shared": "enabled",
       "metadata.msapi.reports|dashboards.write": "pending_projection",
       "metadata.msapi.api-registrars.write": "enabled",
-      "metadata.uiapi.objects|applications|record-types.read": "contract_tested",
-      "metadata.uiapi.object-views.crud": "contract_tested_with_readback",
-      "metadata.uiapi.layouts.detail|save": "contract_tested_with_readback",
+      "metadata.uiapi.legacy-jersey-resource.*": "unsupported_unmaintained_incomplete",
+      "metadata.uiapi.struts-action.*": "pending_adapter",
       "metadata.uiapi.api-registrars.*": "unsupported_no_mainapp_controller",
-      "metadata.uiapi.other": "pending_adapter",
       "dataIndex.msapi.*": "enabled",
       "dataBulk.msapi.*": "enabled",
-      "highcode.remote": "pending_adapter"
+      "highcode.classes|triggers|timer.struts-action": "contract_tested_no_authoritative_readback",
+      "highcode.visualPage|staticResource|customComponent.struts-action": "contract_tested_no_authoritative_readback",
+      "highcode.script|html.horizontal": "unsupported_out_of_scope",
+      "highcode.customPage|pagecomponent.horizontal": "unsupported_different_architecture"
     }
   },
   "domains": [

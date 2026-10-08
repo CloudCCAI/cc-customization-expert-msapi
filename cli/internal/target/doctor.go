@@ -49,8 +49,8 @@ func WriteDoctor(projectPath string, stdout io.Writer) error {
 	}
 
 	result.SelectedProvider = selectedHorizontalProvider(cfg)
-	metadataAvailability := "provider-adapter"
-	metadataReason := "source-backed UIAPI batch supports object/application/record-type reads, object-view CRUD, and PC page-layout detail/save"
+	metadataAvailability := "unsupported"
+	metadataReason := "legacy main-app Jersey Resource endpoints are intentionally disabled because they are unmaintained and may be incomplete; no maintained Struts Action metadata adapter is enabled"
 	dataExtensionAvailability := "requires-msapi"
 	dataExtensionReason := "configure MetadataService and select msapi or auto"
 	if hasMetadataService(cfg) {
@@ -64,7 +64,12 @@ func WriteDoctor(projectPath string, stdout io.Writer) error {
 		{Domain: "metadata", Actions: "*", Availability: metadataAvailability, Reason: metadataReason},
 		{Domain: "api-registrars", Actions: "uiapi-management", Availability: "unsupported", Reason: "main-app exposes no registered management controller; select MSAPI"},
 		{Domain: "dataIndex,dataBulk", Actions: "*", Availability: dataExtensionAvailability, Reason: dataExtensionReason},
-		{Domain: "highcode", Actions: "remote", Availability: "pending-evidence", Reason: "main-app high-code adapter is not enabled"},
+		{
+			Domain:       "highcode",
+			Actions:      "classes,triggers,timer,visualPage,staticResource,customComponent",
+			Availability: "enabled",
+			Reason:       "authenticated main-app Struts Action adapters are enabled; script, html, Lightning customPage, and Lightning pagecomponent remain unsupported on horizontal",
+		},
 	}
 	result.MainAppOrigin = origin(config.String(cfg, "mainAppUrl"))
 	result.AuthConfigured = strings.TrimSpace(config.String(cfg, "username")) != "" && config.String(cfg, "password") != ""

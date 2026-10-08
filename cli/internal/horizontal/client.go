@@ -127,6 +127,23 @@ func (c *Client) AcquireSession(ctx context.Context, projectPath string, cfg con
 	return session, nil
 }
 
+// AcquireActionSession always performs a fresh login on this client's CookieJar.
+// Struts Actions depend on server-side session attributes and JSESSIONID in
+// addition to binding. A cached binding can be valid for distributor calls but
+// cannot recreate cookies in a newly constructed HTTP client.
+func (c *Client) AcquireActionSession(ctx context.Context, projectPath string, cfg config.Config) (Session, error) {
+	session, err := c.Login(ctx, config.String(cfg, "username"), config.String(cfg, "password"), config.String(cfg, "language"))
+	if err != nil {
+		return Session{}, err
+	}
+	if err := config.SaveHorizontalSession(projectPath, config.HorizontalSessionCache{
+		Binding: session.Binding, Token: session.Token, UserInfo: cacheableUserInfo(session.UserInfo),
+	}); err != nil {
+		return Session{}, fmt.Errorf("horizontal session cache failed: %w", err)
+	}
+	return session, nil
+}
+
 func cacheableUserInfo(userInfo map[string]any) map[string]any {
 	out := map[string]any{}
 	for _, key := range []string{"userId", "userid", "orgId", "orgid", "profileId", "profileid", "roleId", "roleid", "language", "dbType"} {

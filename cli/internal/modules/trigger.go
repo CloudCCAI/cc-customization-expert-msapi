@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"strings"
 
 	"cloudcc-customization-expert-go/internal/config"
+	"cloudcc-customization-expert-go/internal/horizontalaction"
 	"cloudcc-customization-expert-go/internal/jsonx"
 )
 
@@ -22,6 +24,9 @@ const (
 )
 
 func triggerList(args []string, stdout io.Writer, cwd string) error {
+	if handled, err := horizontalCodeRemote("get", "trigger", args, stdout, cwd); handled || err != nil {
+		return err
+	}
 	projectPath := firstArg(args, cwd)
 	body := triggerListRequest("")
 	if len(args) > 1 && strings.TrimSpace(args[1]) != "" {
@@ -48,6 +53,9 @@ func triggerDetail(args []string, stdout io.Writer, cwd string) error {
 	if len(args) < 2 || strings.TrimSpace(args[1]) == "" {
 		return fmt.Errorf("cloudcc detail trigger <projectPath> <id|name|apiName>")
 	}
+	if handled, err := horizontalCodeRemote("detail", "trigger", args, stdout, cwd); handled || err != nil {
+		return err
+	}
 	projectPath := firstArg(args, cwd)
 	cfg, err := config.Load(projectPath)
 	if err != nil {
@@ -70,6 +78,9 @@ func triggerDetail(args []string, stdout io.Writer, cwd string) error {
 func triggerDelete(args []string, stdout io.Writer, cwd string) error {
 	if len(args) < 2 || strings.TrimSpace(args[1]) == "" {
 		return fmt.Errorf("cloudcc delete trigger <projectPath> <id|name|apiName>")
+	}
+	if handled, err := horizontalCodeRemote("delete", "trigger", args, stdout, cwd); handled || err != nil {
+		return err
 	}
 	projectPath := firstArg(args, cwd)
 	cfg, err := config.Load(projectPath)
@@ -115,6 +126,38 @@ func triggerSaveSpec(action string, args []string, stdout io.Writer, cwd string)
 			spec["triggerSource"] = "// Empty trigger created by CloudCC CLI."
 		}
 	}
+	rawSource := cleanAny(spec["triggerSource"])
+	if rawSource != "" && triggerSpecSourceEncoded(spec) {
+		decoded, decodeErr := url.QueryUnescape(rawSource)
+		if decodeErr != nil {
+			return fmt.Errorf("horizontal trigger sourceEncoded value is invalid: %w", decodeErr)
+		}
+		rawSource = decoded
+	}
+	cfg, err := config.Load(projectPath)
+	if err != nil {
+		return err
+	}
+	if config.IsHorizontal(cfg) {
+		form := url.Values{
+			"m":                      {"save"},
+			"trigger.id":             {cleanAny(spec["id"])},
+			"trigger.apiname":        {cleanAny(firstAny(spec["apiname"], spec["apiName"]))},
+			"trigger.name":           {cleanAny(spec["name"])},
+			"trigger.triggerTime":    {cleanAny(spec["triggerTime"])},
+			"trigger.targetObjectId": {cleanAny(spec["targetObjectId"])},
+			"trigger.isactive":       {firstNonBlankString(cleanAny(firstAny(spec["isactive"], spec["isActive"])), "true")},
+			"trigger.folderid":       {firstNonBlankString(cleanAny(firstAny(spec["folderid"], spec["folderId"])), "wgd")},
+			"trigger.version":        {firstNonBlankString(cleanAny(spec["version"]), "2")},
+			"trigger.remark":         {cleanAny(spec["remark"])},
+			"trigger.triggerSource":  {rawSource},
+		}
+		receipt, executeErr := horizontalaction.ExecuteForm(context.Background(), projectPath, cfg, "trigger", action, form, true)
+		if executeErr != nil {
+			return executeErr
+		}
+		return printJSON(stdout, receipt)
+	}
 	if source := strings.TrimSpace(fmt.Sprint(spec["triggerSource"])); source != "" && source != "<nil>" && !triggerSpecSourceEncoded(spec) {
 		spec["triggerSource"] = encodeJavaURLDecoderComponent(source)
 	}
@@ -125,10 +168,6 @@ func triggerSaveSpec(action string, args []string, stdout io.Writer, cwd string)
 	delete(spec, "sourceFile")
 	delete(spec, "sourceEncoded")
 	delete(spec, "triggerSourceEncoded")
-	cfg, err := config.Load(projectPath)
-	if err != nil {
-		return err
-	}
 	operationEdit := strings.TrimSpace(fmt.Sprint(spec["id"])) != "" && strings.TrimSpace(fmt.Sprint(spec["id"])) != "<nil>"
 	if operationEdit {
 		if detail, detailErr := triggerRequest(projectPath, cfg, triggerDetailEndpoint, map[string]any{"id": spec["id"]}, "Resolve Trigger Version Failed"); detailErr == nil {
@@ -195,6 +234,9 @@ func publishTrigger(args []string, stdout io.Writer, stderr io.Writer, cwd strin
 	cfg, err := config.Load(projectPath)
 	if err != nil {
 		return err
+	}
+	if config.IsHorizontal(cfg) {
+		return horizontalTriggerPublish(projectPath, cfg, name, source, configPath, cfgContent, stdout, stderr)
 	}
 	triggerID := strings.TrimSpace(fmt.Sprint(configID(cfgContent)))
 	operationEdit := triggerID != "" && triggerID != "<nil>"

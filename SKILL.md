@@ -1,19 +1,19 @@
 ---
 name: cc-customization-expert-msapi
-version: 2.2.90-msapi
+version: 2.2.91-msapi
 description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService."
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.2.90-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.2.91-msapi
 
-当前技能版本：`2.2.90-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.2.91-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
 
 - 低代码元数据统一使用稳定的 CloudCC CLI 词汇和共享能力矩阵；高代码资源继续使用 CloudCC 原有 resource/API 通道。
 - 执行模式从 `CLOUDCC_EXECUTION_MODE`、当前环境 `executionMode` / `execution_mode`、包默认值依次解析；仅支持 `auto`、`msapi`、`uiapi`。
 - 技能包根目录默认带 Lightning `cloudcc-cli.config.json`。首次初始化先问平台是 `lightning` 还是 `horizontal`，未指定时必须保持 Lightning。Lightning 再区分公有云/私有云；横纵版运行 `cloudcc create project <name|.> --platform horizontal`，替换 `mainAppUrl`、`username`、`password` 占位值后运行 `cloudcc doctor platform` 和 `cloudcc doctor provider`。
-- 横纵版可使用 `executionMode=auto|msapi|uiapi`；配置 MetadataService 后共享低代码、接口注册器完整元数据 CRUD、`dataIndex`、`dataBulk` 可走 MSAPI，常规 OpenAPI CRUD 走 main-app。首批 UIAPI 支持对象/应用/记录类型读取、对象视图 CRUD、PC 页面布局详情与保存；接口注册器管理及其他未验证 UIAPI 动作失败关闭。尚未适配的高代码远程动作不得回落到 Lightning 路由。
+- 横纵版可使用 `executionMode=auto|msapi|uiapi`；配置 MetadataService 后共享低代码、接口注册器完整元数据 CRUD、`dataIndex`、`dataBulk` 可走 MSAPI，常规 OpenAPI CRUD 走 `distributor.action`。横纵版低代码 UIAPI 禁止调用 main-app 历史 Jersey Resource：该接口族长期未维护，不能保证完整性。只有逐项验证过的 Struts Action 适配器才可开放；当前未适配的元数据动作全部在网络请求和 Lightning fallback 前失败关闭。尚未适配的高代码远程动作也不得回落到 Lightning 路由。
 - 每次环境切换或首次写入前运行：`tools/bin/cloudcc doctor provider <projectPath>`。输出会明确所选 provider、原因、安全级别和目标 MetadataService/setup-svc 兼容性。
 - `auto` 仅对已配置的 MetadataService 做 `GET /metadata/v1/capabilities` 只读探测；未配置时选择 UIAPI。已配置但不可用、认证失败或不兼容时失败关闭，绝不静默降级。
 - MSAPI 原生提供服务端 plan/apply/changes/rollback；UIAPI 是直接 CloudCC UI/API 调用，不承诺服务端 ledger 或 rollback。不要把 UIAPI 补偿操作当作 MSAPI 回滚。
@@ -37,8 +37,12 @@ description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict Metad
 - 从技能 `2.2.86` 开始，CLI 增加横纵版只读基础：`platformMode` 缺省严格按 `lightning` 处理，只有显式 `horizontal` 才进入横纵版；`cloudcc doctor platform` 检查目标、认证状态和能力，`query openapi` 支持只读查询；其他横纵版远程操作必须在 Lightning fallback 前失败关闭。现有 Lightning JSON/accessToken 请求契约不得变化。
 - 从技能 `2.2.87` 开始，PC 页面布局可通过 `type=customPage`、`customPageId`、`pageApi` 引用已经存在的自定义页面。该布局项必须独占一个单列分组，支持 `detail pagelayout` 规范化回读、更新复用和布局克隆；旧 `LIGHTNINGPAGE_` 输入仅作兼容。要求 MetadataService `1.1.75` 或更高版本，完整用户参数和命令见 `cloudcc doc platform/pagelayout devguide`。
 - 从技能 `2.2.88` 开始，横纵版可通过 MetadataService 执行共享低代码、`dataIndex` 和 `dataBulk`，并通过 main-app 执行常规 OpenAPI CRUD；报表/仪表板写入保持失败关闭。
-- 从技能 `2.2.89` 开始，横纵版接口注册器支持 MSAPI 完整元数据 CRUD；UIAPI 首批支持对象/应用/记录类型读取、对象视图 CRUD、PC 页面布局详情与保存，写操作必须成功并完成权威回读。接口注册器 UIAPI 管理因 main-app 没有外部控制器而不支持，默认平台仍为 Lightning。
-- 从技能 `2.2.90` 开始，横纵版第一版统一收口：UIAPI 输出递归脱敏 binding/token/password 及 URL 查询参数，HTTP 200 业务失败非零退出且不输出服务端堆栈，记录类型读取使用对象元数据接口，对象详情解析大小写不一致的对象 ID，对象编辑保持部分 `update` 语义并保留省略的 API 名。
+- 从技能 `2.2.89` 开始，横纵版接口注册器支持 MSAPI 完整元数据 CRUD；接口注册器 UIAPI 管理和运行态动作不支持，默认平台仍为 Lightning。
+- 技能 `2.2.90` 明确收紧横纵版限制：不得使用 main-app `/api/*` 历史 Jersey Resource 作为低代码 UIAPI，包括曾验证可达的对象、应用、记录类型、对象视图、页面布局、币种和会计年度接口。可达不等于完整或受维护；这些动作在独立 Struts Action 契约完成前统一失败关闭。MSAPI、`distributor.action` OpenAPI 和 Lightning 行为不受影响。
+- 技能 `2.2.90` 同一横纵版兼容功能继续补齐高代码：显式 `platformMode=horizontal` 时，类、触发器、定时类、VisualPage、静态资源和横纵版独有 `customComponent` 使用 main-app Struts Action 与登录会话；Lightning 路由保持原样。横纵版不使用 devconsole，不把 Lightning `customPage/pagecomponent` 契约套到 VisualPage/customComponent，也不增加 script、html 或 MCP 支持。写操作只按 HTTP 2xx/3xx 报告 `submitted`，不解析 JSP 业务标志或做权威回读；网络错误、超时、4xx/5xx 才失败。
+- 从技能 `2.2.91` 开始，上述六个横纵版高代码 domain 在同一 Action 会话内按自然键精确恢复 publish ID、调用详情确认并原子回写本地配置。ID 解析不读取 JSP 业务成功标志，不改变 HTTP 2xx/3xx 的 `submitted` 判定；未解析到唯一 ID 时仅输出 `idResolution=unresolved` 且不写配置。触发器和定时类首次发布会固化稳定 `apiname`，静态资源使用 `staticResource/<name>/config.json` 保存 ID。
+- 生成横纵版页面前必须读取 `platform/visualPage devguide`，明确页面入口、对象字段、权限、空态/错误态、分页、移动端和静态资源/组件依赖，再生成 `visualpage/<name>/<name>.jsp`。文件虽使用 `.jsp` 扩展名，但必须以自闭合 `<cc:page ... />` 开始并使用平台 `cc` 标签 DSL 与 HTML，禁止 JSP directive、scriptlet 和 JSP namespace 标签；标准布局能满足时仍优先低代码，复杂业务下沉自定义类。
+- 生成横纵版自定义组件前必须读取 `platform/customComponent devguide`。必须明确它是 `<cc:component>` DSL 而非 Lightning Vue pagecomponent，完整描述输入输出、查询边界、转义、多实例 DOM/JavaScript 命名空间和依赖；禁止原始 JSP scriptlet、JSP namespace 标签、嵌套组件、凭据、binding/token、固定租户 URL、全表查询和循环内查询。
 - 从技能 `2.2.81` 开始，普通业务数据查询、新增、修改、删除和 upsert 统一使用 `openapi`，标准 CRM 对象和自定义对象都支持。`dataBulk` 仅用于大批量数据导入、初始化和离线批处理，不适用于日常业务场景；`dataIndex` 仅用于数据库索引优化；对象、字段、页面、权限和流程等平台二开配置使用对应元数据 Domain。
 - 从技能 `2.2.83` 开始，`openapi` 增加已有业务记录附件上传绑定与提交审批：`uploadAttachment openapi` 流式调用 api-svc `/api/file/upload` 后自动调用 `/api/file/bind`，绑定失败保留 `fileContentId/fileinfoid` 且不自动删除；`submitApproval openapi` 调用 `/api/approval/submitApproval`，要求真实 `relatedId`，可选 `fprId/comments/appPath`，`Manual` 响应要求补有效 `fprId` 重试。两项能力均不进入 MetadataService plan/apply。
 - 从技能 `2.2.41` 开始，`cloudcc get/getList view` 统一作为对象视图列表查询，可传对象 ID/API 名/前缀或 JSON filter；`detail/editInfo view` 才按 viewId 查详情。字段文档明确 `P`、`c`、`N`、`LT` 的 create/update/upsert 精度规则为 `length + decimalPlaces <= 18`，历史非法字段需要先修复字段定义，CLI 不自动缩短字段。
@@ -69,7 +73,7 @@ description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict Metad
 - 业务数据批量作业使用一级 `dataBulk` Domain，按对象/字段元数据直接写物理表，不执行验证规则、触发器、查重过滤器、共享规则或工作流。
 - 从技能 `2.2.53` 开始，验证规则 CLI 用户级文档说明 `$User.id`、`$User.name`、角色、简档和联系信息等常用属性，并保留 `$User.<schemefieldName>` 动态用户对象字段能力。
 - 从技能 `2.2.50` 开始，记录类型详情的选项列表值分配纳入 MetadataService：`saveDependency/assignPicklistValues recordType` 生成 `record-types save-dependency` 计划，对齐 setup-svc `/api/recordType/saveDependency` 的所选值全量替换、未选旧值删除和默认值设置语义，要求 MetadataService `1.1.52` 或更高版本。
-- 高代码发布前先读 `cloudcc doc platform/classes|triggers|timer devguide` 或 `platform/almRelease devguide`；从技能 `2.2.7` 开始，classes/triggers/timer 的 publish 建议 setup-svc `19.3.R20` 或更高版本，不要求 MetadataService 版本门槛。classes 固定执行本地编译、目标 setup-svc validate、最后 save；triggers/timer 执行目标 setup-svc validate、最后 save；并把 validate 失败详情返回调用方。
+- 高代码发布前先读 `cloudcc doc platform/classes|triggers|timer devguide` 或 `platform/almRelease devguide`。Lightning 从技能 `2.2.7` 开始建议 setup-svc `19.3.R20` 或更高版本：classes 执行本地编译、目标 setup-svc validate、最后 save，triggers/timer 执行目标 setup-svc validate、最后 save，并返回 validate 失败详情。横纵版不调用 setup-svc 高代码接口：classes 保留本地编译/结构门禁，classes/triggers/timer 随后提交 main-app Struts Action，并只按 HTTP 2xx/3xx 报告 `submitted`。两种平台的高代码发布都不要求 MetadataService 版本门槛。
 - 从技能 `2.2.38` 开始，classes/triggers/timer 创建时默认发送 setup-svc 自定义代码 `version=3`；更新时先读取目标 detail，优先沿用线上记录的 version，线上 version 为空按旧版 `2` 处理，再 validate/save，并在保存后把线上 ID/version 写回本地 `config.json`，避免旧本地配置把线上版本 3 降级。
 - 能力矩阵在 `capability-matrix.json`。`adapter` 表示已有 UIAPI 适配通道；`requires_adapter` 表示该 UIAPI 操作当前必须失败关闭，不能改走 MetadataService。
 
