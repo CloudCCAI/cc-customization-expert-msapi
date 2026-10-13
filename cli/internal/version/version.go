@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.91"
+const Version = "2.2.92"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,6 +48,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- API registrar SOAP/XML parity adds POST-only raw XML debug validation, SOAP-aware user guidance, XML credential redaction, and a refreshed offline cloudcc.jar so CCRemoteClient.ContentType.XML compiles without a platform checkout. SOAP 1.1 defaults to text/xml; callers may override Content-Type for SOAP 1.2. MetadataService CRUD and horizontal runtime-action boundaries are unchanged.")
 		fmt.Fprintln(stderr, "- Horizontal high-code now routes classes, triggers, timers, VisualPage/JSP pages, static resources, and horizontal-only customComponent through authenticated main-app Struts Actions. Lightning remains the default and keeps its existing setup-svc/devconsole behavior; horizontal script/html and MCP are intentionally out of scope. Mutations report transport submission from HTTP 2xx/3xx without parsing JSP business flags or performing authoritative readback.")
 		fmt.Fprintln(stderr, "- Horizontal low-code UIAPI now rejects all legacy main-app Jersey Resource endpoints before network access. Jersey resources are unmaintained and may be incomplete; only separately verified Struts Action adapters may be enabled. Horizontal MSAPI, distributor-based OpenAPI, and Lightning behavior are unchanged.")
 		fmt.Fprintln(stderr, "- Horizontal first-release hardening recursively redacts credentials and binding-bearing URLs, rejects HTTP 200 business failures without exposing server stacks, and preserves object API names by dispatching object edits as partial updates instead of upserts. Historical Jersey routing fixes remain test evidence only and are not supported UIAPI capabilities.")

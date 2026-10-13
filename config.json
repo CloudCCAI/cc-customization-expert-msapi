@@ -1,7 +1,7 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.2.91-msapi",
-  "releaseDate": "2026-10-08",
+  "version": "2.2.92-msapi",
+  "releaseDate": "2026-10-13",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
   "domainCatalog": {
@@ -2799,7 +2799,7 @@
       },
       {
         "capability": "setupSvc.apiRegistrar.remoteRuntime",
-        "label": "API registrar runtime debug/logs and high-code remote invocation adjustments",
+        "label": "API registrar runtime debug/logs, SOAP/XML, and high-code remote invocation adjustments",
         "introducedInSkillVersion": "2.2.33-msapi",
         "minimumSetupSvcVersion": "19.7.R8",
         "domains": [
@@ -2812,9 +2812,10 @@
           "debug",
           "logs",
           "logDetail",
-          "remote-call"
+          "remote-call",
+          "soap-xml"
         ],
-        "reason": "Recommends confirming setup-svc support for the adjusted API registrar runtime and high-code remote invocation contracts."
+        "reason": "Recommends confirming setup-svc support for API registrar runtime operations, raw SOAP/XML POST requests, and high-code remote invocation contracts."
       }
     ]
   },

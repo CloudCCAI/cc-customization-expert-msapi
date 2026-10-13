@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.91-msapi
+# cc-customization-expert-msapi v2.2.92-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -40,6 +40,8 @@ Strict MetadataService package: low-code operations require MetadataService.
 同一 `2.2.90` 横纵版兼容功能现已覆盖高代码 Struts 通道：类、触发器、定时类、VisualPage、静态资源和横纵版独有 customComponent。VisualPage/customComponent 有独立离线开发指南和生成约束，不复用 Lightning customPage/pagecomponent 或 devconsole；script、html 和 MCP 不在本阶段范围。写操作按 HTTP 2xx/3xx 报告 `submitted`，不把 main-app JSP 正文当作权威写入回读。
 
 从 `2.2.91` 开始，六个横纵版高代码 domain 会在同一 Action 会话内精确恢复并详情确认 publish ID，然后原子写入各自本地配置；无法确认唯一 ID 时保留 `submitted` 并报告 `idResolution=unresolved`。该补充流程不解析 JSP 业务成功标志，也不改变 Lightning 路由。
+
+从 `2.2.92` 开始，Lightning 接口注册器支持 POST-only SOAP/原始 XML 调试和高代码离线编译。CLI 会在发网前校验 XML 请求并脱敏日志中的 XML 凭据；SOAP 1.1/1.2 的调试文件和 Java 示例见 `cloudcc doc platform/apiRegistrar devguide`。MetadataService CRUD 与横纵版运行态限制不变。
 
 从技能 `2.2.87` 开始，PC 页面布局可在独占单列分组中用 `type=customPage`、`customPageId`、`pageApi` 引用已经存在的自定义页面。布局详情返回相同的可复用结构，布局克隆保留引用，旧 `LIGHTNINGPAGE_` 输入仅作兼容；要求 MetadataService `1.1.75` 或更高版本。运行 `cloudcc doc platform/pagelayout devguide` 查看完整参数、限制、命令和验收方式。
 

@@ -18,6 +18,20 @@ var apiRegistrarSecretTextPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`(?i)(password=)[^&\s"'<>]+`),
 }
 
+var apiRegistrarSecretXMLPatterns = []struct {
+	pattern     *regexp.Regexp
+	replacement string
+}{
+	{
+		pattern:     regexp.MustCompile(`(?is)(<(?:(?:[A-Za-z_][A-Za-z0-9_.-]*):)?[A-Za-z0-9_.-]*(?:authorization|cookie|token|password|passwd|secret|apikey|appkey|safetymark)[A-Za-z0-9_.-]*(?:\s[^>]*)?>).*?(</(?:(?:[A-Za-z_][A-Za-z0-9_.-]*):)?[A-Za-z0-9_.-]*(?:authorization|cookie|token|password|passwd|secret|apikey|appkey|safetymark)[A-Za-z0-9_.-]*\s*>)`),
+		replacement: `${1}` + apiRegistrarRedactedValue + `${2}`,
+	},
+	{
+		pattern:     regexp.MustCompile(`(?i)(\b(?:authorization|cookie|access[_-]?token|refresh[_-]?token|id[_-]?token|token|password|passwd|secret|api[_-]?key|app[_-]?key|client[_-]?secret|safetymark)\s*=\s*["'])[^"']*(["'])`),
+		replacement: `${1}` + apiRegistrarRedactedValue + `${2}`,
+	},
+}
+
 func redactApiRegistrarLogValue(value any) any {
 	switch typed := value.(type) {
 	case map[string]any:
@@ -83,6 +97,9 @@ func redactApiRegistrarLogString(value string) string {
 		}
 	}
 	redacted := value
+	for _, rule := range apiRegistrarSecretXMLPatterns {
+		redacted = rule.pattern.ReplaceAllString(redacted, rule.replacement)
+	}
 	for _, pattern := range apiRegistrarSecretTextPatterns {
 		redacted = pattern.ReplaceAllString(redacted, "${1}"+apiRegistrarRedactedValue)
 	}

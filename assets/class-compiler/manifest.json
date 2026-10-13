@@ -6,7 +6,7 @@
   "artifacts": [
     {"path":"WEB-INF/cclib/application.jar","size":161032,"sha256":"0fd567e3f60416b62494a5ef573d1d3efc432ea7af279c8893d6fc4e10c76ae6"},
     {"path":"WEB-INF/cclib/axis.jar","size":1640763,"sha256":"3c5c0e5fee32b0488d65ce0cfcfc796943a6067eaab67039d94982d9a1bd3369"},
-    {"path":"WEB-INF/cclib/cloudcc.jar","size":3822608,"sha256":"e34194d2268a17ac0d9f0816ae1421c1aa125190da9d3d652ec3fca60b52e05d"},
+    {"path":"WEB-INF/cclib/cloudcc.jar","size":3824046,"sha256":"87b117d1f6071690e8ef3c02ff0389903db4face6444de718c11159416279a68"},
     {"path":"WEB-INF/cclib/pinyin4j_2_5_0.jar","size":188920,"sha256":"6576dea7d351a0f5df1595b9c432ba7cf9246ca0ab6f7019b9ca4e6d500b0e68"},
     {"path":"WEB-INF/cclib/poi-4.1.1.jar","size":2827712,"sha256":"ddfdf660b815a8e1df5e76e7dd52b65314f1d662014abd450e0fe68c3633324b"},
     {"path":"WEB-INF/cclib/poi-ooxml-4.1.1.jar","size":1859884,"sha256":"3c8fc87be30f4992ca9e2d5743515e781ebf97696d270bbec0f51ee6f8543e9c"},

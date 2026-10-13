@@ -68,8 +68,8 @@ func Requirements() []Requirement {
 			MinimumMetadataServiceVersion: "1.1.41",
 			MinimumSetupSvcVersion:        "19.7.R8",
 			Domains:                       []string{"api-registrars", "classes", "triggers", "timer"},
-			Operations:                    []string{"debug", "logs", "logDetail", "remote-call"},
-			Reason:                        "Requires MetadataService API registrar metadata contracts and reminds operators to confirm setup-svc runtime debug/log and remote invocation contract support.",
+			Operations:                    []string{"debug", "logs", "logDetail", "remote-call", "soap-xml"},
+			Reason:                        "Requires MetadataService API registrar metadata contracts and reminds operators to confirm setup-svc runtime debug/log, raw SOAP/XML POST, and remote invocation contract support.",
 		},
 	}
 }

@@ -16,7 +16,7 @@
 ## 生命周期
 
 1. 创建：提交名称、URL、可选描述和可选 `apiCode`；平台生成 ID 和 `apiName`，缺省时生成 `apiCode`，初始状态为 `DRAFT`。
-2. 调试：服务端发起 HTTP 请求；当前 setup-svc 仅在 HTTP 状态码等于 `200` 时标记 `success` 并进入 `ACTIVE`，其他状态标记为 `failed`/`INACTIVE`。
+2. 调试：服务端发起 HTTP 请求；当前 setup-svc 在 HTTP 状态码属于 `2xx` 时标记 `success` 并进入 `ACTIVE`，其他状态或网络失败标记为 `failed`/`INACTIVE`。
 3. 修改：只修改 URL 或描述，状态回到 `DRAFT`，必须重新调试。
 4. 停用：运行态可为 `INACTIVE`，高代码正常调用不得把停用接口视为可用。
 5. 删除：逻辑删除配置并释放原 `apiCode`，因此该值可以用于新的注册项；既有调用日志保留。
@@ -30,3 +30,16 @@
 - 横纵版仅开放 MetadataService CRUD，不开放 `debug/logs/logDetail`；已注册接口仍可由 main-app 高代码运行时调用。
 - 当前注册 URL 只要求 CloudCC 服务端网络可访问，不附加域名白名单或客户端可访问要求。
 - 当前日志查看没有额外权限控制；方案不能虚构尚不存在的权限模型。
+
+## 支持的请求格式
+
+接口注册器支持 `GET`、`POST`，以及 `JSON`、`FORM`、`MULTIPART` 和 `XML`。XML 用于 SOAP 或其他
+原始 XML HTTP 服务，具有以下固定边界：
+
+- XML 只支持 `POST`，请求体按 UTF-8 原文发送，不解析 WSDL、XML Schema 或 SOAP Fault。
+- SOAP 1.1 默认使用 `text/xml;charset=UTF-8`，目标服务要求时由调用方提供 `SOAPAction`。
+- SOAP 1.2 应显式传入 `application/soap+xml;charset=UTF-8`，需要 action 时放在 Content-Type 参数中。
+- XML 请求同样受平台连接超时、读取超时、请求体大小、配额和限流规则约束。
+- 接口注册器只保存 URL。SOAP 用户名、密码、Token、证书等凭据必须由调用代码按请求传入，不能写入注册器描述或源码日志。
+
+CLI 调试和高代码调用的完整示例见 `cloudcc doc platform/apiRegistrar devguide`。

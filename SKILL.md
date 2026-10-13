@@ -1,12 +1,12 @@
 ---
 name: cc-customization-expert-msapi
-version: 2.2.91-msapi
+version: 2.2.92-msapi
 description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService."
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.2.91-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.2.92-msapi
 
-当前技能版本：`2.2.91-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.2.92-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
 
@@ -41,6 +41,7 @@ description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict Metad
 - 技能 `2.2.90` 明确收紧横纵版限制：不得使用 main-app `/api/*` 历史 Jersey Resource 作为低代码 UIAPI，包括曾验证可达的对象、应用、记录类型、对象视图、页面布局、币种和会计年度接口。可达不等于完整或受维护；这些动作在独立 Struts Action 契约完成前统一失败关闭。MSAPI、`distributor.action` OpenAPI 和 Lightning 行为不受影响。
 - 技能 `2.2.90` 同一横纵版兼容功能继续补齐高代码：显式 `platformMode=horizontal` 时，类、触发器、定时类、VisualPage、静态资源和横纵版独有 `customComponent` 使用 main-app Struts Action 与登录会话；Lightning 路由保持原样。横纵版不使用 devconsole，不把 Lightning `customPage/pagecomponent` 契约套到 VisualPage/customComponent，也不增加 script、html 或 MCP 支持。写操作只按 HTTP 2xx/3xx 报告 `submitted`，不解析 JSP 业务标志或做权威回读；网络错误、超时、4xx/5xx 才失败。
 - 从技能 `2.2.91` 开始，上述六个横纵版高代码 domain 在同一 Action 会话内按自然键精确恢复 publish ID、调用详情确认并原子回写本地配置。ID 解析不读取 JSP 业务成功标志，不改变 HTTP 2xx/3xx 的 `submitted` 判定；未解析到唯一 ID 时仅输出 `idResolution=unresolved` 且不写配置。触发器和定时类首次发布会固化稳定 `apiname`，静态资源使用 `staticResource/<name>/config.json` 保存 ID。
+- 从技能 `2.2.92` 开始，Lightning 接口注册器支持 POST-only SOAP/原始 XML 调试与高代码编译：CLI 在发网前校验 `contentType=XML`、POST 和非空原文，日志显示会脱敏 XML 敏感元素/属性，离线编译包包含支持 `CCRemoteClient.ContentType.XML` 的新版 `cloudcc.jar`。SOAP 1.1 默认 `text/xml;charset=UTF-8`，SOAP 1.2 由调用方覆盖 Content-Type；完整用法必须先读 `platform/apiRegistrar devguide`。MetadataService CRUD 和横纵版 `debug/logs/logDetail` 限制不变。
 - 生成横纵版页面前必须读取 `platform/visualPage devguide`，明确页面入口、对象字段、权限、空态/错误态、分页、移动端和静态资源/组件依赖，再生成 `visualpage/<name>/<name>.jsp`。文件虽使用 `.jsp` 扩展名，但必须以自闭合 `<cc:page ... />` 开始并使用平台 `cc` 标签 DSL 与 HTML，禁止 JSP directive、scriptlet 和 JSP namespace 标签；标准布局能满足时仍优先低代码，复杂业务下沉自定义类。
 - 生成横纵版自定义组件前必须读取 `platform/customComponent devguide`。必须明确它是 `<cc:component>` DSL 而非 Lightning Vue pagecomponent，完整描述输入输出、查询边界、转义、多实例 DOM/JavaScript 命名空间和依赖；禁止原始 JSP scriptlet、JSP namespace 标签、嵌套组件、凭据、binding/token、固定租户 URL、全表查询和循环内查询。
 - 从技能 `2.2.81` 开始，普通业务数据查询、新增、修改、删除和 upsert 统一使用 `openapi`，标准 CRM 对象和自定义对象都支持。`dataBulk` 仅用于大批量数据导入、初始化和离线批处理，不适用于日常业务场景；`dataIndex` 仅用于数据库索引优化；对象、字段、页面、权限和流程等平台二开配置使用对应元数据 Domain。

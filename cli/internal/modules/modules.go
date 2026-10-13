@@ -365,6 +365,11 @@ func Handle(action string, resource string, args []string, stdout io.Writer, std
 	if byAction, ok := genericEndpoints[resource]; ok {
 		if ep, ok := byAction[action]; ok {
 			if resource == "apiRegistrar" && isApiRegistrarRuntimeAction(action) {
+				if action == "debug" || action == "test" {
+					if err := validateApiRegistrarDebugCommand(action, args, cwd); err != nil {
+						return err
+					}
+				}
 				return callGenericRedacted(ep, action, resource, args, stdout, cwd)
 			}
 			return callGeneric(ep, action, resource, args, stdout, cwd)
