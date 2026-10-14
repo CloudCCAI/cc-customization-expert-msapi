@@ -1,7 +1,7 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.2.92-msapi",
-  "releaseDate": "2026-10-13",
+  "version": "2.2.93-msapi",
+  "releaseDate": "2026-10-14",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
   "domainCatalog": {
@@ -2662,6 +2662,22 @@
           "query"
         ],
         "reason": "Requires MetadataService currency readback, fixed currency compiler, advanced dated-rate compiler, corporate-currency explicit rebase guard, and setup-web/setup-service parity for /api/currency/* company currency management."
+      },
+      {
+        "capability": "msapi.fields.formulaDatabasePreflight",
+        "label": "Formula target-database function preflight and dialect-correct HYPERLINK compilation",
+        "introducedInSkillVersion": "2.2.93-msapi",
+        "minimumMetadataServiceVersion": "1.1.77",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.77",
+        "domains": [
+          "fields"
+        ],
+        "operations": [
+          "create",
+          "upsert",
+          "update"
+        ],
+        "reason": "Requires MySQL/MariaDB HYPERLINK compilation through concat, source-expression SQL safety checks, setup-svc-aligned MySQL function restrictions, and read-only target-database validation that rejects unavailable stored functions during planning."
       },
       {
         "capability": "msapi.fields.formulaCompiledCreate",

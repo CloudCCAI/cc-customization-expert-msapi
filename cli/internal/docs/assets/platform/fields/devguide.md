@@ -292,6 +292,9 @@ MetadataService 支持平台开放的全部字段编码。编码区分大小写�
 | `formula_lookup_object_missing` | 公式使用了关系引用，但关系字段没有 lookup 目标对象。 |
 | `formula_user_field_not_found` | `$User.<field>` 引用了当前环境不存在的用户字段。 |
 | `formula_field_type_unsupported` | 公式引用了不支持参与普通公式计算的长文本或富文本字段。 |
+| `formula_sql_unsafe` | 公式包含 SQL 语句、注释或多语句分隔符；公式入口只允许单个表达式。 |
+| `formula_function_unsupported` | 目标数据库已知不支持这种函数用法，例如 MySQL 的 `decode(...)` 或数值掩码 `to_char(...)`。 |
+| `formula_sql_invalid` | 编译后的表达式未通过目标数据库只读预检，常见原因是函数不存在、参数不匹配或 SQL 语法不属于当前数据库。 |
 
 公式编辑器提供的运算符如下；是否能通过保存，以目标环境字段公式校验结果为准：
 
@@ -311,57 +314,71 @@ MetadataService 支持平台开放的全部字段编码。编码区分大小写�
 | `&` | 公式编辑器展示为串联；不同目标环境可能按不同表达式引擎处理，必须以目标字段公式校验通过为准。 |
 | `^` | 公式编辑器展示为乘方；不同目标环境可能按不同表达式引擎处理，必须以目标字段公式校验通过为准，不要默认等同于数据库 `POWER`。 |
 
-公式字段可用的平台函数和表达式项如下；参数个数和返回类型必须同时满足目标字段的 `formulaType`：
+公式字段没有独立的 JavaScript 函数解释器。setup-svc 会把字段引用编译成 SQL，再用目标租户数据库执行限行查询做语法校验；`JavaScriptFunction` 中的同名方法不属于字段公式创建链路。因此，函数是否支持由“平台转换 + 当前数据库函数/存储函数 + 当前账号执行权限”共同决定。
 
-| 函数 / 表达式 | 说明 |
+#### 平台直接转换的表达式
+
+| 表达式 | 实际行为 |
 | --- | --- |
-| `IF(logical, value_if_true, value_if_false)` | 条件分支；第一个参数为布尔表达式，返回第二或第三个参数。 |
-| `CASE(value, compare1, result1, ..., else_result)` | 多分支匹配；从第一组匹配值开始比较，未命中时返回最后一个默认结果。 |
-| `DATE(year, month, day)` | 根据年、月、日生成日期值。 |
-| `TODAY()` | 返回当前日期。 |
-| `NOW()` | 返回当前日期时间。 |
-| `ADDDAYS(date, n)` | 在日期上增加 `n` 天。 |
-| `DAYS(date1, date2)` | 返回两个日期之间的天数差。 |
-| `YEAR(date)` | 返回日期的年份。 |
-| `MONTH(date)` | 返回日期的月份。 |
-| `DAY(date)` | 返回日期的日。 |
-| `AND(logical1, logical2, ...)` | 多个布尔表达式全部为真时返回真。 |
-| `OR(logical1, logical2, ...)` | 任一布尔表达式为真时返回真。 |
-| `ISNULL(expression)` | 表达式为空字符串或空值时返回真。 |
-| `ISPICKVAL(picklist_value, text_literal)` | 判断选项字段值是否等于指定文本。 |
-| `LEN(text)` | 返回文本长度；空值返回 `0`。 |
-| `LEFT(text, num_chars)` | 返回文本左侧指定长度。 |
-| `RIGHT(text, num_chars)` | 返回文本右侧指定长度。 |
-| `ROUND(number, num_digits)` | 按指定小数位数四舍五入数字。 |
-| `VALUE(text)` | 将文本解析为数字。 |
-| `HYPERLINK(url, friendly_name, target)` | URL 公式字段常用的超链接表达式；至少传 URL 和显示文本，`target` 可选。 |
-| `IMAGE(image_url, alternate_name, height, width)` | 图片表达式；至少传图片地址和替代文本，高度、宽度可选。 |
-| `DOMAIN` | 当前租户域名占位表达式。 |
+| `HYPERLINK(url, friendly_name, target)` | 平台只提取第一个 URL 参数；MySQL/MariaDB 编译为 `concat(...)`，其他数据库使用 `||`。显示文本和 `target` 不进入执行表达式，不要把它理解成 HTML 超链接渲染函数。 |
+| `DOMAIN` | 当前源码把它替换为字面量 `'DOMAIN'`，不是自动解析当前租户域名；需要真实域名时应显式传入经过配置管理的值。 |
+| `==` | 保存时转换为 SQL 等号 `=`。 |
 
-图片公式字段属于独立图片表达式能力；创建普通公式字段时，不要把图片表达式的参数形态直接当成普通文本、数字、日期等返回类型的通用公式。
+setup-web 当前函数插入列表也只有 `HYPERLINK` 和 `DOMAIN`。`IMAGE(...)`、`VALUE(...)`、`TODAY()`、`ADDDAYS(...)` 等名称不会被平台公式编译器转换。
 
-#### 目标数据库函数（MySQL）
+#### MySQL 原生表达式和函数
 
-公式字段表达式还可以使用目标数据库提供的函数。以 MySQL 为准时，以下函数是常用的数值和字符串处理函数；函数参数、返回类型和 `NULL` 行为仍必须通过目标环境的字段公式校验。示例中的 `a`、`b`、`x`、`y`、`n` 和 `str` 表示字段引用或其他表达式。
+以下是 MySQL 目标常用写法，不是跨数据库抽象。参数、返回类型、SQL mode 和 `NULL` 行为必须以 MetadataService 计划预检及目标环境字段公式校验为准。
 
-| MySQL 函数 | 说明 |
+| 类型 | 可用写法示例 |
 | --- | --- |
-| `LEAST(a, b)` | 返回参数中的最小值。 |
-| `GREATEST(a, b)` | 返回参数中的最大值。 |
-| `TRIM(str)` | 删除字符串首尾的空格。 |
-| `LOCATE(substr, str)` | 在字符串 `str` 中查找字符串 `substr` 第一次出现的位置。 |
-| `ABS(x)` | 返回数值的绝对值。 |
-| `CEILING(x)` | 向上取整，返回大于或等于 `x` 的最小整数。 |
-| `FLOOR(x)` | 向下取整，返回小于或等于 `x` 的最大整数。 |
-| `MOD(x, y)` | 返回 `x` 除以 `y` 的余数。 |
-| `ROUND(x, n)` | 按 `n` 位小数进行四舍五入；省略 `n` 时按 MySQL 默认规则处理。 |
-| `SQRT(x)` | 返回 `x` 的平方根。 |
-| `POWER(x, y)` | 返回 `x` 的 `y` 次幂。 |
-| `LOG(x)` | 返回 `x` 的自然对数；如需指定底数，应使用 MySQL 对应的参数形式并先通过目标环境校验。 |
-| `LN(x)` | 返回 `x` 的自然对数。 |
-| `EXP(x)` | 返回自然常数 `e` 的 `x` 次幂。 |
+| 条件 | `CASE WHEN condition THEN value ELSE value END`、`IF(condition, true_value, false_value)`、`IFNULL(value, fallback)`、`COALESCE(...)` |
+| 日期时间 | `CURDATE()`、`NOW()`、`DATE(...)`、`DATE_ADD(date, INTERVAL n DAY)`、`DATEDIFF(date1, date2)`、`YEAR(date)`、`MONTH(date)`、`DAY(date)` |
+| 字符串 | `CONCAT(...)`、`CHAR_LENGTH(text)`、`LEFT(text, n)`、`RIGHT(text, n)`、`TRIM(text)`、`LOCATE(substr, text)` |
+| 数值 | `ABS(x)`、`CEILING(x)`、`FLOOR(x)`、`MOD(x, y)`、`ROUND(x, n)`、`SQRT(x)`、`POWER(x, y)`、`LOG(x)`、`LN(x)`、`EXP(x)`、`LEAST(...)`、`GREATEST(...)` |
+| 类型转换/格式化 | `CAST(value AS DECIMAL(...))`、`CAST(value AS CHAR)`、`FORMAT(number, decimals)` |
+| 布尔/空值 | `AND`、`OR`、`NOT`、`IS NULL`、`IS NOT NULL`；选项值比较直接使用 `field__c = 'value'` |
 
-数据库函数不是跨数据库的稳定抽象。不要仅因为 MySQL 支持某个函数，就假定其他目标数据库或目标环境公式引擎也支持；发布前应使用目标对象的字段公式校验接口验证完整表达式。
+MySQL 目标明确不接受 `decode(...)`，请改为 `CASE WHEN ... END`。数值格式化不要使用 Oracle 风格的 `to_char(number, '999...')`，请使用 `FORMAT(...)` 或显式 `CAST(...)`。
+
+#### MySQL 中安装的 Oracle 兼容存储函数
+
+CloudCC 的部分 MySQL 部署会安装下列兼容函数。它们属于“该数据库实例已安装时”的公式支持范围；MetadataService 不负责安装它们，也不把它们硬编码成所有环境必有能力。创建计划时会在当前目标数据库执行只读预检，函数不存在、签名不匹配或无执行权限都会返回 `formula_sql_invalid`。
+
+| 函数 | 用途与边界 |
+| --- | --- |
+| `to_char(value, format)` | Oracle 风格日期/日期时间转文本；MySQL 数值掩码仍按上面的限制使用 `FORMAT`。 |
+| `to_date(text, format)` | Oracle 风格文本转日期，具体格式串以目标库函数定义为准。 |
+| `to_number(text)` | Oracle 风格文本转数字；可作为旧文档 `VALUE(text)` 的迁移替代，但必须先通过目标库预检。 |
+| `trunc(value[, format])` | Oracle 风格截断；日期和数字重载/参数由目标库函数定义决定。 |
+
+截图中显示的 `concat` 在 MySQL 本身也有同名原生函数，HYPERLINK 的 MySQL 编译会直接使用 `concat(...)`。
+
+下列函数是 CloudCC 业务元数据辅助函数，不是通用 Oracle 兼容函数：
+
+| 函数 | 说明 |
+| --- | --- |
+| `to_mcode(...)` | 平台代码值/显示值辅助转换；签名依部署版本而定。 |
+| `to_mlang(...)` | 平台多语言标签读取；平台查询中常见 `to_mlang(relation_id, language)`。 |
+| `to_mlang_type(...)` | 带类型的多语言辅助读取；签名依部署版本而定。 |
+
+这三个函数在目标 MySQL 中存在且预检通过时可以被数据库调用，但不建议把它们当作普通业务公式的稳定跨版本 API；使用前应确认目标版本函数签名、返回类型和运行账号权限。
+
+#### 旧函数名迁移建议
+
+| 不应再直接承诺的写法 | MySQL 建议替代 |
+| --- | --- |
+| `VALUE(text)` | 已安装兼容函数时用 `to_number(text)`；否则用 `CAST(text AS DECIMAL(...))`。 |
+| `TODAY()` | `CURDATE()` |
+| `ADDDAYS(date, n)` | `DATE_ADD(date, INTERVAL n DAY)` |
+| `DAYS(date1, date2)` | `DATEDIFF(date1, date2)` |
+| `LEN(text)` | `CHAR_LENGTH(text)` |
+| `AND(a, b)` / `OR(a, b)` | `a AND b` / `a OR b` |
+| `ISPICKVAL(field, text)` | `field = text` |
+| `ISNULL(value)` | `value IS NULL`；需要默认值时用 `IFNULL(value, fallback)`。 |
+| `IMAGE(...)` | 无平台公式转换；使用图片字段/组件能力，不要作为普通公式函数。 |
+
+数据库函数不是跨数据库的稳定抽象。Oracle、Kingbase 或其他目标必须使用各自语法并通过该目标库预检；不要仅因某个 MySQL 租户安装了兼容函数，就推断其他租户也支持。
 
 累计汇总字段必须使用 MetadataService spec 创建，不要使用位置参数版 `cloudcc create fields ...`。CLI/MetadataService 会按平台元数据规则补齐保存所需数据：`datafieldRef=none`、`decimalPlaces`、`summaryfieldtype`、`displayThousands`、`isReplicable` 和 `executeExpression` 会根据汇总方法、子对象和汇总字段自动派生；调用方通常不需要也不应该自己拼 `executeExpression`。
 

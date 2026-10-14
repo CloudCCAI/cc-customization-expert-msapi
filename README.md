@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.92-msapi
+# cc-customization-expert-msapi v2.2.93-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -42,6 +42,8 @@ Strict MetadataService package: low-code operations require MetadataService.
 从 `2.2.91` 开始，六个横纵版高代码 domain 会在同一 Action 会话内精确恢复并详情确认 publish ID，然后原子写入各自本地配置；无法确认唯一 ID 时保留 `submitted` 并报告 `idResolution=unresolved`。该补充流程不解析 JSP 业务成功标志，也不改变 Lightning 路由。
 
 从 `2.2.92` 开始，Lightning 接口注册器支持 POST-only SOAP/原始 XML 调试和高代码离线编译。CLI 会在发网前校验 XML 请求并脱敏日志中的 XML 凭据；SOAP 1.1/1.2 的调试文件和 Java 示例见 `cloudcc doc platform/apiRegistrar devguide`。MetadataService CRUD 与横纵版运行态限制不变。
+
+从 `2.2.93` 开始，字段公式能力按 setup-svc 的实际 SQL 执行链路说明：不再把独立 JavaScript 表达式引擎的函数当成字段公式内建函数；MySQL 原生函数、可选 Oracle 兼容存储函数和 CloudCC 专用函数分别记录。MetadataService `1.1.77` 会生成 MySQL `concat(...)` HYPERLINK，并在计划阶段执行目标数据库只读预检。
 
 从技能 `2.2.87` 开始，PC 页面布局可在独占单列分组中用 `type=customPage`、`customPageId`、`pageApi` 引用已经存在的自定义页面。布局详情返回相同的可复用结构，布局克隆保留引用，旧 `LIGHTNINGPAGE_` 输入仅作兼容；要求 MetadataService `1.1.75` 或更高版本。运行 `cloudcc doc platform/pagelayout devguide` 查看完整参数、限制、命令和验收方式。
 
@@ -131,10 +133,6 @@ Bulk API 按 MetadataService 的对象/字段到物理表映射直接写业务�
 从技能 `2.2.43` 开始，币种管理进入 MetadataService 低代码域：`currencies` 支持币种列表、详情、可新增币种、高级汇率读取，固定币种新增/修改/启停/汇率维护，高级多币种开关，dated rate 新增/修改/删除，以及要求显式重算 `rates[]` 的公司本位币变更计划。
 
 从技能 `2.2.44` 开始，验证规则 CLI 用户级文档按 setup-service `validateFunction` 实际函数补充运算符和函数说明，示例使用服务端实际存在的 `ISNULL`，不把 `ISBLANK` 或前端面板中未确认的 `PRECISE*` 函数作为验证规则能力承诺。
-
-从技能 `2.2.45` 开始，公式字段 CLI 用户级文档补充创建公式字段自己的返回类型、运算符和完整平台公式函数说明，并提示 `^`、`&` 必须以目标环境字段公式校验通过为准。
-
-从技能 `2.2.74` 开始，公式字段 CLI 用户级文档明确支持目标数据库函数，并以 MySQL 为例说明 `LEAST`、`GREATEST`、`TRIM`、`ABS`、`CEILING`、`FLOOR`、`MOD`、`ROUND`、`SQRT`、`POWER`、`LOG`、`LN`、`EXP` 及其作用；数据库函数是否可用仍以目标环境字段公式校验结果为准。
 
 从技能 `2.2.75` 开始，验证规则创建、计划和显式校验会在提交计划前读取目标字段及动态 `$User.<schemefieldName>` 用户字段，并使用技能包内置 cceg 编译表达式；失败时不创建计划。`platform/validationRule` 用户文档只描述 CLI 能力和使用方法，不再暴露内部实现说明。
 

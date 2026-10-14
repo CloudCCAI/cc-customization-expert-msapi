@@ -1,12 +1,12 @@
 ---
 name: cc-customization-expert-msapi
-version: 2.2.92-msapi
+version: 2.2.93-msapi
 description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService."
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.2.92-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.2.93-msapi
 
-当前技能版本：`2.2.92-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.2.93-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
 
@@ -42,6 +42,7 @@ description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict Metad
 - 技能 `2.2.90` 同一横纵版兼容功能继续补齐高代码：显式 `platformMode=horizontal` 时，类、触发器、定时类、VisualPage、静态资源和横纵版独有 `customComponent` 使用 main-app Struts Action 与登录会话；Lightning 路由保持原样。横纵版不使用 devconsole，不把 Lightning `customPage/pagecomponent` 契约套到 VisualPage/customComponent，也不增加 script、html 或 MCP 支持。写操作只按 HTTP 2xx/3xx 报告 `submitted`，不解析 JSP 业务标志或做权威回读；网络错误、超时、4xx/5xx 才失败。
 - 从技能 `2.2.91` 开始，上述六个横纵版高代码 domain 在同一 Action 会话内按自然键精确恢复 publish ID、调用详情确认并原子回写本地配置。ID 解析不读取 JSP 业务成功标志，不改变 HTTP 2xx/3xx 的 `submitted` 判定；未解析到唯一 ID 时仅输出 `idResolution=unresolved` 且不写配置。触发器和定时类首次发布会固化稳定 `apiname`，静态资源使用 `staticResource/<name>/config.json` 保存 ID。
 - 从技能 `2.2.92` 开始，Lightning 接口注册器支持 POST-only SOAP/原始 XML 调试与高代码编译：CLI 在发网前校验 `contentType=XML`、POST 和非空原文，日志显示会脱敏 XML 敏感元素/属性，离线编译包包含支持 `CCRemoteClient.ContentType.XML` 的新版 `cloudcc.jar`。SOAP 1.1 默认 `text/xml;charset=UTF-8`，SOAP 1.2 由调用方覆盖 Content-Type；完整用法必须先读 `platform/apiRegistrar devguide`。MetadataService CRUD 和横纵版 `debug/logs/logDetail` 限制不变。
+- 从技能 `2.2.93` 开始，字段公式文档以 setup-svc 实际 SQL 执行链路为准：不再把独立 JavaScript 表达式引擎的 `VALUE/TODAY/ADDDAYS/...` 当成字段公式内建函数，改为记录 MySQL 原生写法及目标库已安装的 `to_char/to_date/to_number/trunc`、`to_mcode/to_mlang/to_mlang_type`。MetadataService `1.1.77` 会为 MySQL HYPERLINK 生成 `concat(...)`，并在计划阶段对目标数据库执行只读预检。
 - 生成横纵版页面前必须读取 `platform/visualPage devguide`，明确页面入口、对象字段、权限、空态/错误态、分页、移动端和静态资源/组件依赖，再生成 `visualpage/<name>/<name>.jsp`。文件虽使用 `.jsp` 扩展名，但必须以自闭合 `<cc:page ... />` 开始并使用平台 `cc` 标签 DSL 与 HTML，禁止 JSP directive、scriptlet 和 JSP namespace 标签；标准布局能满足时仍优先低代码，复杂业务下沉自定义类。
 - 生成横纵版自定义组件前必须读取 `platform/customComponent devguide`。必须明确它是 `<cc:component>` DSL 而非 Lightning Vue pagecomponent，完整描述输入输出、查询边界、转义、多实例 DOM/JavaScript 命名空间和依赖；禁止原始 JSP scriptlet、JSP namespace 标签、嵌套组件、凭据、binding/token、固定租户 URL、全表查询和循环内查询。
 - 从技能 `2.2.81` 开始，普通业务数据查询、新增、修改、删除和 upsert 统一使用 `openapi`，标准 CRM 对象和自定义对象都支持。`dataBulk` 仅用于大批量数据导入、初始化和离线批处理，不适用于日常业务场景；`dataIndex` 仅用于数据库索引优化；对象、字段、页面、权限和流程等平台二开配置使用对应元数据 Domain。
@@ -50,8 +51,6 @@ description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict Metad
 - 创建页面布局不传 `sourceLayoutId` 且不传 `sections/buttons/layoutButtons/relatedLists` 时，MetadataService 根据对象元数据自动生成字段分区、详情页按钮和真实入向关系相关列表，基础短字段优先进入双列 `基本信息` 并均衡排布。`contentMode=auto|explicit|clone|blank` 分别用于自动补齐、完全手工、精确源布局复制和真正空白；显式空数组禁止该类别自动补齐，`sourceLayoutId` 不会默认选择第一个布局。创建/复制默认不分配；显式 `--assign` 后，`--profile` 和 `--record-type` 均可重复，省略简档表示全部简档，省略记录类型表示主类型，`--include-main-record-type` 可把主类型加入显式记录类型。已有布局仍使用 `cloudcc assign pagelayout`。创建/复制原子分配、相关列表按钮复制和跨对象复制保护要求 MetadataService `1.1.74` 或更高版本。`detail pagelayout` 的 `content` 使用可直接复用的 CLI 参数名，相关列表固定回读 `objectId`、`fieldId`、`relatedListType`、布尔值 `show`、`seq`、`fields` 和 `buttons`。
 - 从技能 `2.2.43` 开始，币种管理 `currencies` 纳入 MetadataService 低代码域：支持币种列表/详情/可新增币种/高级汇率读取，固定币种新增/修改/启停/汇率维护，高级多币种开关，dated rate 新增/修改/删除，以及要求显式 `rates[]` 的公司本位币变更计划。
 - 从技能 `2.2.44` 开始，验证规则 CLI 用户级文档按 setup-service `validateFunction` 实际函数补充运算符和函数说明，示例使用服务端实际存在的 `ISNULL`，不把 `ISBLANK` 或前端面板中未确认的 `PRECISE*` 函数作为验证规则能力承诺。
-- 从技能 `2.2.45` 开始，公式字段 CLI 用户级文档补充创建公式字段自己的返回类型、运算符和完整平台公式函数说明，并提示 `^`、`&` 必须以目标环境字段公式校验通过为准。
-- 从技能 `2.2.74` 开始，公式字段 CLI 用户级文档明确支持目标数据库函数，并以 MySQL 为例说明 `LEAST`、`GREATEST`、`TRIM`、`ABS`、`CEILING`、`FLOOR`、`MOD`、`ROUND`、`SQRT`、`POWER`、`LOG`、`LN`、`EXP` 及其作用；数据库函数是否可用仍以目标环境字段公式校验结果为准。
 - 从技能 `2.2.75` 开始，验证规则创建、计划和显式校验会在提交计划前读取目标字段及动态 `$User.<schemefieldName>` 用户字段，并使用技能包内置 cceg 编译表达式；失败时不创建计划。`platform/validationRule` 用户文档只描述 CLI 能力和使用方法，不再暴露内部实现说明。
 - 从技能 `2.2.76` 开始，报表与仪表板写入要求 MetadataService `1.1.68` 或更高版本：仪表板普通更新只修改根记录，显式 `replace/upsert` 才按集合三态替换组件；报表子集合也按省略保留、空数组清空、非空数组替换处理。Matrix 最多持久化 2 个行分组，`totalrecord` 纳入运行字段闭包，报表删除在 plan/apply 两阶段阻断仪表板引用并完整清理所属行。
 - 从技能 `2.2.77` 开始，查找关系和主详关系自动生成反向相关列表时要求显式 `childrelationName`，并要求 MetadataService `1.1.69` 或更高版本：相关列表按 setup-svc 写入 `relatedlist_type=custom`，新建相关列表、默认列和多语言记录使用 `aee`、`afa`、`bcb` 前缀；历史错误类型的关系行按布局、对象和字段自然键复用并在审核后的 plan/apply 中收敛，禁止通过修改 setup-svc 查询来兼容错误数据。
