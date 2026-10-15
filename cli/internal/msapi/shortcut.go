@@ -2857,6 +2857,10 @@ func shortcutOperation(action string, resource string) string {
 		(strings.TrimSpace(action) == "update" || strings.TrimSpace(action) == "modify" || strings.TrimSpace(action) == "editSave" || strings.TrimSpace(action) == "save") {
 		return "update"
 	}
+	if resource == "customSetting" &&
+		(strings.TrimSpace(action) == "update" || strings.TrimSpace(action) == "modify" || strings.TrimSpace(action) == "editSave" || strings.TrimSpace(action) == "save") {
+		return "update"
+	}
 	switch strings.TrimSpace(action) {
 	case "create", "register":
 		return "create"

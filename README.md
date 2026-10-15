@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.93-msapi
+# cc-customization-expert-msapi v2.2.94-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -44,6 +44,8 @@ Strict MetadataService package: low-code operations require MetadataService.
 从 `2.2.92` 开始，Lightning 接口注册器支持 POST-only SOAP/原始 XML 调试和高代码离线编译。CLI 会在发网前校验 XML 请求并脱敏日志中的 XML 凭据；SOAP 1.1/1.2 的调试文件和 Java 示例见 `cloudcc doc platform/apiRegistrar devguide`。MetadataService CRUD 与横纵版运行态限制不变。
 
 从 `2.2.93` 开始，字段公式能力按 setup-svc 的实际 SQL 执行链路说明：不再把独立 JavaScript 表达式引擎的函数当成字段公式内建函数；MySQL 原生函数、可选 Oracle 兼容存储函数和 CloudCC 专用函数分别记录。MetadataService `1.1.77` 会生成 MySQL `concat(...)` HYPERLINK，并在计划阶段执行目标数据库只读预检。
+
+从 `2.2.94` 开始，自定义设置新增/修改字段使用 MetadataService `1.1.80` 的局部更新、默认语言标签补齐、严格更新行数检查、布局策略校验和非破坏式布局补齐。使用前先读 `cloudcc doc platform/customSetting devguide`，按 plan/apply/readback 流程执行。
 
 从技能 `2.2.87` 开始，PC 页面布局可在独占单列分组中用 `type=customPage`、`customPageId`、`pageApi` 引用已经存在的自定义页面。布局详情返回相同的可复用结构，布局克隆保留引用，旧 `LIGHTNINGPAGE_` 输入仅作兼容；要求 MetadataService `1.1.75` 或更高版本。运行 `cloudcc doc platform/pagelayout devguide` 查看完整参数、限制、命令和验收方式。
 
