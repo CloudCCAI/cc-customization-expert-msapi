@@ -1,20 +1,25 @@
 # 字段追踪
 
-`fieldTracking` 管理对象字段的历史追踪开关，与字段依赖无关。
+`fieldTracking` 管理对象字段的历史追踪配置，与字段依赖无关。
 
-```bash
-cloudcc get fieldTracking <projectPath> <object>
-cloudcc candidates fieldTracking <projectPath> <object>
-cloudcc update fieldTracking <projectPath> @tracking.json
-cloudcc clear fieldTracking <projectPath> <object>
+## 能力范围
+
+- 查看对象当前启用追踪的字段。
+- 查看可配置候选字段及其追踪模式。
+- 使用完整字段集合替换当前用户可管理的追踪配置。
+- 清空用户可管理字段，同时保留平台管理的系统字段。
+- MSAPI 支持计划审阅、执行记录、变更审计和回滚。
+
+`trackedFields` 使用完整替换语义，而不是增量添加。数组中遗漏的用户可管理字段会被关闭；空数组等价于 `clear`。字段选择器可使用候选结果返回的字段 ID 或 API 名，`systemManaged=true` 的字段不要写入输入。
+
+## 平台边界
+
+- MSAPI：写命令先返回待审阅的 `planId`，显式执行后返回 `operationId`，支持 changes 和 rollback。
+- Lightning UIAPI：写命令直接提交，不生成 MetadataService 计划或回滚记录。
+- horizontal UIAPI：当前不可用；horizontal 项目应选择 MSAPI。
+
+完整命令、JSON 示例、回读和排错流程请使用：
+
+```text
+cloudcc doc fieldTracking devguide
 ```
-
-MSAPI 写操作先生成 plan，再通过 `cloudcc apply msapi <projectPath> <planId>` 应用；可使用标准 changes 和 rollback 命令审计或回滚。Lightning UIAPI 直接复用 setup-service，因此不提供 MetadataService rollback。
-
-输入示例：
-
-```json
-{"object":"account","trackedFields":["name","industry","description"]}
-```
-
-`trackedFields` 是完整替换集合，必须显式提供；空数组等价于 clear。字段选择器可使用字段 ID 或 API 名。系统管理字段由服务端保留，不要放入输入。

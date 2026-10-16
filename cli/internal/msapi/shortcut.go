@@ -34,6 +34,10 @@ var lowCodeShortcutDomains = map[string]string{
 	"fieldTracking":          "field-tracking",
 	"fieldTrack":             "field-tracking",
 	"field-tracking":         "field-tracking",
+	"detailPageReport":       "detail-page-reports",
+	"detail-page-report":     "detail-page-reports",
+	"detailPageChart":        "detail-page-reports",
+	"detail-page-chart":      "detail-page-reports",
 	"companyFiscalYear":      "fiscal-years",
 	"company-fiscal-year":    "fiscal-years",
 	"fiscalYear":             "fiscal-years",
@@ -200,6 +204,9 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 	if domain == "field-tracking" && (isShortcutRead(action) || strings.TrimSpace(action) == "candidates") {
 		return handleFieldTrackingReadShortcut(action, projectPath, rest, stdout, cwd)
 	}
+	if domain == "detail-page-reports" && (isShortcutRead(action) || strings.TrimSpace(action) == "candidates") {
+		return handleDetailPageReportReadShortcut(action, projectPath, rest, stdout, cwd)
+	}
 	if isApiRegistrarShortcutResource(resource) && isShortcutRead(action) {
 		return handleApiRegistrarReadShortcut(action, projectPath, rest, stdout, cwd)
 	}
@@ -314,6 +321,36 @@ func handleFieldTrackingReadShortcut(action string, projectPath string, args []s
 		path = "/metadata/v1/field-tracking:candidates?object=" + url.QueryEscape(strings.TrimSpace(args[0]))
 	}
 	return c.getJSON(stdout, path)
+}
+
+func handleDetailPageReportReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
+	c, _, err := newClient([]string{projectPath}, cwd)
+	if err != nil {
+		return err
+	}
+	action = strings.TrimSpace(action)
+	if action == "detail" || action == "editInfo" {
+		if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
+			return fmt.Errorf("cloudcc %s detailPageReport <projectPath> <assignment-id>", action)
+		}
+		return c.getJSON(stdout, "/metadata/v1/detail-page-reports/"+url.PathEscape(strings.TrimSpace(args[0])))
+	}
+	if action != "candidates" && len(args) == 0 {
+		return c.getJSON(stdout, "/metadata/v1/detail-page-reports")
+	}
+	if len(args) < 1 || len(args) > 2 || strings.TrimSpace(args[0]) == "" {
+		return fmt.Errorf("cloudcc %s detailPageReport <projectPath> <object> [record-type]", action)
+	}
+	values := url.Values{}
+	values.Set("object", strings.TrimSpace(args[0]))
+	if len(args) == 2 && strings.TrimSpace(args[1]) != "" {
+		values.Set("recordType", strings.TrimSpace(args[1]))
+	}
+	path := "/metadata/v1/detail-page-reports"
+	if action == "candidates" {
+		path += ":candidates"
+	}
+	return c.getJSON(stdout, path+"?"+values.Encode())
 }
 
 type directQueryShortcut struct {
@@ -2077,6 +2114,25 @@ func shortcutPlanSpec(action string, resource string, args []string) (map[string
 		}
 		body, _, err := shortcutBodySpec(action, resource, args)
 		return body, "update", err
+	}
+	if lowCodeShortcutDomains[strings.TrimSpace(resource)] == "detail-page-reports" {
+		switch strings.TrimSpace(action) {
+		case "delete", "remove":
+			if len(args) == 1 && strings.TrimSpace(args[0]) != "" && !looksLikeJSONArg(args[0]) {
+				return map[string]any{"id": strings.TrimSpace(args[0])}, "delete", nil
+			}
+		case "update", "modify", "save":
+			if len(args) == 2 && strings.TrimSpace(args[0]) != "" && looksLikeJSONArg(args[1]) {
+				body, err := parseObject(args[1], "cloudcc "+action+" detailPageReport")
+				if err != nil {
+					return nil, "", err
+				}
+				body["id"] = strings.TrimSpace(args[0])
+				return body, "update", nil
+			}
+		}
+		body, _, err := shortcutBodySpec(action, resource, args)
+		return body, operation, err
 	}
 	if resource == "fieldDependency" || resource == "field-dependency" || resource == "field-dependencies" {
 		fieldPairAction := strings.TrimSpace(action) == "delete" || strings.TrimSpace(action) == "applyGlobalDependency" || strings.TrimSpace(action) == "apply-global"

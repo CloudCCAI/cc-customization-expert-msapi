@@ -1,12 +1,12 @@
 ---
 name: cc-customization-expert-msapi
-version: 2.2.96-msapi
+version: 2.2.97-msapi
 description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService."
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.2.96-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.2.97-msapi
 
-当前技能版本：`2.2.96-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.2.97-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
 
@@ -44,6 +44,7 @@ description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict Metad
 - 从技能 `2.2.92` 开始，Lightning 接口注册器支持 POST-only SOAP/原始 XML 调试与高代码编译：CLI 在发网前校验 `contentType=XML`、POST 和非空原文，日志显示会脱敏 XML 敏感元素/属性，离线编译包包含支持 `CCRemoteClient.ContentType.XML` 的新版 `cloudcc.jar`。SOAP 1.1 默认 `text/xml;charset=UTF-8`，SOAP 1.2 由调用方覆盖 Content-Type；完整用法必须先读 `platform/apiRegistrar devguide`。MetadataService CRUD 和横纵版 `debug/logs/logDetail` 限制不变。
 - 从技能 `2.2.93` 开始，字段公式文档以 setup-svc 实际 SQL 执行链路为准：不再把独立 JavaScript 表达式引擎的 `VALUE/TODAY/ADDDAYS/...` 当成字段公式内建函数，改为记录 MySQL 原生写法及目标库已安装的 `to_char/to_date/to_number/trunc`、`to_mcode/to_mlang/to_mlang_type`。MetadataService `1.1.77` 会为 MySQL HYPERLINK 生成 `concat(...)`，并在计划阶段对目标数据库执行只读预检。
 - 从技能 `2.2.94` 开始，自定义设置字段新增/修改统一走 MetadataService 局部更新：字段标签按 `relationId + type + country` 插入或更新并保留已有语言行 ID，布局采用非破坏式补齐并复用空父 ID 的 setup-svc 根布局，无效布局策略、更新 0 行或自然键歧义会失败；CLI 用户文档只保留真实可用的 plan/apply/readback 命令。需要 MetadataService `1.1.80`。
+- `fieldDependency` 的完整用户入口是 `cloudcc doc fieldDependency`：先查询 candidates 和当前配置，再使用同一套字段对/JSON spec 命令；MSAPI 写入只生成 plan 并支持 changes/rollback，Lightning UIAPI 直接提交，horizontal UIAPI 失败关闭。自定义模式的 `mappings` 是完整替换，空数组不同于 delete；全局模式禁止携带 mappings。
 - 生成横纵版页面前必须读取 `platform/visualPage devguide`，明确页面入口、对象字段、权限、空态/错误态、分页、移动端和静态资源/组件依赖，再生成 `visualpage/<name>/<name>.jsp`。文件虽使用 `.jsp` 扩展名，但必须以自闭合 `<cc:page ... />` 开始并使用平台 `cc` 标签 DSL 与 HTML，禁止 JSP directive、scriptlet 和 JSP namespace 标签；标准布局能满足时仍优先低代码，复杂业务下沉自定义类。
 - 生成横纵版自定义组件前必须读取 `platform/customComponent devguide`。必须明确它是 `<cc:component>` DSL 而非 Lightning Vue pagecomponent，完整描述输入输出、查询边界、转义、多实例 DOM/JavaScript 命名空间和依赖；禁止原始 JSP scriptlet、JSP namespace 标签、嵌套组件、凭据、binding/token、固定租户 URL、全表查询和循环内查询。
 - 从技能 `2.2.81` 开始，普通业务数据查询、新增、修改、删除和 upsert 统一使用 `openapi`，标准 CRM 对象和自定义对象都支持。`dataBulk` 仅用于大批量数据导入、初始化和离线批处理，不适用于日常业务场景；`dataIndex` 仅用于数据库索引优化；对象、字段、页面、权限和流程等平台二开配置使用对应元数据 Domain。

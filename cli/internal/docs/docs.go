@@ -61,6 +61,18 @@ func Read(module string, kind string) (string, error) {
 
 func normalizeModule(module string) string {
 	module = strings.TrimSpace(strings.ReplaceAll(module, "\\", "/"))
+	if strings.EqualFold(module, "fieldDependency") || strings.EqualFold(module, "field-dependency") ||
+		strings.EqualFold(module, "field-dependencies") {
+		return "platform/fieldDependency"
+	}
+	if strings.EqualFold(module, "fieldTracking") || strings.EqualFold(module, "fieldTrack") ||
+		strings.EqualFold(module, "field-tracking") {
+		return "platform/fieldTracking"
+	}
+	if strings.EqualFold(module, "detailPageReport") || strings.EqualFold(module, "detailPageChart") ||
+		strings.EqualFold(module, "detail-page-report") || strings.EqualFold(module, "detail-page-reports") {
+		return "platform/detailPageReport"
+	}
 	if module == "report" {
 		return "platform/report"
 	}

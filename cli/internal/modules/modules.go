@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"unicode/utf8"
 
 	"cloudcc-customization-expert-go/internal/compatibility"
 	"cloudcc-customization-expert-go/internal/config"
@@ -104,6 +105,7 @@ var genericEndpoints = map[string]map[string]endpoint{
 	"fieldDependency": {
 		"get":                   {"setup", "/api/fieldDependencyManage/list"},
 		"getList":               {"setup", "/api/fieldDependencyManage/list"},
+		"candidates":            {"setup", "/api/fieldDependencyManage/newPage"},
 		"newInfo":               {"setup", "/api/fieldDependencyManage/newPage"},
 		"detail":                {"setup", "/api/fieldDependencyManage/editPage"},
 		"editInfo":              {"setup", "/api/fieldDependencyManage/editPage"},
@@ -121,6 +123,15 @@ var genericEndpoints = map[string]map[string]endpoint{
 		"update":     {"setup", "/api/fieldTrackManage/saveButton"},
 		"save":       {"setup", "/api/fieldTrackManage/saveButton"},
 		"clear":      {"setup", "/api/fieldTrackManage/saveButton"},
+	},
+	"detailPageReport": {
+		"get":     {"setup", "/api/reportChartBase/queryReportChartList"},
+		"getList": {"setup", "/api/reportChartBase/queryReportChartList"},
+		"detail":  {"setup", "/api/reportChartBase/queryReportChartDetail"},
+		"create":  {"setup", "/api/report/chart/save"},
+		"update":  {"setup", "/api/report/chart/save"},
+		"save":    {"setup", "/api/report/chart/save"},
+		"delete":  {"setup", "/api/reportChartBase/removeReportChartRecord"},
 	},
 	"globalSelectList": {
 		"get":    {"setup", "/api/globalSelectSetup/queryList"},
@@ -311,6 +322,12 @@ func Handle(action string, resource string, args []string, stdout io.Writer, std
 	if resource == "fieldTrack" || resource == "field-tracking" {
 		resource = "fieldTracking"
 	}
+	if resource == "field-dependency" || resource == "field-dependencies" {
+		resource = "fieldDependency"
+	}
+	if resource == "detail-page-report" || resource == "detailPageChart" || resource == "detail-page-chart" {
+		resource = "detailPageReport"
+	}
 	switch resource {
 	case "highcode":
 		if action == "format" {
@@ -329,6 +346,10 @@ func Handle(action string, resource string, args []string, stdout io.Writer, std
 		}
 	case "fieldTracking":
 		return handleFieldTracking(action, args, stdout, cwd)
+	case "fieldDependency":
+		return handleFieldDependency(action, args, stdout, cwd)
+	case "detailPageReport":
+		return handleDetailPageReport(action, args, stdout, cwd)
 	case "classes":
 		if action == "format" {
 			return handleJavaFormat(resource, args, stdout, cwd)
@@ -1183,6 +1204,296 @@ func handleFieldTracking(action string, args []string, stdout io.Writer, cwd str
 	}
 	return postClass(stdout, projectPath, cfg, "setup", "/api/fieldTrackManage/saveButton",
 		map[string]any{"objid": object, "id": idCSV})
+}
+
+func handleFieldDependency(action string, args []string, stdout io.Writer, cwd string) error {
+	projectPath := firstArg(args, cwd)
+	cfg, err := config.Load(projectPath)
+	if err != nil {
+		return err
+	}
+	endpointAction, body, err := fieldDependencyRequest(action, argsAfterProject(args))
+	if err != nil {
+		return err
+	}
+	ep, ok := genericEndpoints["fieldDependency"][endpointAction]
+	if !ok {
+		return fmt.Errorf("unsupported fieldDependency action: %s", action)
+	}
+	return postClass(stdout, projectPath, cfg, ep.base, ep.path, body)
+}
+
+func fieldDependencyRequest(action string, args []string) (string, map[string]any, error) {
+	action = strings.TrimSpace(action)
+	switch action {
+	case "get", "getList", "candidates", "newInfo":
+		if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
+			return "", nil, fmt.Errorf("cloudcc %s fieldDependency <projectPath> <object>", action)
+		}
+		if body, err := jsonx.ParseEncodedObject(args[0], action+" fieldDependency"); err == nil {
+			object := fieldDependencyString(body, "object", "objid")
+			if object == "" {
+				return "", nil, fmt.Errorf("fieldDependency %s requires object", action)
+			}
+			return action, map[string]any{"objid": object}, nil
+		}
+		return action, map[string]any{"objid": strings.TrimSpace(args[0])}, nil
+	case "detail", "editInfo":
+		body, err := fieldDependencyPairBody(action, args)
+		return action, body, err
+	case "delete", "validDelete", "applyGlobalDependency", "apply-global":
+		body, err := fieldDependencyPairBody(action, args)
+		if err != nil {
+			return "", nil, err
+		}
+		if action == "applyGlobalDependency" || action == "apply-global" {
+			return "applyGlobalDependency", body, nil
+		}
+		return action, body, nil
+	case "create", "update", "editSave":
+		if len(args) != 1 {
+			return "", nil, fmt.Errorf("cloudcc %s fieldDependency <projectPath> <@spec.json>", action)
+		}
+		spec, err := jsonx.ParseEncodedObject(args[0], action+" fieldDependency")
+		if err != nil {
+			return "", nil, err
+		}
+		return normalizeFieldDependencyWrite(action, spec)
+	default:
+		return "", nil, fmt.Errorf("unsupported fieldDependency action: %s", action)
+	}
+}
+
+func fieldDependencyPairBody(action string, args []string) (map[string]any, error) {
+	if len(args) == 1 {
+		body, err := jsonx.ParseEncodedObject(args[0], action+" fieldDependency")
+		if err != nil {
+			return nil, fmt.Errorf("cloudcc %s fieldDependency <projectPath> <object> <control-field> <dependent-field> or <@spec.json>", action)
+		}
+		return normalizeFieldDependencyPair(body)
+	}
+	if len(args) != 3 {
+		return nil, fmt.Errorf("cloudcc %s fieldDependency <projectPath> <object> <control-field> <dependent-field> or <@spec.json>", action)
+	}
+	object := strings.TrimSpace(args[0])
+	control := strings.TrimSpace(args[1])
+	dependent := strings.TrimSpace(args[2])
+	if object == "" || control == "" || dependent == "" {
+		return nil, fmt.Errorf("fieldDependency %s requires non-empty object, control field, and dependent field", action)
+	}
+	return map[string]any{"objid": object, "controlFieldId": control, "depFieldId": dependent}, nil
+}
+
+func normalizeFieldDependencyPair(spec map[string]any) (map[string]any, error) {
+	object := fieldDependencyString(spec, "object", "objid")
+	control := fieldDependencyString(spec, "controlField", "controlFieldId")
+	dependent := fieldDependencyString(spec, "dependentField", "depFieldId", "dependencyFieldId")
+	if control == "" || dependent == "" {
+		return nil, fmt.Errorf("fieldDependency requires controlField/controlFieldId and dependentField/depFieldId")
+	}
+	body := map[string]any{"controlFieldId": control, "depFieldId": dependent}
+	if object != "" {
+		body["objid"] = object
+	}
+	if configID := fieldDependencyString(spec, "configId"); configID != "" {
+		body["configId"] = configID
+	}
+	return body, nil
+}
+
+func normalizeFieldDependencyWrite(action string, spec map[string]any) (string, map[string]any, error) {
+	pair, err := normalizeFieldDependencyPair(spec)
+	if err != nil {
+		return "", nil, err
+	}
+	mode := strings.ToLower(strings.TrimSpace(fmt.Sprint(firstAny(spec["mode"], "custom"))))
+	if mode == "<nil>" || mode == "" {
+		mode = "custom"
+	}
+	if mode == "global" {
+		if mappings, exists := spec["mappings"]; exists && mappings != nil {
+			return "", nil, fmt.Errorf("fieldDependency global mode does not accept mappings")
+		}
+		return "applyGlobalDependency", pair, nil
+	}
+	if mode != "custom" {
+		return "", nil, fmt.Errorf("fieldDependency mode must be custom or global")
+	}
+	if native, ok := spec["saveContent"].([]any); ok {
+		pair["saveContent"] = native
+		pair["isUseGlobalDependency"] = firstAny(spec["isUseGlobalDependency"], false)
+		return action, pair, nil
+	}
+	mappings, ok := spec["mappings"].([]any)
+	if !ok {
+		return "", nil, fmt.Errorf("fieldDependency custom mode requires an explicit mappings array")
+	}
+	saveContent := make([]map[string]any, 0, len(mappings))
+	seenControls := map[string]bool{}
+	for index, raw := range mappings {
+		mapping, ok := raw.(map[string]any)
+		if !ok {
+			return "", nil, fmt.Errorf("fieldDependency mappings[%d] must be an object", index)
+		}
+		controlValue := fieldDependencyString(mapping, "controlValue", "controlField")
+		allowed, ok := firstAny(mapping["allowedValues"], mapping["dependFields"]).([]any)
+		if controlValue == "" || !ok {
+			return "", nil, fmt.Errorf("fieldDependency mappings[%d] requires controlValue and allowedValues", index)
+		}
+		if seenControls[controlValue] {
+			return "", nil, fmt.Errorf("fieldDependency mappings contains duplicate control value %s", controlValue)
+		}
+		seenControls[controlValue] = true
+		dependFields := make([]map[string]any, 0, len(allowed))
+		seenAllowed := map[string]bool{}
+		for allowedIndex, rawAllowed := range allowed {
+			value := ""
+			if item, itemOK := rawAllowed.(map[string]any); itemOK {
+				value = fieldDependencyString(item, "name", "value", "id", "code")
+			} else {
+				value = strings.TrimSpace(fmt.Sprint(rawAllowed))
+			}
+			if value == "" || value == "<nil>" {
+				return "", nil, fmt.Errorf("fieldDependency mappings[%d].allowedValues[%d] must be non-empty", index, allowedIndex)
+			}
+			if seenAllowed[value] {
+				return "", nil, fmt.Errorf("fieldDependency mappings[%d] contains duplicate allowed value %s", index, value)
+			}
+			seenAllowed[value] = true
+			dependFields = append(dependFields, map[string]any{"name": value})
+		}
+		saveContent = append(saveContent, map[string]any{"controlField": controlValue, "dependFields": dependFields})
+	}
+	pair["saveContent"] = saveContent
+	pair["isUseGlobalDependency"] = false
+	return action, pair, nil
+}
+
+func fieldDependencyString(values map[string]any, keys ...string) string {
+	for _, key := range keys {
+		if value, ok := values[key]; ok && value != nil {
+			text := strings.TrimSpace(fmt.Sprint(value))
+			if text != "" && text != "<nil>" {
+				return text
+			}
+		}
+	}
+	return ""
+}
+
+func handleDetailPageReport(action string, args []string, stdout io.Writer, cwd string) error {
+	projectPath := firstArg(args, cwd)
+	cfg, err := config.Load(projectPath)
+	if err != nil {
+		return err
+	}
+	endpoint, ok := genericEndpoints["detailPageReport"][action]
+	if !ok {
+		return fmt.Errorf("unsupported detailPageReport action: %s", action)
+	}
+	body := map[string]any{}
+	switch action {
+	case "get", "getList":
+		if len(args) != 1 {
+			return fmt.Errorf("cloudcc %s detailPageReport <projectPath>", action)
+		}
+	case "detail", "delete":
+		if len(args) != 2 || strings.TrimSpace(args[1]) == "" {
+			return fmt.Errorf("cloudcc %s detailPageReport <projectPath> <assignment-id>", action)
+		}
+		body["id"] = strings.TrimSpace(args[1])
+	case "create", "update", "save":
+		specArg := ""
+		assignmentID := ""
+		if len(args) == 2 {
+			specArg = args[1]
+		} else if action == "update" && len(args) == 3 && strings.TrimSpace(args[1]) != "" {
+			assignmentID = strings.TrimSpace(args[1])
+			specArg = args[2]
+		} else {
+			return fmt.Errorf("cloudcc %s detailPageReport <projectPath> [assignment-id] <@spec.json>", action)
+		}
+		spec, parseErr := jsonx.ParseEncodedObject(specArg, action+" detailPageReport")
+		if parseErr != nil {
+			return parseErr
+		}
+		if assignmentID != "" {
+			spec["id"] = assignmentID
+		}
+		object := strings.TrimSpace(fmt.Sprint(firstAny(spec["object"], spec["objectId"], spec["objid"])))
+		if object == "" || object == "<nil>" {
+			return fmt.Errorf("detailPageReport requires object")
+		}
+		recordTypeValue := firstAny(spec["recordTypeId"], spec["recordType"], spec["recordtype"])
+		if structured, ok := recordTypeValue.(map[string]any); ok {
+			recordTypeValue = firstAny(structured["id"], structured["recordTypeId"], structured["mode"])
+		}
+		recordType := strings.TrimSpace(fmt.Sprint(recordTypeValue))
+		if recordType == "<nil>" || strings.EqualFold(recordType, "main") || strings.EqualFold(recordType, "master") || strings.EqualFold(recordType, "default") {
+			recordType = ""
+		}
+		assignment := map[string]any{
+			"id":         strings.TrimSpace(fmt.Sprint(firstAny(spec["id"], spec["placementId"]))),
+			"objid":      object,
+			"recordtype": recordType,
+		}
+		if assignment["id"] == "<nil>" {
+			assignment["id"] = ""
+		}
+		charts, chartsOK := spec["charts"].([]any)
+		if !chartsOK || len(charts) == 0 || len(charts) > 10 {
+			return fmt.Errorf("detailPageReport requires an explicit charts array containing 1 to 10 items")
+		}
+		nativeCharts := make([]map[string]any, 0, len(charts))
+		seenReports := map[string]bool{}
+		for index, raw := range charts {
+			chart, chartOK := raw.(map[string]any)
+			if !chartOK {
+				return fmt.Errorf("detailPageReport charts[%d] must be an object", index)
+			}
+			reportID := strings.TrimSpace(fmt.Sprint(firstAny(chart["reportId"], chart["reportid"], chart["report"])))
+			if reportID == "" || reportID == "<nil>" {
+				return fmt.Errorf("detailPageReport charts[%d] requires reportId", index)
+			}
+			if seenReports[reportID] {
+				return fmt.Errorf("a report can only appear once in the same detailPageReport assignment: %s", reportID)
+			}
+			seenReports[reportID] = true
+			filterMode := strings.ToLower(strings.TrimSpace(fmt.Sprint(chart["filterMode"])))
+			if filterMode == "<nil>" {
+				filterMode = ""
+			}
+			if filterMode != "" && filterMode != "none" && filterMode != "currentrecord" && filterMode != "current-record" {
+				return fmt.Errorf("detailPageReport charts[%d] filterMode must be none or currentRecord", index)
+			}
+			currentRecord := filterMode == "currentrecord" || filterMode == "current-record"
+			title := strings.TrimSpace(fmt.Sprint(firstAny(chart["title"], "")))
+			if title == "<nil>" {
+				title = ""
+			}
+			if utf8.RuneCountInString(title) > 50 {
+				return fmt.Errorf("detailPageReport charts[%d] title supports at most 50 characters", index)
+			}
+			nativeCharts = append(nativeCharts, map[string]any{
+				"detailid":                firstAny(chart["id"], chart["detailid"]),
+				"reportid":                reportID,
+				"reportname":              firstAny(chart["reportName"], chart["reportname"]),
+				"title":                   title,
+				"screening":               map[bool]string{true: object, false: "无"}[currentRecord],
+				"isshow":                  firstAny(chart["showRefresh"], chart["isshow"], false),
+				"sort":                    index,
+				"whetherDisableScreening": !currentRecord,
+			})
+		}
+		assignmentJSON, _ := json.Marshal(assignment)
+		chartsJSON, _ := json.Marshal(nativeCharts)
+		body = map[string]any{"data": string(assignmentJSON), "chartData": string(chartsJSON)}
+	}
+	var response map[string]any
+	if err := postClassResponse(projectPath, cfg, endpoint.base, endpoint.path, body, &response); err != nil {
+		return err
+	}
+	return printJSON(stdout, response)
 }
 
 func normalizeFieldTrackingResponse(object string, response map[string]any) map[string]any {

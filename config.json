@@ -1,6 +1,6 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.2.96-msapi",
+  "version": "2.2.97-msapi",
   "releaseDate": "2026-10-16",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
@@ -71,6 +71,7 @@
           "global-select-lists",
           "record-types",
           "layouts",
+          "detail-page-reports",
           "profiles",
           "permissions",
           "sharing-rules",
@@ -490,7 +491,8 @@
         "category": "metadata",
         "aliases": [
           "fieldDependency",
-          "field-dependency"
+          "field-dependency",
+          "field-dependencies"
         ],
         "packageAvailability": "enabled",
         "availability": {
@@ -508,9 +510,17 @@
           },
           {
             "provider": "uiapi",
+            "platform": "lightning",
             "backend": "setup-svc",
             "transport": "uiapi",
             "availability": "provider-adapter"
+          },
+          {
+            "provider": "uiapi",
+            "platform": "horizontal",
+            "backend": "main-app",
+            "transport": "uiapi",
+            "availability": "unavailable"
           }
         ],
         "actions": [
@@ -524,12 +534,17 @@
         ],
         "commands": [
           "cloudcc get fieldDependency <projectPath> <object>",
+          "cloudcc candidates fieldDependency <projectPath> <object>",
           "cloudcc detail fieldDependency <projectPath> <object> <controlField> <dependentField>",
-          "cloudcc create fieldDependency <projectPath> <spec>"
+          "cloudcc create fieldDependency <projectPath> <@dependency.json>  # MSAPI: plan only",
+          "cloudcc update fieldDependency <projectPath> <@dependency.json>  # MSAPI: plan only",
+          "cloudcc applyGlobalDependency fieldDependency <projectPath> <object> <controlField> <dependentField>  # MSAPI: plan only",
+          "cloudcc delete fieldDependency <projectPath> <object> <controlField> <dependentField>  # MSAPI: plan only",
+          "cloudcc doc fieldDependency devguide"
         ],
         "documentation": {
-          "introduction": "cloudcc doc platform/fieldDependency introduction",
-          "devguide": "cloudcc doc platform/fieldDependency devguide"
+          "introduction": "cloudcc doc fieldDependency introduction",
+          "devguide": "cloudcc doc fieldDependency devguide"
         }
       },
       {
@@ -584,12 +599,13 @@
         "commands": [
           "cloudcc get fieldTracking <projectPath> <object>",
           "cloudcc candidates fieldTracking <projectPath> <object>",
-          "cloudcc update fieldTracking <projectPath> <@tracking.json>",
-          "cloudcc clear fieldTracking <projectPath> <object>"
+          "cloudcc update fieldTracking <projectPath> <@tracking.json>  # MSAPI: plan only",
+          "cloudcc clear fieldTracking <projectPath> <object>  # MSAPI: plan only",
+          "cloudcc doc fieldTracking devguide"
         ],
         "documentation": {
-          "introduction": "cloudcc doc platform/fieldTracking introduction",
-          "devguide": "cloudcc doc platform/fieldTracking devguide"
+          "introduction": "cloudcc doc fieldTracking introduction",
+          "devguide": "cloudcc doc fieldTracking devguide"
         }
       },
       {
@@ -1386,6 +1402,69 @@
         "documentation": {
           "introduction": "cloudcc doc platform/report introduction",
           "devguide": "cloudcc doc platform/report devguide"
+        }
+      },
+      {
+        "name": "detail-page-reports",
+        "label": "Detail-page report assignments",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "detailPageReport",
+          "detailPageChart",
+          "detail-page-report"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "platform": "lightning",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          },
+          {
+            "provider": "uiapi",
+            "platform": "horizontal",
+            "backend": "main-app",
+            "transport": "uiapi",
+            "availability": "unavailable"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "candidates",
+          "create",
+          "update",
+          "delete",
+          "plan",
+          "apply"
+        ],
+        "commands": [
+          "cloudcc get detailPageReport <projectPath> [object] [recordType]",
+          "cloudcc detail detailPageReport <projectPath> <assignmentId>",
+          "cloudcc candidates detailPageReport <projectPath> <object> [recordType]",
+          "cloudcc create detailPageReport <projectPath> <@spec.json>",
+          "cloudcc update detailPageReport <projectPath> <assignmentId> <@spec.json>",
+          "cloudcc delete detailPageReport <projectPath> <assignmentId>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc detailPageReport introduction",
+          "devguide": "cloudcc doc detailPageReport devguide"
         }
       },
       {
@@ -2350,6 +2429,27 @@
     "sourceOfTruth": "cc-customization-expert-go/config.json",
     "policy": "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
     "minimumByCapability": [
+      {
+        "capability": "msapi.detailPageReports.lifecycle",
+        "label": "Detail-page report assignment lifecycle",
+        "introducedInSkillVersion": "2.2.97-msapi",
+        "minimumMetadataServiceVersion": "1.1.83",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.83",
+        "domains": [
+          "detail-page-reports"
+        ],
+        "operations": [
+          "list",
+          "detail",
+          "candidates",
+          "create",
+          "update",
+          "delete",
+          "plan",
+          "apply"
+        ],
+        "reason": "Requires object + record-type natural-key assignment, ordered chart replacement, report-source validation, and separation from report-definition ownership."
+      },
       {
         "capability": "msapi.fieldTracking.lifecycle",
         "label": "Field history tracking lifecycle",

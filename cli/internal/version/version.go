@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.96"
+const Version = "2.2.97"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,6 +48,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- Detail-page report assignments are available through detailPageReport as an independent object + record-type domain, with ordered 1-10 report charts, optional current-record filtering, MetadataService plan/apply, Lightning setup-service UIAPI adaptation, and fail-closed horizontal UIAPI. Requires MetadataService 1.1.83.")
 		fmt.Fprintln(stderr, "- Field history tracking is available through fieldTracking: query candidates/current selection, replace or clear user-managed fields, preserve system-managed fields, enforce authoritative FIELD_TRACK / RES010 quota policy, and use MetadataService plan/apply/rollback. Lightning UIAPI maps setup-service; horizontal UIAPI fails closed. Requires MetadataService 1.1.82.")
 		fmt.Fprintln(stderr, "- Field dependency lifecycle is available through fieldDependency: MSAPI adds object-scoped list/detail/candidates plus plan/apply custom or global dependencies with type, option, and cycle validation; Lightning UIAPI maps the existing setup-service routes; horizontal UIAPI fails closed. Requires MetadataService 1.1.81.")
 		fmt.Fprintln(stderr, "- Custom-setting field updates use true partial-update semantics, reconcile field labels by relation/type/country, preserve existing language-row IDs, reuse setup-svc root layouts including blank parent IDs, validate layout policies, and fail closed on ambiguous or zero-row updates. CLI edit shortcuts route to update, and the bundled user guide documents the supported plan/apply/readback workflow. Requires MetadataService 1.1.80.")
@@ -461,6 +462,26 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc create reportFolder <projectPath> <name> [encodedOptionsJson]")
 	fmt.Fprintln(stdout, "  cloudcc update reportFolder <projectPath> <folderId> <encodedOptionsJson>")
 	fmt.Fprintln(stdout, "  cloudcc delete reportFolder <projectPath> <folderId>")
+	fmt.Fprintln(stdout, "  cloudcc get fieldDependency <projectPath> <object>")
+	fmt.Fprintln(stdout, "  cloudcc candidates fieldDependency <projectPath> <object>")
+	fmt.Fprintln(stdout, "  cloudcc detail fieldDependency <projectPath> <object> <controlField> <dependentField>")
+	fmt.Fprintln(stdout, "  cloudcc create fieldDependency <projectPath> <encodedSpecJson|@file>  # MSAPI: plan only")
+	fmt.Fprintln(stdout, "  cloudcc update fieldDependency <projectPath> <encodedSpecJson|@file>  # MSAPI: plan only")
+	fmt.Fprintln(stdout, "  cloudcc applyGlobalDependency fieldDependency <projectPath> <object> <controlField> <dependentField>  # MSAPI: plan only")
+	fmt.Fprintln(stdout, "  cloudcc delete fieldDependency <projectPath> <object> <controlField> <dependentField>  # MSAPI: plan only")
+	fmt.Fprintln(stdout, "  cloudcc doc fieldDependency devguide  # complete user guide")
+	fmt.Fprintln(stdout, "  cloudcc get fieldTracking <projectPath> <object>")
+	fmt.Fprintln(stdout, "  cloudcc candidates fieldTracking <projectPath> <object>")
+	fmt.Fprintln(stdout, "  cloudcc update fieldTracking <projectPath> <encodedSpecJson|@file>  # MSAPI: plan only")
+	fmt.Fprintln(stdout, "  cloudcc clear fieldTracking <projectPath> <object>  # MSAPI: plan only")
+	fmt.Fprintln(stdout, "  cloudcc doc fieldTracking devguide  # complete user guide")
+	fmt.Fprintln(stdout, "  cloudcc get detailPageReport <projectPath> [object] [recordType]")
+	fmt.Fprintln(stdout, "  cloudcc detail detailPageReport <projectPath> <assignmentId>")
+	fmt.Fprintln(stdout, "  cloudcc candidates detailPageReport <projectPath> <object> [recordType]")
+	fmt.Fprintln(stdout, "  cloudcc create detailPageReport <projectPath> <encodedSpecJson|@file>  # plan only")
+	fmt.Fprintln(stdout, "  cloudcc update detailPageReport <projectPath> <assignmentId> <encodedSpecJson|@file>  # plan only")
+	fmt.Fprintln(stdout, "  cloudcc delete detailPageReport <projectPath> <assignmentId>  # plan only")
+	fmt.Fprintln(stdout, "  cloudcc doc detailPageReport devguide  # complete user guide")
 	fmt.Fprintln(stdout, "  cloudcc create trigger <objectApi/TriggerName> [projectPath]  # recommended; flat TriggerName remains compatible")
 	fmt.Fprintln(stdout, "  cloudcc publish trigger <objectApi/TriggerName|TriggerName> [projectPath]")
 	fmt.Fprintln(stdout, "  cloudcc doctor classes [projectPath] [--java-home <path>] [--compiler-home <path>]")

@@ -10,6 +10,7 @@ var aliases = map[string]string{
 	"field": "fields", "fieldId": "fields",
 	"fieldDependency": "fieldDependency", "field-dependency": "fieldDependency", "field-dependencies": "fieldDependency",
 	"fieldTracking": "fieldTracking", "fieldTrack": "fieldTracking", "field-tracking": "fieldTracking",
+	"detailPageReport": "detailPageReport", "detail-page-report": "detailPageReport", "detailPageChart": "detailPageReport", "detail-page-chart": "detailPageReport",
 	"pageLayout": "pagelayout", "layout": "pagelayout",
 	"record-type": "recordType", "record-type-list": "recordType",
 	"currencies": "currency", "companyCurrency": "currency", "company-currency": "currency",
@@ -28,6 +29,9 @@ func HandleLowCode(action string, resource string, _ []string, _ io.Writer, _ st
 	resource = normalizeResource(resource)
 	if resource == "apiRegistrar" {
 		return fmt.Errorf("horizontal UIAPI does not expose a maintained API-registrar management contract; use the MSAPI provider")
+	}
+	if resource == "detailPageReport" {
+		return fmt.Errorf("horizontal UIAPI does not expose a maintained detail-page report assignment contract; use the MSAPI provider")
 	}
 	return fmt.Errorf("cloudcc %s %s is not supported by horizontal UIAPI: legacy main-app Jersey Resource endpoints are intentionally disabled; a maintained Struts Action adapter is required", action, resource)
 }

@@ -2,8 +2,8 @@
   "schemaVersion": "cloudcc-dual-provider-capability-matrix/v1",
   "releaseBaseline": "2.2.5",
   "msapiBaseline": {
-    "domains": 27,
-    "operations": 126,
+    "domains": 28,
+    "operations": 134,
     "source": "MetadataService capability catalog; live replay evidence coverage remains independently audited"
   },
   "semantics": {
@@ -57,6 +57,7 @@
     {"id":"identity-providers","uiapiResource":"identityProvider","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
     {"id":"approval-processes","uiapiResource":"approval","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
     {"id":"reports","uiapiResource":"report","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","folder-create":"contract_tested","folder-update":"contract_tested","folder-delete":"contract_tested","query":"contract_tested"}},
+    {"id":"detail-page-reports","uiapiResource":"detailPageReport","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested","detail":"contract_tested"}},
     {"id":"dashboards","uiapiResource":"dashboard","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
     {"id":"object-views","uiapiResource":"view","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
     {"id":"api-registrars","uiapiResource":"apiRegistrar","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested","detail":"contract_tested","debug":"contract_tested","logs":"contract_tested","log-detail":"contract_tested"}},

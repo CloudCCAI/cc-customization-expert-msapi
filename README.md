@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.96-msapi
+# cc-customization-expert-msapi v2.2.97-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -16,6 +16,7 @@ tools/bin/cloudcc analyze dataIndex /path/to/project Account
 tools/bin/cloudcc domains
 tools/bin/cloudcc domain metadata
 tools/bin/cloudcc domain classes
+tools/bin/cloudcc doc fieldDependency
 tools/bin/cloudcc doc platform/openapi introduction
 tools/bin/cloudcc create openapi /path/to/project '{"objectApiName":"Account","data":[{"name":"Example account"}]}'
 tools/bin/cloudcc uploadAttachment openapi /path/to/project <recordId> <filePath> '[optionsJson|@file]'
