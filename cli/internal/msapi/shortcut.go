@@ -28,6 +28,9 @@ var lowCodeShortcutDomains = map[string]string{
 	"fields":                 "fields",
 	"field":                  "fields",
 	"fieldId":                "fields",
+	"fieldDependency":        "field-dependencies",
+	"field-dependency":       "field-dependencies",
+	"field-dependencies":     "field-dependencies",
 	"companyFiscalYear":      "fiscal-years",
 	"company-fiscal-year":    "fiscal-years",
 	"fiscalYear":             "fiscal-years",
@@ -134,6 +137,9 @@ var lowCodeShortcutActions = map[string]bool{
 	"runtime":                true,
 	"audit":                  true,
 	"repair":                 true,
+	"candidates":             true,
+	"applyGlobalDependency":  true,
+	"apply-global":           true,
 }
 
 // IsLowCodeShortcut returns true for legacy low-code metadata CLI shortcuts that
@@ -183,6 +189,9 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 	}
 	if resource == "validationRule" && isShortcutRead(action) {
 		return handleValidationRuleReadShortcut(action, projectPath, rest, stdout, cwd)
+	}
+	if domain == "field-dependencies" && (isShortcutRead(action) || strings.TrimSpace(action) == "candidates") {
+		return handleFieldDependencyReadShortcut(action, projectPath, rest, stdout, cwd)
 	}
 	if isApiRegistrarShortcutResource(resource) && isShortcutRead(action) {
 		return handleApiRegistrarReadShortcut(action, projectPath, rest, stdout, cwd)
@@ -259,6 +268,30 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 		return err
 	}
 	return Handle("plan", "msapi", []string{projectPath, domain, string(body), operation}, stdout, cwd)
+}
+
+func handleFieldDependencyReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
+	c, _, err := newClient([]string{projectPath}, cwd)
+	if err != nil {
+		return err
+	}
+	action = strings.TrimSpace(action)
+	if action == "detail" || action == "editInfo" {
+		if len(args) != 3 || strings.TrimSpace(args[0]) == "" || strings.TrimSpace(args[1]) == "" || strings.TrimSpace(args[2]) == "" {
+			return fmt.Errorf("cloudcc %s fieldDependency <projectPath> <object> <control-field> <dependent-field>", action)
+		}
+		path := "/metadata/v1/field-dependencies/" + url.PathEscape(strings.TrimSpace(args[1])) + "/" +
+			url.PathEscape(strings.TrimSpace(args[2])) + "?object=" + url.QueryEscape(strings.TrimSpace(args[0]))
+		return c.getJSON(stdout, path)
+	}
+	if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
+		return fmt.Errorf("cloudcc %s fieldDependency <projectPath> <object>", action)
+	}
+	path := "/metadata/v1/field-dependencies?object=" + url.QueryEscape(strings.TrimSpace(args[0]))
+	if action == "candidates" {
+		path = "/metadata/v1/field-dependencies:candidates?object=" + url.QueryEscape(strings.TrimSpace(args[0]))
+	}
+	return c.getJSON(stdout, path)
 }
 
 type directQueryShortcut struct {
@@ -2013,6 +2046,29 @@ func shortcutProjectPath(args []string, cwd string) (string, []string) {
 
 func shortcutPlanSpec(action string, resource string, args []string) (map[string]any, string, error) {
 	operation := shortcutOperation(action, resource)
+	if resource == "fieldDependency" || resource == "field-dependency" || resource == "field-dependencies" {
+		fieldPairAction := strings.TrimSpace(action) == "delete" || strings.TrimSpace(action) == "applyGlobalDependency" || strings.TrimSpace(action) == "apply-global"
+		if fieldPairAction && len(args) == 3 {
+			body := map[string]any{
+				"object":         strings.TrimSpace(args[0]),
+				"controlField":   strings.TrimSpace(args[1]),
+				"dependentField": strings.TrimSpace(args[2]),
+			}
+			if strings.TrimSpace(action) == "applyGlobalDependency" || strings.TrimSpace(action) == "apply-global" {
+				body["mode"] = "global"
+				operation = "apply-global"
+			}
+			return body, operation, nil
+		}
+		if fieldPairAction && (len(args) == 0 || !looksLikeJSONArg(args[0])) {
+			return nil, "", fmt.Errorf("cloudcc %s fieldDependency <projectPath> <object> <control-field> <dependent-field> or <@spec.json>", action)
+		}
+		body, _, err := shortcutBodySpec(action, resource, args)
+		if strings.TrimSpace(action) == "applyGlobalDependency" || strings.TrimSpace(action) == "apply-global" {
+			operation = "apply-global"
+		}
+		return body, operation, err
+	}
 	if resource == "object" {
 		if operation == "create" {
 			var accessable string

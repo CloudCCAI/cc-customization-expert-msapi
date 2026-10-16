@@ -8,6 +8,7 @@ import (
 
 var aliases = map[string]string{
 	"field": "fields", "fieldId": "fields",
+	"fieldDependency": "fieldDependency", "field-dependency": "fieldDependency", "field-dependencies": "fieldDependency",
 	"pageLayout": "pagelayout", "layout": "pagelayout",
 	"record-type": "recordType", "record-type-list": "recordType",
 	"currencies": "currency", "companyCurrency": "currency", "company-currency": "currency",

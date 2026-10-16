@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.94"
+const Version = "2.2.95"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,6 +48,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- Field dependency lifecycle is available through fieldDependency: MSAPI adds object-scoped list/detail/candidates plus plan/apply custom or global dependencies with type, option, and cycle validation; Lightning UIAPI maps the existing setup-service routes; horizontal UIAPI fails closed. Requires MetadataService 1.1.81.")
 		fmt.Fprintln(stderr, "- Custom-setting field updates use true partial-update semantics, reconcile field labels by relation/type/country, preserve existing language-row IDs, reuse setup-svc root layouts including blank parent IDs, validate layout policies, and fail closed on ambiguous or zero-row updates. CLI edit shortcuts route to update, and the bundled user guide documents the supported plan/apply/readback workflow. Requires MetadataService 1.1.80.")
 		fmt.Fprintln(stderr, "- Formula-field support now follows the setup-svc SQL execution path: JavaScript-engine aliases such as VALUE are no longer documented as field functions; MySQL native replacements, optional Oracle-compatibility stored functions, and CloudCC-specific helpers are classified separately. MetadataService 1.1.77 compiles MySQL HYPERLINK with concat and performs a read-only target-database preflight during planning.")
 		fmt.Fprintln(stderr, "- API registrar SOAP/XML parity adds POST-only raw XML debug validation, SOAP-aware user guidance, XML credential redaction, and a refreshed offline cloudcc.jar so CCRemoteClient.ContentType.XML compiles without a platform checkout. SOAP 1.1 defaults to text/xml; callers may override Content-Type for SOAP 1.2. MetadataService CRUD and horizontal runtime-action boundaries are unchanged.")
