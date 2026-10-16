@@ -37,4 +37,3 @@
 - 保存前检测直接和间接循环；值选择器必须在目标字段的选项中唯一命中。
 - 记录类型使用的 `CONTROL_FIELD_TYPE=R` 映射不属于本能力，不会被字段依赖查询或替换。
 - apply 会记录 before/after 快照，可按 MetadataService 操作回滚。
-

@@ -31,6 +31,9 @@ var lowCodeShortcutDomains = map[string]string{
 	"fieldDependency":        "field-dependencies",
 	"field-dependency":       "field-dependencies",
 	"field-dependencies":     "field-dependencies",
+	"fieldTracking":          "field-tracking",
+	"fieldTrack":             "field-tracking",
+	"field-tracking":         "field-tracking",
 	"companyFiscalYear":      "fiscal-years",
 	"company-fiscal-year":    "fiscal-years",
 	"fiscalYear":             "fiscal-years",
@@ -140,6 +143,7 @@ var lowCodeShortcutActions = map[string]bool{
 	"candidates":             true,
 	"applyGlobalDependency":  true,
 	"apply-global":           true,
+	"clear":                  true,
 }
 
 // IsLowCodeShortcut returns true for legacy low-code metadata CLI shortcuts that
@@ -192,6 +196,9 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 	}
 	if domain == "field-dependencies" && (isShortcutRead(action) || strings.TrimSpace(action) == "candidates") {
 		return handleFieldDependencyReadShortcut(action, projectPath, rest, stdout, cwd)
+	}
+	if domain == "field-tracking" && (isShortcutRead(action) || strings.TrimSpace(action) == "candidates") {
+		return handleFieldTrackingReadShortcut(action, projectPath, rest, stdout, cwd)
 	}
 	if isApiRegistrarShortcutResource(resource) && isShortcutRead(action) {
 		return handleApiRegistrarReadShortcut(action, projectPath, rest, stdout, cwd)
@@ -290,6 +297,21 @@ func handleFieldDependencyReadShortcut(action string, projectPath string, args [
 	path := "/metadata/v1/field-dependencies?object=" + url.QueryEscape(strings.TrimSpace(args[0]))
 	if action == "candidates" {
 		path = "/metadata/v1/field-dependencies:candidates?object=" + url.QueryEscape(strings.TrimSpace(args[0]))
+	}
+	return c.getJSON(stdout, path)
+}
+
+func handleFieldTrackingReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
+	c, _, err := newClient([]string{projectPath}, cwd)
+	if err != nil {
+		return err
+	}
+	if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
+		return fmt.Errorf("cloudcc %s fieldTracking <projectPath> <object>", action)
+	}
+	path := "/metadata/v1/field-tracking?object=" + url.QueryEscape(strings.TrimSpace(args[0]))
+	if strings.TrimSpace(action) == "candidates" {
+		path = "/metadata/v1/field-tracking:candidates?object=" + url.QueryEscape(strings.TrimSpace(args[0]))
 	}
 	return c.getJSON(stdout, path)
 }
@@ -2046,6 +2068,16 @@ func shortcutProjectPath(args []string, cwd string) (string, []string) {
 
 func shortcutPlanSpec(action string, resource string, args []string) (map[string]any, string, error) {
 	operation := shortcutOperation(action, resource)
+	if lowCodeShortcutDomains[strings.TrimSpace(resource)] == "field-tracking" {
+		if strings.TrimSpace(action) == "clear" {
+			if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
+				return nil, "", fmt.Errorf("cloudcc clear fieldTracking <projectPath> <object>")
+			}
+			return map[string]any{"object": strings.TrimSpace(args[0])}, "clear", nil
+		}
+		body, _, err := shortcutBodySpec(action, resource, args)
+		return body, "update", err
+	}
 	if resource == "fieldDependency" || resource == "field-dependency" || resource == "field-dependencies" {
 		fieldPairAction := strings.TrimSpace(action) == "delete" || strings.TrimSpace(action) == "applyGlobalDependency" || strings.TrimSpace(action) == "apply-global"
 		if fieldPairAction && len(args) == 3 {

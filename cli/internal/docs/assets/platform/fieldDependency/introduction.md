@@ -11,4 +11,3 @@ cloudcc candidates fieldDependency <projectPath> <object>
 cloudcc create fieldDependency <projectPath> <@spec.json>
 cloudcc apply msapi <projectPath> <planId>
 ```
-

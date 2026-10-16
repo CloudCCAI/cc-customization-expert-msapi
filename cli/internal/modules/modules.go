@@ -114,6 +114,14 @@ var genericEndpoints = map[string]map[string]endpoint{
 		"validDelete":           {"setup", "/api/fieldDependencyManage/checkDependency"},
 		"applyGlobalDependency": {"setup", "/api/fieldDependencyManage/applyGlobalDependency"},
 	},
+	"fieldTracking": {
+		"get":        {"setup", "/api/fieldTrackManage/queryFieldToTrack"},
+		"getList":    {"setup", "/api/fieldTrackManage/queryFieldToTrack"},
+		"candidates": {"setup", "/api/fieldTrackManage/queryFieldToTrack"},
+		"update":     {"setup", "/api/fieldTrackManage/saveButton"},
+		"save":       {"setup", "/api/fieldTrackManage/saveButton"},
+		"clear":      {"setup", "/api/fieldTrackManage/saveButton"},
+	},
 	"globalSelectList": {
 		"get":    {"setup", "/api/globalSelectSetup/queryList"},
 		"detail": {"setup", "/api/globalSelectSetup/detail"},
@@ -300,6 +308,9 @@ func Handle(action string, resource string, args []string, stdout io.Writer, std
 	if resource == "apiRegister" || resource == "api-registrar" || resource == "api-register" {
 		resource = "apiRegistrar"
 	}
+	if resource == "fieldTrack" || resource == "field-tracking" {
+		resource = "fieldTracking"
+	}
 	switch resource {
 	case "highcode":
 		if action == "format" {
@@ -316,6 +327,8 @@ func Handle(action string, resource string, args []string, stdout io.Writer, std
 		if action == "get" {
 			return handleFieldsGet(args, stdout, cwd)
 		}
+	case "fieldTracking":
+		return handleFieldTracking(action, args, stdout, cwd)
 	case "classes":
 		if action == "format" {
 			return handleJavaFormat(resource, args, stdout, cwd)
@@ -1074,6 +1087,173 @@ func handleConfig(action string, args []string, stdout io.Writer, cwd string) er
 	default:
 		return fmt.Errorf("unsupported config action: %s", action)
 	}
+}
+
+func handleFieldTracking(action string, args []string, stdout io.Writer, cwd string) error {
+	projectPath := firstArg(args, cwd)
+	cfg, err := config.Load(projectPath)
+	if err != nil {
+		return err
+	}
+	if action == "get" || action == "getList" || action == "candidates" {
+		if len(args) != 2 || strings.TrimSpace(args[1]) == "" {
+			return fmt.Errorf("cloudcc %s fieldTracking <projectPath> <object>", action)
+		}
+		object := strings.TrimSpace(args[1])
+		var query map[string]any
+		if err := postClassResponse(projectPath, cfg, "setup", "/api/fieldTrackManage/queryFieldToTrack",
+			map[string]any{"objid": object}, &query); err != nil {
+			return err
+		}
+		return printJSON(stdout, normalizeFieldTrackingResponse(object, query))
+	}
+	var object string
+	tracked := []string{}
+	if action == "clear" {
+		if len(args) != 2 || strings.TrimSpace(args[1]) == "" {
+			return fmt.Errorf("cloudcc clear fieldTracking <projectPath> <object>")
+		}
+		object = strings.TrimSpace(args[1])
+	} else if action == "update" || action == "save" {
+		if len(args) != 2 {
+			return fmt.Errorf("cloudcc %s fieldTracking <projectPath> <@tracking.json>", action)
+		}
+		spec, parseErr := jsonx.ParseEncodedObject(args[1], action+" fieldTracking")
+		if parseErr != nil {
+			return parseErr
+		}
+		if objectValue, ok := spec["object"].(string); ok {
+			object = strings.TrimSpace(objectValue)
+		}
+		values, ok := spec["trackedFields"].([]any)
+		if object == "" || !ok {
+			return fmt.Errorf("fieldTracking update requires object and an explicit trackedFields array")
+		}
+		for _, value := range values {
+			selector := strings.TrimSpace(fmt.Sprint(value))
+			if selector == "" {
+				return fmt.Errorf("trackedFields must contain non-empty field IDs or API names")
+			}
+			tracked = append(tracked, selector)
+		}
+	} else {
+		return fmt.Errorf("unsupported fieldTracking action: %s", action)
+	}
+
+	var query map[string]any
+	if err := postClassResponse(projectPath, cfg, "setup", "/api/fieldTrackManage/queryFieldToTrack",
+		map[string]any{"objid": object}, &query); err != nil {
+		return err
+	}
+	bySelector := map[string]string{}
+	for _, field := range fieldTrackingRows(query) {
+		idValue := firstAny(field["id"], field["ID"])
+		apiValue := firstAny(field["apiname"], field["apiName"], field["schemefieldName"])
+		id := ""
+		api := ""
+		if idValue != nil {
+			id = strings.TrimSpace(fmt.Sprint(idValue))
+		}
+		if apiValue != nil {
+			api = strings.TrimSpace(fmt.Sprint(apiValue))
+		}
+		if id != "" {
+			bySelector[strings.ToLower(id)] = id
+		}
+		if id != "" && api != "" {
+			bySelector[strings.ToLower(api)] = id
+		}
+	}
+	resolved := make([]string, 0, len(tracked))
+	seen := map[string]bool{}
+	for _, selector := range tracked {
+		id := bySelector[strings.ToLower(selector)]
+		if id == "" {
+			return fmt.Errorf("field %q is not an eligible field-tracking candidate on object %s", selector, object)
+		}
+		if seen[id] {
+			return fmt.Errorf("trackedFields resolves to duplicate field %s", id)
+		}
+		seen[id] = true
+		resolved = append(resolved, id)
+	}
+	idCSV := ""
+	if len(resolved) > 0 {
+		idCSV = strings.Join(resolved, ",")
+	}
+	return postClass(stdout, projectPath, cfg, "setup", "/api/fieldTrackManage/saveButton",
+		map[string]any{"objid": object, "id": idCSV})
+}
+
+func normalizeFieldTrackingResponse(object string, response map[string]any) map[string]any {
+	fields := make([]map[string]any, 0)
+	selectedCount := 0
+	for _, row := range fieldTrackingRows(response) {
+		fieldType := strings.ToUpper(strings.TrimSpace(fmt.Sprint(firstAny(row["schemefieldType"], row["schemefield_type"]))))
+		selected := false
+		switch value := firstAny(row["isTracked"], row["is_tracked"]).(type) {
+		case bool:
+			selected = value
+		case string:
+			selected = value == "1" || strings.EqualFold(value, "true")
+		}
+		if selected {
+			selectedCount++
+		}
+		fields = append(fields, map[string]any{
+			"id":            firstAny(row["id"], row["ID"]),
+			"apiName":       firstAny(row["apiname"], row["apiName"], row["schemefieldName"]),
+			"label":         firstAny(row["labelName"], row["label_name"], row["name"]),
+			"fieldType":     fieldType,
+			"trackingMode":  map[bool]string{true: "change-only", false: "old-and-new"}[fieldType == "J" || fieldType == "A" || fieldType == "IMG"],
+			"selected":      selected,
+			"systemManaged": false,
+		})
+	}
+	return map[string]any{
+		"projection":      "read-only-field-tracking",
+		"object":          map[string]any{"apiName": object},
+		"selectedCount":   selectedCount,
+		"limit":           nil,
+		"quotaEnforcedBy": "setup-service",
+		"fields":          fields,
+	}
+}
+
+func fieldTrackingRows(response map[string]any) []map[string]any {
+	containers := []map[string]any{response}
+	if data, ok := response["data"].(map[string]any); ok {
+		containers = append(containers, data)
+	}
+	for _, container := range containers {
+		for _, key := range []string{"fields", "fieldlist", "fieldList"} {
+			if raw, ok := container[key].([]any); ok {
+				if rows := fieldTrackingMaps(raw); len(rows) > 0 {
+					return rows
+				}
+			}
+		}
+		rows := make([]map[string]any, 0)
+		for _, key := range []string{"tracklist", "trackList", "typelist", "typeList"} {
+			if raw, ok := container[key].([]any); ok {
+				rows = append(rows, fieldTrackingMaps(raw)...)
+			}
+		}
+		if len(rows) > 0 {
+			return rows
+		}
+	}
+	return nil
+}
+
+func fieldTrackingMaps(raw []any) []map[string]any {
+	rows := make([]map[string]any, 0, len(raw))
+	for _, item := range raw {
+		if row, ok := item.(map[string]any); ok {
+			rows = append(rows, row)
+		}
+	}
+	return rows
 }
 
 func callGeneric(ep endpoint, action string, resource string, args []string, stdout io.Writer, cwd string) error {

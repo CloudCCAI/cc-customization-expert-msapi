@@ -1,6 +1,6 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.2.95-msapi",
+  "version": "2.2.96-msapi",
   "releaseDate": "2026-10-16",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
@@ -67,6 +67,7 @@
           "objects",
           "fields",
           "field-dependencies",
+          "field-tracking",
           "global-select-lists",
           "record-types",
           "layouts",
@@ -529,6 +530,66 @@
         "documentation": {
           "introduction": "cloudcc doc platform/fieldDependency introduction",
           "devguide": "cloudcc doc platform/fieldDependency devguide"
+        }
+      },
+      {
+        "name": "field-tracking",
+        "label": "Field history tracking",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "fieldTracking",
+          "fieldTrack",
+          "field-tracking"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": null,
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "platform": "lightning",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          },
+          {
+            "provider": "uiapi",
+            "platform": "horizontal",
+            "backend": "main-app",
+            "transport": "uiapi",
+            "availability": "unavailable"
+          }
+        ],
+        "actions": [
+          "get",
+          "candidates",
+          "update",
+          "clear",
+          "plan",
+          "apply",
+          "rollback"
+        ],
+        "commands": [
+          "cloudcc get fieldTracking <projectPath> <object>",
+          "cloudcc candidates fieldTracking <projectPath> <object>",
+          "cloudcc update fieldTracking <projectPath> <@tracking.json>",
+          "cloudcc clear fieldTracking <projectPath> <object>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/fieldTracking introduction",
+          "devguide": "cloudcc doc platform/fieldTracking devguide"
         }
       },
       {
@@ -2289,6 +2350,26 @@
     "sourceOfTruth": "cc-customization-expert-go/config.json",
     "policy": "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
     "minimumByCapability": [
+      {
+        "capability": "msapi.fieldTracking.lifecycle",
+        "label": "Field history tracking lifecycle",
+        "introducedInSkillVersion": "2.2.96-msapi",
+        "minimumMetadataServiceVersion": "1.1.82",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.82",
+        "domains": [
+          "field-tracking"
+        ],
+        "operations": [
+          "get",
+          "candidates",
+          "update",
+          "clear",
+          "plan",
+          "apply",
+          "rollback"
+        ],
+        "reason": "Requires setup-compatible candidate filtering, system-managed field preservation, authoritative quota gating, drift checks, and rollback-safe replacement."
+      },
       {
         "capability": "msapi.fieldDependencies.lifecycle",
         "label": "Field dependency lifecycle",
