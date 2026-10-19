@@ -23,7 +23,7 @@
 
 ### 外部 HTTP 调用门禁
 
-自定义类需要主动调用外部 HTTP 服务时，优先使用平台接口注册器和 `CCRemoteClient`，并先读取 `platform/apiRegistrar devguide`。源码只使用注册项的 `apiCode`，不得硬编码远程 URL，也不得误用软件包标识 `apiName`。生成代码前必须确认注册项调试成功且为 `ACTIVE`；调用后必须检查 `CCRemoteResult` 的执行结果、HTTP 状态和错误信息，按需记录 `traceId`。接口修改会回到 `DRAFT`，必须重新调试后再投入运行。
+自定义类需要主动调用外部 HTTP 服务时，优先使用平台接口注册器和 `CCRemoteClient`，并先读取 `platform/apiRegistrar devguide`。源码只使用注册项的 `apiCode`，不得硬编码远程 URL，也不得误用软件包标识 `apiName`。生成代码前必须确认注册项调试成功且为 `ACTIVE`；调用后必须检查 `CCRemoteResult` 的执行结果、HTTP 状态和错误信息，按需记录 `traceId`。接口修改会回到 `DRAFT`，必须重新调试后再投入运行。POST JSON 根数组（如 `["xxx"]`）使用只含 `"__rawBody"` 的参数 Map；使用字符串键即可由现有离线 SDK 编译，不要引用当前 JAR 中不存在的 `RAW_BODY_PARAM` 常量。完整示例见接口注册器指南。
 
 ## 2. 自包含编译与发布链路
 

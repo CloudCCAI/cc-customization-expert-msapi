@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -46,7 +47,29 @@ func validateApiRegistrarDebugArgs(action string, args []string) error {
 	}
 	contentType = strings.ToUpper(strings.TrimSpace(contentType))
 	switch contentType {
-	case "JSON", "FORM", "MULTIPART":
+	case "JSON":
+		requestBodyValue, exists := body["requestBody"]
+		if !exists {
+			return nil
+		}
+		requestBody, ok := requestBodyValue.(string)
+		if !ok {
+			return fmt.Errorf("cloudcc %s apiRegistrar: JSON requestBody must be a string", action)
+		}
+		if strings.TrimSpace(requestBody) == "" {
+			return nil
+		}
+		if !json.Valid([]byte(requestBody)) {
+			return fmt.Errorf("cloudcc %s apiRegistrar: JSON requestBody must contain valid JSON", action)
+		}
+		if method == "GET" {
+			var object map[string]any
+			if err := json.Unmarshal([]byte(requestBody), &object); err != nil || object == nil {
+				return fmt.Errorf("cloudcc %s apiRegistrar: JSON array or scalar requestBody only supports POST", action)
+			}
+		}
+		return nil
+	case "FORM", "MULTIPART":
 		return nil
 	case "XML":
 		if method != "POST" {

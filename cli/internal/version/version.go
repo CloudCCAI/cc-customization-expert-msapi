@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.97"
+const Version = "2.2.98"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,6 +48,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- API registrar POST JSON now supports root-array bodies such as [\"xxx\"] across CLI debug and class/trigger/timer guidance. Debug validates the string before network and preserves it unchanged; high code uses a singleton params map with the literal key __rawBody, which compiles against the existing bundled cloudcc.jar.")
 		fmt.Fprintln(stderr, "- Detail-page report assignments are available through detailPageReport as an independent object + record-type domain, with ordered 1-10 report charts, optional current-record filtering, MetadataService plan/apply, Lightning setup-service UIAPI adaptation, and fail-closed horizontal UIAPI. Requires MetadataService 1.1.83.")
 		fmt.Fprintln(stderr, "- Field history tracking is available through fieldTracking: query candidates/current selection, replace or clear user-managed fields, preserve system-managed fields, enforce authoritative FIELD_TRACK / RES010 quota policy, and use MetadataService plan/apply/rollback. Lightning UIAPI maps setup-service; horizontal UIAPI fails closed. Requires MetadataService 1.1.82.")
 		fmt.Fprintln(stderr, "- Field dependency lifecycle is available through fieldDependency: MSAPI adds object-scoped list/detail/candidates plus plan/apply custom or global dependencies with type, option, and cycle validation; Lightning UIAPI maps the existing setup-service routes; horizontal UIAPI fails closed. Requires MetadataService 1.1.81.")

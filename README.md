@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.97-msapi
+# cc-customization-expert-msapi v2.2.98-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -43,6 +43,8 @@ Strict MetadataService package: low-code operations require MetadataService.
 从 `2.2.91` 开始，六个横纵版高代码 domain 会在同一 Action 会话内精确恢复并详情确认 publish ID，然后原子写入各自本地配置；无法确认唯一 ID 时保留 `submitted` 并报告 `idResolution=unresolved`。该补充流程不解析 JSP 业务成功标志，也不改变 Lightning 路由。
 
 从 `2.2.92` 开始，Lightning 接口注册器支持 POST-only SOAP/原始 XML 调试和高代码离线编译。CLI 会在发网前校验 XML 请求并脱敏日志中的 XML 凭据；SOAP 1.1/1.2 的调试文件和 Java 示例见 `cloudcc doc platform/apiRegistrar devguide`。MetadataService CRUD 与横纵版运行态限制不变。
+
+从 `2.2.98` 开始，Lightning 接口注册器 POST JSON 调试支持 `["xxx"]` 等根数组。CLI 在发网前校验字符串类型的 `requestBody` 并保持原文不重排；自定义类、触发器和定时类通过只含字符串键 `"__rawBody"` 的 Map 使用同一契约，现有 `cloudcc.jar` 无需刷新。
 
 从 `2.2.93` 开始，字段公式能力按 setup-svc 的实际 SQL 执行链路说明：不再把独立 JavaScript 表达式引擎的函数当成字段公式内建函数；MySQL 原生函数、可选 Oracle 兼容存储函数和 CloudCC 专用函数分别记录。MetadataService `1.1.77` 会生成 MySQL `concat(...)` HYPERLINK，并在计划阶段执行目标数据库只读预检。
 

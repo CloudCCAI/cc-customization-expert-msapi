@@ -36,6 +36,11 @@
 接口注册器支持 `GET`、`POST`，以及 `JSON`、`FORM`、`MULTIPART` 和 `XML`。XML 用于 SOAP 或其他
 原始 XML HTTP 服务，具有以下固定边界：
 
+- POST JSON 可以使用普通参数 Map，也可以用只含 `"__rawBody"` 的 Map 发送完整 JSON 原文；原文模式支持
+  `[` 开头的根数组，例如 `["xxx"]`，并避免对象被重排或二次序列化。
+- CLI 调试不直接传 `__rawBody`，而是把完整 JSON 放在字符串类型的 `requestBody` 中；CLI 会先校验 JSON，
+  setup-svc 再转换为运行时原文参数。
+
 - XML 只支持 `POST`，请求体按 UTF-8 原文发送，不解析 WSDL、XML Schema 或 SOAP Fault。
 - SOAP 1.1 默认使用 `text/xml;charset=UTF-8`，目标服务要求时由调用方提供 `SOAPAction`。
 - SOAP 1.2 应显式传入 `application/soap+xml;charset=UTF-8`，需要 action 时放在 Content-Type 参数中。
