@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.99-msapi
+# cc-customization-expert-msapi v2.2.100-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -47,6 +47,8 @@ Strict MetadataService package: low-code operations require MetadataService.
 从 `2.2.98` 开始，Lightning 接口注册器 POST JSON 调试支持 `["xxx"]` 等根数组。CLI 在发网前校验字符串类型的 `requestBody` 并保持原文不重排；自定义类、触发器和定时类通过只含字符串键 `"__rawBody"` 的 Map 使用同一契约，现有 `cloudcc.jar` 无需刷新。
 
 从 `2.2.99` 与 MetadataService `1.1.85` 开始，MSAPI `fieldTracking` 对已有候选字段的追踪配置不限制数量，也不读取或校验公有云 `FIELD_TRACK / RES010`；Lightning UIAPI 仍由 setup-service 决定平台侧限制。
+
+从 `2.2.100` 与 MetadataService `1.1.86` 开始，MSAPI `J` 长文本字段显式 `schemefieldLength` 最多为 131072，省略时仍默认 32000，并继续使用 `clob_fieldN`；setup-service/setup-web 保持不变。
 
 从 `2.2.93` 开始，字段公式能力按 setup-svc 的实际 SQL 执行链路说明：不再把独立 JavaScript 表达式引擎的函数当成字段公式内建函数；MySQL 原生函数、可选 Oracle 兼容存储函数和 CloudCC 专用函数分别记录。MetadataService `1.1.77` 会生成 MySQL `concat(...)` HYPERLINK，并在计划阶段执行目标数据库只读预检。
 

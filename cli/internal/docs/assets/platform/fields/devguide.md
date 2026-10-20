@@ -636,7 +636,8 @@ cloudcc create fields <projectPath> <fieldType> <objid> <fieldLabel> <remark> [e
   - **`displayType`**（可选）：纬度与经度显示方式；**`argvs[11]`**；**`"1"`** 数字展示，**`"2"`** 度、分、秒；不传默认 **`"1"`**（写入顶层 **`displayType`**）
 - **仅公用 `helps` / `defaultValue`、无 `argvs[9]` 起专属参数的类型**：`D`、`F`、`T`、`H`、`A`、`AD` 等（**不含** **`IMG`** / **`FL`** / **`ENC`** / **`ENCD`** / **`LT`** 等已单列的类型；见上文各节）
 - `J`（文本区-长）
-  - 与 **`X`** 类似：多行文本；**`schemefieldLength`**（可选）为**最大字符数**；**`argvs[9]`**；须为 **1～32000** 的整数；不传默认 **`32000`**
+  - 与 **`X`** 类似：多行文本；MetadataService spec 的 **`schemefieldLength`**（可选）为**最大字符数**，须为 **1～131072** 的整数；不传仍默认 **`32000`**
+  - **Provider 边界**：上述 131072 上限要求 MetadataService **`1.1.86`** 或更高版本；兼容位置参数和 Lightning UIAPI 仍可能受 setup-service/setup-web 的 32000 校验限制
   - **`placeholder`**（可选）：输入区**提示信息**；**`argvs[10]`**
   - **平台说明**：每个对象**最多 10 个** **`J`** 类型字段；条数由平台校验，**CLI 创建时不统计**，请在对象上自行控制数量
 - `X`（文本区）
@@ -708,7 +709,7 @@ cloudcc update fields <projectPath> <fieldId> <fieldType> <objid> <fieldLabel> <
 | CLI 类型编码 | 类型名称 | 说明 |
 | --- | --- | --- |
 | `X` | 文本区 | 多行文本，最多 4000 字符（`schemefieldLength`），见 **「X（文本区）」** |
-| `J` | 文本区（长） | 多行长文本，最多 32000 字符；每对象最多 10 个 `J` 字段（平台限制），见 **「J（文本区-长）」** |
+| `J` | 文本区（长） | MetadataService spec 显式长度最多 131072 字符、缺省仍为 32000；Lightning UIAPI 可能仍受平台 32000 限制；每对象最多 10 个 `J` 字段，见 **「J（文本区-长）」** |
 | `A` | 文本区（富文本） | 支持富文本内容、图文描述 |
 | `IMG` | 图片 | 上传数量见 **`defaultValue`**（`argvs[8]`），可选 **`formulaType`** / **`watermarkstatus`**（`argvs[9]` / `argvs[10]`），见上文 **「IMG（图片）」** |
 | `FL` | 文件 | 可上传文件数量见 **`defaultValue`**（`argvs[8]`），与 **`isrepeat`** 同步为同一数值，见上文 **「FL（文件）」** |

@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.99"
+const Version = "2.2.100"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,6 +48,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- MetadataService 1.1.86 expands explicit J long-text schemefieldLength to 131072 characters while preserving the 32000 default and clob_fieldN storage mapping. setup-service and setup-web limits are unchanged.")
 		fmt.Fprintln(stderr, "- API registrar POST JSON now supports root-array bodies such as [\"xxx\"] across CLI debug and class/trigger/timer guidance. Debug validates the string before network and preserves it unchanged; high code uses a singleton params map with the literal key __rawBody, which compiles against the existing bundled cloudcc.jar.")
 		fmt.Fprintln(stderr, "- Detail-page report assignments are available through detailPageReport as an independent object + record-type domain, with ordered 1-10 report charts, optional current-record filtering, MetadataService plan/apply, Lightning setup-service UIAPI adaptation, and fail-closed horizontal UIAPI. Requires MetadataService 1.1.83.")
 		fmt.Fprintln(stderr, "- Field history tracking through fieldTracking manages existing candidate fields with query, full replacement, clear, plan/apply, rollback, system-field preservation, and drift checks. MetadataService does not enforce a fixed field count or public-cloud FIELD_TRACK / RES010 quota; Lightning UIAPI remains subject to setup-service behavior. Requires MetadataService 1.1.85.")

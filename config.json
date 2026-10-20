@@ -1,7 +1,7 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.2.99-msapi",
-  "releaseDate": "2026-10-19",
+  "version": "2.2.100-msapi",
+  "releaseDate": "2026-10-20",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
   "domainCatalog": {
@@ -2429,6 +2429,22 @@
     "sourceOfTruth": "cc-customization-expert-go/config.json",
     "policy": "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
     "minimumByCapability": [
+      {
+        "capability": "msapi.fields.longTextLength131072",
+        "label": "Long-text field length through 131072 characters",
+        "introducedInSkillVersion": "2.2.100-msapi",
+        "minimumMetadataServiceVersion": "1.1.86",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.86",
+        "domains": [
+          "fields"
+        ],
+        "operations": [
+          "create",
+          "update",
+          "upsert"
+        ],
+        "reason": "Requires J fields to preserve the 32000 default while accepting explicit schemefieldLength values through 131072 and retaining clob_fieldN storage mapping."
+      },
       {
         "capability": "msapi.detailPageReports.lifecycle",
         "label": "Detail-page report assignment lifecycle",
