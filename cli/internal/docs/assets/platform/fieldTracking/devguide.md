@@ -10,7 +10,7 @@ cloudcc doctor provider <projectPath>
 cloudcc domain fieldTracking
 ```
 
-- MSAPI 要求 MetadataService `1.1.82` 或更高版本。写命令只生成计划，必须显式 apply 才会生效。
+- MSAPI 要求 MetadataService `1.1.85` 或更高版本。写命令只生成计划，必须显式 apply 才会生效。
 - Lightning UIAPI 直接提交到平台配置接口，不生成 MetadataService ledger 或 rollback。
 - horizontal UIAPI 当前不可用，会在发网前明确拒绝；horizontal 项目请使用 MSAPI。
 
@@ -36,8 +36,9 @@ cloudcc get fieldTracking . account
 重点检查以下返回字段：
 
 - `selectedCount`：当前已选择的用户可管理字段数，不包含系统管理字段。
-- `limit`：当前 Provider 能返回的额度；不可用时可能为空。
-- `quotaAuthoritative`：MSAPI 返回的额度是否可用于新增追踪字段的权威校验。
+- `limit`：兼容字段；MSAPI 返回 `null`，因为不执行数量限制。
+- `quotaAuthoritative`：兼容字段；MSAPI 返回 `false`。
+- `quotaValidation`：MSAPI 返回 `not-enforced`，表示没有读取或校验 `FIELD_TRACK / RES010`。
 - `fields[].selected`：字段当前是否启用追踪。
 - `fields[].systemManaged`：是否由平台管理；为 `true` 时不要写入 `trackedFields`。
 - `fields[].trackingMode`：`old-and-new` 记录新旧值，`change-only` 只记录字段发生过变化。
@@ -66,6 +67,8 @@ cloudcc candidates fieldTracking . account
 
 `trackedFields` 必须显式提供，并表示变更后的完整用户字段集合。它不是“在当前配置上追加这些字段”。如果当前启用的用户字段需要继续保留，也必须继续写在数组中。
 
+该文件只改变已有字段的追踪开关，不会创建字段。MSAPI 不限制数组中的候选字段数量，也不校验公有云 `FIELD_TRACK / RES010` 配额。
+
 ### 4. 生成、审阅并执行 MSAPI 计划
 
 ```text
@@ -91,7 +94,7 @@ cloudcc changes msapi . <operationId>
 cloudcc get fieldTracking . account
 ```
 
-如果计划生成后对象字段、当前选择、系统管理字段、候选资格或权威额度发生变化，apply 会拒绝旧计划。此时重新运行 get 和 candidates，更新文件并生成新计划，不要反复执行旧 `planId`。
+如果计划生成后对象字段、当前选择、系统管理字段或候选资格发生变化，apply 会拒绝旧计划。此时重新运行 get 和 candidates，更新文件并生成新计划，不要反复执行旧 `planId`。
 
 ### 6. 清空用户可管理字段
 
@@ -120,17 +123,16 @@ cloudcc get fieldTracking . account
 - 字段选择器支持字段 ID 或 API 名，但必须唯一命中当前对象的候选字段。
 - 数组中不可重复选择同一字段，也不可包含其他对象的字段。
 - `systemManaged=true` 的字段由平台保留，禁止写入 `trackedFields`。
-- 增加追踪字段时必须通过当前租户的权威额度校验；额度不可确认或超过限制时拒绝生成或执行计划。
+- MSAPI 不限制追踪字段数量，也不读取或校验公有云 `FIELD_TRACK / RES010`；Lightning UIAPI 仍由 setup-service 决定是否接受请求。
 - 长文本、富文本和图片等字段可能返回 `trackingMode=change-only`；这表示只记录变化事件，不提供旧值和新值对比。
 - `clear` 只关闭用户可管理字段；它不是删除历史记录命令。
 
 ## 常见问题
 
-- “需要权威字段追踪额度”：当前 MSAPI 环境无法确认租户额度，不能增加追踪字段。请先由平台运维完成额度配置同步；仍可执行不增加数量的替换或清空。
 - “字段不是候选字段”：重新运行 candidates，使用当前对象真实返回的字段 ID 或 API 名。
 - “系统管理字段不能提交”：从 `trackedFields` 删除 `systemManaged=true` 的字段；平台会自行保留它。
 - “计划已发生漂移”：配置或候选资格在 plan 后发生变化，重新查询并生成新计划。
-- “超过字段追踪额度”：减少 `trackedFields` 数量，或由管理员确认租户授权额度。
+- Lightning UIAPI 返回额度错误：这是 setup-service 的平台侧行为；若该项目允许使用 MSAPI，可切换 Provider 后重新生成计划，不能复用 UIAPI 的失败请求作为已生效依据。
 - “horizontal UIAPI 不支持”：为项目配置 MetadataService 并选择 MSAPI Provider。
 - apply 后结果与预期不一致：使用 operation 和 changes 检查真实执行结果，再通过 get 回读；不要只根据 update 的计划内容判断已生效。
 

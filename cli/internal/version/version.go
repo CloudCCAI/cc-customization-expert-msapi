@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.98"
+const Version = "2.2.99"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -50,7 +50,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 	case "changelog":
 		fmt.Fprintln(stderr, "- API registrar POST JSON now supports root-array bodies such as [\"xxx\"] across CLI debug and class/trigger/timer guidance. Debug validates the string before network and preserves it unchanged; high code uses a singleton params map with the literal key __rawBody, which compiles against the existing bundled cloudcc.jar.")
 		fmt.Fprintln(stderr, "- Detail-page report assignments are available through detailPageReport as an independent object + record-type domain, with ordered 1-10 report charts, optional current-record filtering, MetadataService plan/apply, Lightning setup-service UIAPI adaptation, and fail-closed horizontal UIAPI. Requires MetadataService 1.1.83.")
-		fmt.Fprintln(stderr, "- Field history tracking is available through fieldTracking: query candidates/current selection, replace or clear user-managed fields, preserve system-managed fields, enforce authoritative FIELD_TRACK / RES010 quota policy, and use MetadataService plan/apply/rollback. Lightning UIAPI maps setup-service; horizontal UIAPI fails closed. Requires MetadataService 1.1.82.")
+		fmt.Fprintln(stderr, "- Field history tracking through fieldTracking manages existing candidate fields with query, full replacement, clear, plan/apply, rollback, system-field preservation, and drift checks. MetadataService does not enforce a fixed field count or public-cloud FIELD_TRACK / RES010 quota; Lightning UIAPI remains subject to setup-service behavior. Requires MetadataService 1.1.85.")
 		fmt.Fprintln(stderr, "- Field dependency lifecycle is available through fieldDependency: MSAPI adds object-scoped list/detail/candidates plus plan/apply custom or global dependencies with type, option, and cycle validation; Lightning UIAPI maps the existing setup-service routes; horizontal UIAPI fails closed. Requires MetadataService 1.1.81.")
 		fmt.Fprintln(stderr, "- Custom-setting field updates use true partial-update semantics, reconcile field labels by relation/type/country, preserve existing language-row IDs, reuse setup-svc root layouts including blank parent IDs, validate layout policies, and fail closed on ambiguous or zero-row updates. CLI edit shortcuts route to update, and the bundled user guide documents the supported plan/apply/readback workflow. Requires MetadataService 1.1.80.")
 		fmt.Fprintln(stderr, "- Formula-field support now follows the setup-svc SQL execution path: JavaScript-engine aliases such as VALUE are no longer documented as field functions; MySQL native replacements, optional Oracle-compatibility stored functions, and CloudCC-specific helpers are classified separately. MetadataService 1.1.77 compiles MySQL HYPERLINK with concat and performs a read-only target-database preflight during planning.")

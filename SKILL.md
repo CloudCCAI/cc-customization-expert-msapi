@@ -1,12 +1,12 @@
 ---
 name: cc-customization-expert-msapi
-version: 2.2.98-msapi
+version: 2.2.99-msapi
 description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService."
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.2.98-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.2.99-msapi
 
-当前技能版本：`2.2.98-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.2.99-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
 
@@ -43,6 +43,7 @@ description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict Metad
 - 从技能 `2.2.91` 开始，上述六个横纵版高代码 domain 在同一 Action 会话内按自然键精确恢复 publish ID、调用详情确认并原子回写本地配置。ID 解析不读取 JSP 业务成功标志，不改变 HTTP 2xx/3xx 的 `submitted` 判定；未解析到唯一 ID 时仅输出 `idResolution=unresolved` 且不写配置。触发器和定时类首次发布会固化稳定 `apiname`，静态资源使用 `staticResource/<name>/config.json` 保存 ID。
 - 从技能 `2.2.92` 开始，Lightning 接口注册器支持 POST-only SOAP/原始 XML 调试与高代码编译：CLI 在发网前校验 `contentType=XML`、POST 和非空原文，日志显示会脱敏 XML 敏感元素/属性，离线编译包包含支持 `CCRemoteClient.ContentType.XML` 的新版 `cloudcc.jar`。SOAP 1.1 默认 `text/xml;charset=UTF-8`，SOAP 1.2 由调用方覆盖 Content-Type；完整用法必须先读 `platform/apiRegistrar devguide`。MetadataService CRUD 和横纵版 `debug/logs/logDetail` 限制不变。
 - 从技能 `2.2.98` 开始，Lightning 接口注册器的 POST JSON 调试支持 `["xxx"]` 等根数组：CLI 要求 `requestBody` 为字符串、在发网前校验 JSON 并保持原文不重排。自定义类使用只含字符串键 `"__rawBody"` 的参数 Map；触发器和定时类通过该封装类复用同一约定。现有 `cloudcc.jar` 的 `execute(...)` 签名足够编译，不引用 JAR 中不存在的 `RAW_BODY_PARAM` 常量，也不刷新 JAR。完整示例见 `platform/apiRegistrar devguide`。
+- 从技能 `2.2.99` 与 MetadataService `1.1.85` 开始，MSAPI `fieldTracking` 对已有候选字段的追踪配置不限制数量，也不读取或校验公有云 `FIELD_TRACK / RES010`；字段资格、系统管理字段保护、apply 漂移、完整替换与回滚保持不变。Lightning UIAPI 的限制由 setup-service 决定。
 - 从技能 `2.2.93` 开始，字段公式文档以 setup-svc 实际 SQL 执行链路为准：不再把独立 JavaScript 表达式引擎的 `VALUE/TODAY/ADDDAYS/...` 当成字段公式内建函数，改为记录 MySQL 原生写法及目标库已安装的 `to_char/to_date/to_number/trunc`、`to_mcode/to_mlang/to_mlang_type`。MetadataService `1.1.77` 会为 MySQL HYPERLINK 生成 `concat(...)`，并在计划阶段对目标数据库执行只读预检。
 - 从技能 `2.2.94` 开始，自定义设置字段新增/修改统一走 MetadataService 局部更新：字段标签按 `relationId + type + country` 插入或更新并保留已有语言行 ID，布局采用非破坏式补齐并复用空父 ID 的 setup-svc 根布局，无效布局策略、更新 0 行或自然键歧义会失败；CLI 用户文档只保留真实可用的 plan/apply/readback 命令。需要 MetadataService `1.1.80`。
 - `fieldDependency` 的完整用户入口是 `cloudcc doc fieldDependency`：先查询 candidates 和当前配置，再使用同一套字段对/JSON spec 命令；MSAPI 写入只生成 plan 并支持 changes/rollback，Lightning UIAPI 直接提交，horizontal UIAPI 失败关闭。自定义模式的 `mappings` 是完整替换，空数组不同于 delete；全局模式禁止携带 mappings。
