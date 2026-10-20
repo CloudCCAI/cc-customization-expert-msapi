@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.100"
+const Version = "2.2.101"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,6 +48,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- CCChat settings and feed tracking are available as one ccchat Domain. MSAPI requires MetadataService 1.1.87 and uses audited setup-service execution with drift checks, readback, and rollback; Lightning UIAPI uses the source-proven setup-service routes; horizontal UIAPI fails closed. Data archive settings are excluded.")
 		fmt.Fprintln(stderr, "- MetadataService 1.1.86 expands explicit J long-text schemefieldLength to 131072 characters while preserving the 32000 default and clob_fieldN storage mapping. setup-service and setup-web limits are unchanged.")
 		fmt.Fprintln(stderr, "- API registrar POST JSON now supports root-array bodies such as [\"xxx\"] across CLI debug and class/trigger/timer guidance. Debug validates the string before network and preserves it unchanged; high code uses a singleton params map with the literal key __rawBody, which compiles against the existing bundled cloudcc.jar.")
 		fmt.Fprintln(stderr, "- Detail-page report assignments are available through detailPageReport as an independent object + record-type domain, with ordered 1-10 report charts, optional current-record filtering, MetadataService plan/apply, Lightning setup-service UIAPI adaptation, and fail-closed horizontal UIAPI. Requires MetadataService 1.1.83.")
@@ -477,6 +478,14 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc update fieldTracking <projectPath> <encodedSpecJson|@file>  # MSAPI: plan only")
 	fmt.Fprintln(stdout, "  cloudcc clear fieldTracking <projectPath> <object>  # MSAPI: plan only")
 	fmt.Fprintln(stdout, "  cloudcc doc fieldTracking devguide  # complete user guide")
+	fmt.Fprintln(stdout, "  cloudcc get ccchat <projectPath> settings")
+	fmt.Fprintln(stdout, "  cloudcc update ccchat <projectPath> settings <encodedSpecJson|@file>  # MSAPI: plan only")
+	fmt.Fprintln(stdout, "  cloudcc getList ccchat <projectPath> feedTracking")
+	fmt.Fprintln(stdout, "  cloudcc get ccchat <projectPath> feedTracking <object>")
+	fmt.Fprintln(stdout, "  cloudcc candidates ccchat <projectPath> feedTracking <object>")
+	fmt.Fprintln(stdout, "  cloudcc update ccchat <projectPath> feedTracking <encodedSpecJson|@file>  # MSAPI: plan only")
+	fmt.Fprintln(stdout, "  cloudcc clear ccchat <projectPath> feedTracking <object>  # MSAPI: plan only")
+	fmt.Fprintln(stdout, "  cloudcc doc ccchat devguide  # complete user guide")
 	fmt.Fprintln(stdout, "  cloudcc get detailPageReport <projectPath> [object] [recordType]")
 	fmt.Fprintln(stdout, "  cloudcc detail detailPageReport <projectPath> <assignmentId>")
 	fmt.Fprintln(stdout, "  cloudcc candidates detailPageReport <projectPath> <object> [recordType]")

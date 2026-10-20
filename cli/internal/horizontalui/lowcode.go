@@ -17,6 +17,8 @@ var aliases = map[string]string{
 	"fiscal-year": "fiscalYear", "fiscalYears": "fiscalYear", "fiscal-years": "fiscalYear",
 	"object-view": "view", "object-views": "view",
 	"apiRegister": "apiRegistrar", "api-registrar": "apiRegistrar", "api-register": "apiRegistrar",
+	"ccchat": "ccchat", "ccChat": "ccchat", "ccchatSetting": "ccchat", "ccchatFeedTracking": "ccchat", "feedTracking": "ccchat",
+	"ccchat-settings": "ccchat", "ccchat-feed-tracking": "ccchat",
 }
 
 // HandleLowCode fails closed until a maintained main-app Struts Action contract
@@ -32,6 +34,9 @@ func HandleLowCode(action string, resource string, _ []string, _ io.Writer, _ st
 	}
 	if resource == "detailPageReport" {
 		return fmt.Errorf("horizontal UIAPI does not expose a maintained detail-page report assignment contract; use the MSAPI provider")
+	}
+	if resource == "ccchat" {
+		return fmt.Errorf("ccchat_horizontal_uiapi_unsupported: horizontal UIAPI has no maintained CCChat settings/feed-tracking contract; use MSAPI")
 	}
 	return fmt.Errorf("cloudcc %s %s is not supported by horizontal UIAPI: legacy main-app Jersey Resource endpoints are intentionally disabled; a maintained Struts Action adapter is required", action, resource)
 }

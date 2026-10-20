@@ -24,6 +24,13 @@ type endpoint struct {
 }
 
 var genericEndpoints = map[string]map[string]endpoint{
+	"ccchat": {
+		"settings.get":        {"setup", "/api/chatterGroup/queryChatterSetup"},
+		"settings.update":     {"setup", "/api/chatterGroup/saveSetup"},
+		"feedTracking.list":   {"setup", "/api/feedTrack/queryObjectList"},
+		"feedTracking.get":    {"setup", "/api/feedTrack/queryObjectFieldList"},
+		"feedTracking.update": {"setup", "/api/feedTrack/saveTrack"},
+	},
 	"apiRegistrar": {
 		"get":        {"setup", "/api/register/list"},
 		"getList":    {"setup", "/api/register/list"},
@@ -328,6 +335,9 @@ func Handle(action string, resource string, args []string, stdout io.Writer, std
 	if resource == "detail-page-report" || resource == "detailPageChart" || resource == "detail-page-chart" {
 		resource = "detailPageReport"
 	}
+	if resource == "ccChat" {
+		resource = "ccchat"
+	}
 	switch resource {
 	case "highcode":
 		if action == "format" {
@@ -346,6 +356,8 @@ func Handle(action string, resource string, args []string, stdout io.Writer, std
 		}
 	case "fieldTracking":
 		return handleFieldTracking(action, args, stdout, cwd)
+	case "ccchat", "ccchatSetting", "ccchatFeedTracking", "feedTracking", "ccchat-settings", "ccchat-feed-tracking":
+		return handleCcchat(action, resource, args, stdout, cwd)
 	case "fieldDependency":
 		return handleFieldDependency(action, args, stdout, cwd)
 	case "detailPageReport":

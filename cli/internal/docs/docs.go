@@ -69,6 +69,11 @@ func normalizeModule(module string) string {
 		strings.EqualFold(module, "field-tracking") {
 		return "platform/fieldTracking"
 	}
+	if strings.EqualFold(module, "ccchat") || strings.EqualFold(module, "ccChat") ||
+		strings.EqualFold(module, "ccchatSetting") || strings.EqualFold(module, "ccchatFeedTracking") ||
+		strings.EqualFold(module, "feedTracking") {
+		return "platform/ccchat"
+	}
 	if strings.EqualFold(module, "detailPageReport") || strings.EqualFold(module, "detailPageChart") ||
 		strings.EqualFold(module, "detail-page-report") || strings.EqualFold(module, "detail-page-reports") {
 		return "platform/detailPageReport"

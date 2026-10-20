@@ -23,6 +23,13 @@ var lowCodeShortcutDomains = map[string]string{
 	"application":            "applications",
 	"button":                 "buttons",
 	"customSetting":          "custom-settings",
+	"ccchat":                 "ccchat",
+	"ccChat":                 "ccchat",
+	"ccchatSetting":          "ccchat",
+	"ccchatFeedTracking":     "ccchat",
+	"feedTracking":           "ccchat",
+	"ccchat-settings":        "ccchat",
+	"ccchat-feed-tracking":   "ccchat",
 	"dupeCatcher":            "dupe-catchers",
 	"dashboard":              "dashboards",
 	"fields":                 "fields",
@@ -169,6 +176,9 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 		return fmt.Errorf("unsupported low-code metadata shortcut resource: %s", resource)
 	}
 	projectPath, rest := shortcutProjectPath(args, cwd)
+	if domain == "ccchat" {
+		return handleCcchatShortcut(action, resource, projectPath, rest, stdout, cwd)
+	}
 	if domain == "fields" && strings.TrimSpace(action) == "audit" {
 		return handleFieldIdAuditShortcut(projectPath, rest, stdout, cwd)
 	}
@@ -282,6 +292,75 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 		return err
 	}
 	return Handle("plan", "msapi", []string{projectPath, domain, string(body), operation}, stdout, cwd)
+}
+
+func handleCcchatShortcut(action string, resource string, projectPath string, args []string, stdout io.Writer, cwd string) error {
+	subresource := ""
+	switch strings.TrimSpace(resource) {
+	case "ccchatSetting", "ccchat-settings":
+		subresource = "settings"
+	case "ccchatFeedTracking", "feedTracking", "ccchat-feed-tracking":
+		subresource = "feedTracking"
+	default:
+		if len(args) == 0 {
+			return fmt.Errorf("cloudcc %s ccchat <projectPath> <settings|feedTracking> [object|@spec.json]", action)
+		}
+		subresource = strings.TrimSpace(args[0])
+		args = args[1:]
+	}
+	if subresource != "settings" && subresource != "feedTracking" {
+		return fmt.Errorf("ccchat_resource_invalid: expected settings or feedTracking, got %q", subresource)
+	}
+	action = strings.TrimSpace(action)
+	c, _, err := newClient([]string{projectPath}, cwd)
+	if err != nil {
+		return err
+	}
+	if subresource == "settings" {
+		if action == "get" && len(args) == 0 {
+			return c.getJSON(stdout, "/metadata/v1/ccchat/settings")
+		}
+		if action != "update" || len(args) != 1 || !looksLikeJSONArg(args[0]) {
+			return fmt.Errorf("cloudcc %s ccchat <projectPath> settings%s", action,
+				map[bool]string{true: " <encodedSpecJson|@file>", false: ""}[action == "update"])
+		}
+		body, err := parseObject(args[0], "cloudcc update ccchat settings")
+		if err != nil {
+			return err
+		}
+		encoded, _ := json.Marshal(body)
+		return Handle("plan", "msapi", []string{projectPath, "ccchat", string(encoded), "update-settings"}, stdout, cwd)
+	}
+	switch action {
+	case "getList":
+		if len(args) == 0 {
+			return c.getJSON(stdout, "/metadata/v1/ccchat/feed-tracking")
+		}
+	case "get":
+		if len(args) == 1 && strings.TrimSpace(args[0]) != "" {
+			return c.getJSON(stdout, "/metadata/v1/ccchat/feed-tracking?object="+url.QueryEscape(strings.TrimSpace(args[0])))
+		}
+	case "candidates":
+		if len(args) == 1 && strings.TrimSpace(args[0]) != "" {
+			return c.getJSON(stdout, "/metadata/v1/ccchat/feed-tracking/candidates?object="+url.QueryEscape(strings.TrimSpace(args[0])))
+		}
+	case "clear":
+		if len(args) == 1 && strings.TrimSpace(args[0]) != "" {
+			body, _ := json.Marshal(map[string]any{"object": strings.TrimSpace(args[0])})
+			return Handle("plan", "msapi", []string{projectPath, "ccchat", string(body), "clear-feed-tracking"}, stdout, cwd)
+		}
+	case "update":
+		if len(args) == 1 && looksLikeJSONArg(args[0]) {
+			body, err := parseObject(args[0], "cloudcc update ccchat feedTracking")
+			if err != nil {
+				return err
+			}
+			encoded, _ := json.Marshal(body)
+			return Handle("plan", "msapi", []string{projectPath, "ccchat", string(encoded), "update-feed-tracking"}, stdout, cwd)
+		}
+	}
+	return fmt.Errorf("cloudcc %s ccchat <projectPath> feedTracking %s", action,
+		map[string]string{"getList": "", "get": "<object>", "candidates": "<object>", "clear": "<object>", "update": "<encodedSpecJson|@file>"}[action])
 }
 
 func handleFieldDependencyReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
