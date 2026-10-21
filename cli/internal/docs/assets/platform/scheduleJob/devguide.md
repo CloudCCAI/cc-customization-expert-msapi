@@ -87,7 +87,7 @@ cloudcc create scheduleJob <projectPath> <encodedBodyJson>
 }
 ```
 
-示例（每天上午 10:00 执行一次，已实际验证可创建成功）：
+示例（每天上午 10:00 执行一次，ID 必须从目标环境回读）：
 
 1. 先查询可用 `prgid`
 
@@ -95,22 +95,12 @@ cloudcc create scheduleJob <projectPath> <encodedBodyJson>
 cloudcc getList scheduleJob "/path/to/project"
 ```
 
-返回示例：
-
-```json
-[
-  {
-    "sortfieldsql": 1776329019000,
-    "name": "ScheduleRetryTimer",
-    "id": "ccp202689F3015BpWah8"
-  }
-]
-```
+从返回列表选择实际 `id` 作为 `prgid`，不要使用文档中的示例 ID。
 
 2. 再创建定时作业
 
 ```bash
-cloudcc create scheduleJob "/path/to/project" '{"id":"","name":"daily-10am-job","prgid":"ccp202689F3015BpWah8","frequency":"weekly","weeks":"Mon,Tue,Wed,Thu,Fri,Sat,Sun","monthtype":"","days":"","weeknum":"","mweek":"","startdate":"2026-04-16","enddate":"2037-12-31","executetime":"10"}'
+cloudcc create scheduleJob "/path/to/project" '{"id":"","name":"daily-10am-job","prgid":"<实际定时类ID>","frequency":"weekly","weeks":"Mon,Tue,Wed,Thu,Fri,Sat,Sun","monthtype":"","days":"","weeknum":"","mweek":"","startdate":"2026-04-16","enddate":"2037-12-31","executetime":"10"}'
 ```
 
 3. 创建后查询结果
@@ -119,21 +109,7 @@ cloudcc create scheduleJob "/path/to/project" '{"id":"","name":"daily-10am-job",
 cloudcc get scheduleJob "/path/to/project"
 ```
 
-结果示例：
-
-```json
-[
-  {
-    "prgname": "ScheduleRetryTimer",
-    "name": "daily-10am-job",
-    "id": "2026F8F8AC2E294x4wsk",
-    "startdate": "2026-04-16",
-    "enddate": "2037-12-31",
-    "executetime": "上午 10:00",
-    "prgid": "ccp202689F3015BpWah8"
-  }
-]
-```
+核对返回的作业 ID、名称、绑定定时类和执行频率。
 
 注意：
 
@@ -161,14 +137,14 @@ cloudcc get scheduleJob <projectPath> [encodedCondJson]
 ### 3) 查询作业详情
 
 ```bash
-cloudcc detail scheduleJob <jobId> [projectPath]
+cloudcc detail scheduleJob <projectPath> <encodedBodyJson>
 ```
 
 参数说明：
 
 | 参数          | 必填 | 说明                   |
 | ------------- | ---- | ---------------------- |
-| `jobId`       | 是   | 定时作业 ID            |
+| `encodedBodyJson` | 是 | 查询体 JSON，例如 `{"id":"<实际作业ID>"}` |
 | `projectPath` | 否   | 项目路径，默认当前目录 |
 
 ---
@@ -190,7 +166,7 @@ cloudcc getList scheduleJob [projectPath]
 ### 5) 删除作业
 
 ```bash
-cloudcc delete scheduleJob <jobId> [projectPath]
+cloudcc delete scheduleJob <projectPath> <jobId>
 ```
 
 参数说明：
@@ -216,3 +192,13 @@ cloudcc doc platform/scheduleJob <introduction|devguide>
 - `cloudcc doc platform/timer devguide`
 
 ---
+
+## 四、更新、详情与执行边界
+
+```bash
+cloudcc detail scheduleJob <projectPath> '{"id":"<实际作业ID>"}'
+cloudcc update scheduleJob <projectPath> '<包含实际id和完整作业参数的JSON>'
+cloudcc delete scheduleJob <projectPath> <jobId>
+```
+
+项目路径位于资源名之后；详情接收 JSON 查询体，不接收裸 ID。`timer` 是定时类源码，`scheduleJob` 才是绑定该类的执行计划。作业管理直连平台接口，不进入 MetadataService plan/apply/rollback。保存后回读作业配置，真实调度和业务结果需在目标环境另行确认。

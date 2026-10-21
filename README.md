@@ -1,6 +1,42 @@
-# cc-customization-expert-msapi v2.2.101-msapi
+# cc-customization-expert-msapi v2.2.103-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
+
+## 全局安装（Mac / Windows）
+
+首次安装或移动技能目录后，在完整技能目录执行安装脚本；不要只复制单个二进制，否则自定义类编译器等配套资产可能无法找到。无需管理员权限，也不在线安装 CLI。
+
+macOS（自动识别 Intel AMD64 / Apple Silicon ARM64，支持 zsh、bash）：
+
+```bash
+sh tools/install.sh
+export PATH="$HOME/.local/bin:$PATH"
+cloudcc --version
+cloudcc doc list
+```
+
+安装器在 `~/.local/bin` 建立入口并幂等更新当前 shell 的用户启动文件；新终端自动生效。上面的 export 让当前终端立即生效。
+
+Windows（在技能目录的 PowerShell 执行，自动识别 AMD64 / ARM64）：
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+& .\tools\install.ps1
+cloudcc --version
+cloudcc doc list
+```
+
+安装器在 `%LOCALAPPDATA%\CloudCC\bin` 创建启动器并配置用户 PATH；安装 PowerShell 会话立即可用，其他已打开的终端/应用需重启。只临时设置当前进程的脚本策略，不修改系统级执行策略或 PATH。
+
+包内 `tools/bin/cloudcc` 和 `tools\bin\cloudcc.cmd` 也会自动选择平台/架构，可不全局安装而直接运行。全局命令引用当前完整技能目录，正常原地升级后继续可用；移动目录后重新安装。重复安装不会重复增加 PATH，已有非受管同名文件会报错而不会被覆盖。Windows 技能路径不能包含 `%` 或换行。
+
+## 文档查询
+
+`tools/bin/cloudcc doc` 和 `tools/bin/cloudcc doc list` 列出离线模块索引及两类文档命令。
+使用 `tools/bin/cloudcc doc <module> introduction` 阅读功能介绍，使用
+`tools/bin/cloudcc doc <module> devguide` 阅读命令、参数和示例；省略类型默认读取 devguide。
+支持模块短名、资源名/别名及完整路径，例如 `classes`、`objects`、`user`、
+`platform/classes`、`methodology/projectGovernance`。查询文档不读取项目配置或访问网络。
 
 ## Runtime
 

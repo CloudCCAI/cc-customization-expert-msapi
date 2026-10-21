@@ -30,6 +30,13 @@ func Run(args []string, stdout io.Writer, stderr io.Writer, cwd string) int {
 	if len(args) == 0 {
 		return version.Help(stdout, stderr)
 	}
+	if args[0] == "doc" {
+		if err := docs.Handle(args[1:], stdout); err != nil {
+			fmt.Fprintln(stderr, err)
+			return 1
+		}
+		return 0
+	}
 	if len(args) == 1 {
 		if err := version.Handle(args[0], nil, stdout, stderr); err != nil {
 			fmt.Fprintln(stderr, err)
@@ -51,8 +58,6 @@ func Run(args []string, stdout io.Writer, stderr io.Writer, cwd string) int {
 
 	var err error
 	switch {
-	case action == "doc":
-		err = docs.Print(resource, firstOr(rest, ""), stdout)
 	case action == "doctor" && resource == "provider":
 		projectPath := firstOr(rest, cwd)
 		err = provider.WriteDoctor(projectPath, stdout)

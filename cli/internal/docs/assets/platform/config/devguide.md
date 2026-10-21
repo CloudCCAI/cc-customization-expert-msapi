@@ -145,3 +145,31 @@ Lightning 命令会解析当前环境配置，并在需要时从 `CloudCCDev` �
 - `CloudCCDev` 当前按 base64 JSON 解码；其他历史加密格式需要单独迁移。
 - MetadataService 请求如果返回 `401 invalid_token`，CLI 会自动清理当前 `safetyMark` 对应的 `.cloudcc-cache.json` 缓存项，重新从项目配置解析 token 并重试一次；若刷新后的 token 仍被拒绝，CLI 会再次清理缓存，避免下次继续复用坏 token。
 - 若只需要离线读取 `doc` 文档，不需要项目配置。
+
+## 用户级全局 CLI 安装
+
+在完整技能目录执行，不要在业务项目目录运行相对的安装脚本路径。
+
+macOS（zsh/bash）：
+
+```bash
+sh tools/install.sh
+export PATH="$HOME/.local/bin:$PATH"
+cloudcc --version
+cloudcc doc list
+```
+
+Windows PowerShell：
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+& .\tools\install.ps1
+cloudcc --version
+cloudcc doc list
+```
+
+安装器自动选择 AMD64/ARM64：Mac 使用 `~/.local/bin` 和用户 shell 启动文件，Windows 使用 `%LOCALAPPDATA%\CloudCC\bin` 和用户 PATH。无需管理员权限。Mac 新终端自动生效，当前终端执行 export；Windows 安装会话立即生效，其他终端和应用重启后生效。
+
+入口引用完整技能包，升级保留目录即可继续使用；移动目录后重跑安装。重复执行不重复添加 PATH，不覆盖非受管同名文件。Windows 技能路径不能包含 `%` 或换行。无需全局安装时，`tools/bin/cloudcc` 或 `tools\bin\cloudcc.cmd` 仍可自动选择随包架构。
+
+全局安装只解决命令发现；业务操作仍读取命令指定项目或当前目录的 `cloudcc-cli.config.json`，不会自动选择租户，也不修改项目连接配置。

@@ -36,3 +36,17 @@ cloudcc domain classes
 
 Domain 行为以嵌入 CLI 的 Domain Catalog 为事实源，帮助、发行包配置和运行时门禁必须保持一致。
 目录查询固定离线，不代表目标租户的实时能力，也不把发行包声明伪装成租户探测结果。
+
+## 离线文档索引
+
+```bash
+cloudcc doc
+cloudcc doc list
+cloudcc doc classes introduction
+cloudcc doc objects devguide
+cloudcc doc user
+```
+
+`doc` 和 `doc list` 等价，枚举 platform、methodology、playbooks 下的全部文档模块，提供模块名、完整路径以及 introduction/devguide 读取命令。
+
+`introduction` 说明功能定位、场景与边界，`devguide` 说明命令、参数和使用流程；省略类型默认读取 devguide。模块名和资源别名可直接使用，旧完整路径继续兼容。文档索引只表示离线资料存在，不代表对应平台或租户启用了操作能力。`dataBulk` 和 `dataIndex` 的既有补充文档类型继续可读。

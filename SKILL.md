@@ -1,12 +1,12 @@
 ---
 name: cc-customization-expert-msapi
-version: 2.2.101-msapi
+version: 2.2.103-msapi
 description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService."
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.2.101-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.2.103-msapi
 
-当前技能版本：`2.2.101-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.2.103-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
 
@@ -17,6 +17,53 @@ description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict Metad
 - 每次环境切换或首次写入前运行：`tools/bin/cloudcc doctor provider <projectPath>`。输出会明确所选 provider、原因、安全级别和目标 MetadataService/setup-svc 兼容性。
 - `auto` 仅对已配置的 MetadataService 做 `GET /metadata/v1/capabilities` 只读探测；未配置时选择 UIAPI。已配置但不可用、认证失败或不兼容时失败关闭，绝不静默降级。
 - MSAPI 原生提供服务端 plan/apply/changes/rollback；UIAPI 是直接 CloudCC UI/API 调用，不承诺服务端 ledger 或 rollback。不要把 UIAPI 补偿操作当作 MSAPI 回滚。
+
+## 全局安装（Mac / Windows）
+
+首次安装或移动技能目录后，在完整技能目录执行安装脚本；不要只复制单个二进制，否则自定义类编译器等配套资产可能无法找到。无需管理员权限，也不在线安装 CLI。
+
+macOS（自动识别 Intel AMD64 / Apple Silicon ARM64，支持 zsh、bash）：
+
+```bash
+sh tools/install.sh
+export PATH="$HOME/.local/bin:$PATH"
+cloudcc --version
+cloudcc doc list
+```
+
+安装器在 `~/.local/bin` 建立入口并幂等更新当前 shell 的用户启动文件；新终端自动生效。上面的 export 让当前终端立即生效。
+
+Windows（在技能目录的 PowerShell 执行，自动识别 AMD64 / ARM64）：
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+& .\tools\install.ps1
+cloudcc --version
+cloudcc doc list
+```
+
+安装器在 `%LOCALAPPDATA%\CloudCC\bin` 创建启动器并配置用户 PATH；安装 PowerShell 会话立即可用，其他已打开的终端/应用需重启。只临时设置当前进程的脚本策略，不修改系统级执行策略或 PATH。
+
+包内 `tools/bin/cloudcc` 和 `tools\bin\cloudcc.cmd` 也会自动选择平台/架构，可不全局安装而直接运行。全局命令引用当前完整技能目录，正常原地升级后继续可用；移动目录后重新安装。重复安装不会重复增加 PATH，已有非受管同名文件会报错而不会被覆盖。Windows 技能路径不能包含 `%` 或换行。
+
+## 文档索引与按需读取
+
+文档内嵌在 CLI 中，无需项目配置、凭据或网络。先查询索引，再按需读取目标模块：
+
+```bash
+tools/bin/cloudcc doc
+tools/bin/cloudcc doc list
+tools/bin/cloudcc doc classes introduction
+tools/bin/cloudcc doc classes devguide
+tools/bin/cloudcc doc objects introduction
+tools/bin/cloudcc doc user devguide
+```
+
+- `doc` 与 `doc list` 等价，列出全部文档模块、完整路径及 introduction/devguide 命令。
+- `introduction` 用于理解功能定位、适用场景和能力边界；`devguide` 用于查询命令、参数、示例与操作流程。省略类型默认读取 devguide。
+- 支持索引中的模块名、完整路径，以及能力目录中的资源名和别名，例如 `classes`/`class`、`objects`/`object`、`layouts`/`pagelayout`。旧命令 `cloudcc doc platform/classes devguide` 保持兼容。
+- 方法论文档和业务 playbook 同样可用短名或完整路径，例如 `cloudcc doc projectGovernance devguide`、`cloudcc doc playbooks/serviceWorkOrder introduction`。
+- 方案设计先读相关模块 introduction，实施前读 devguide；不要一次展开全部文档。索引覆盖多个平台及规划能力，是否可执行仍以具体文档、Domain 路由和目标环境检查为准。
 
 ## 必须保留
 
