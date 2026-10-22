@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.103"
+const Version = "2.2.104"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,6 +48,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- Stored fields now allocate from actual physical columns. MSAPI requires MetadataService 1.1.88; J and A share the discovered clob_fieldN pool without a fixed J count. Lightning setup-service/setup-web limits are unchanged.")
 		fmt.Fprintln(stderr, "- User-level global installation: tools/install.sh (macOS zsh/bash) and tools/install.ps1 (Windows) configure a cloudcc launcher and user PATH without administrator privileges. Bundled launchers select AMD64/ARM64 automatically and preserve the complete skill package for compiler assets.")
 		fmt.Fprintln(stderr, "- Offline documentation discovery: cloudcc doc and cloudcc doc list enumerate all modules; doc <module> [introduction|devguide] supports short names, catalog aliases and legacy paths, defaults to devguide, and retains supplemental data guides. Config introduction and outdated SSO/view/schedule/project/HTML guidance are refreshed; SKILL.md explains the discovery/read workflow.")
 		fmt.Fprintln(stderr, "- CCChat settings and feed tracking are available as one ccchat Domain. MSAPI requires MetadataService 1.1.87 and uses audited setup-service execution with drift checks, readback, and rollback; Lightning UIAPI uses the source-proven setup-service routes; horizontal UIAPI fails closed. Data archive settings are excluded.")

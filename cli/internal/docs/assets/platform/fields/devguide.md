@@ -511,7 +511,7 @@ cloudcc operation msapi <projectPath> <applyId>
 }
 ```
 
-创建前会执行平台字段约束：每对象最多 1 个主详字段、2 个自动编号、10 个长文本 `J`、10 个文件字段、25 个图片字段；文本/加密长度、数字精度、上传数量、多选可见行数、重复选项和值域也会在 plan 阶段直接拒绝。字段删除会同步清理选项、筛选、相关列表、依赖、引用、自动编号、全局选项、语言、权限以及复合子字段元数据。
+创建前会执行平台字段约束：每对象最多 1 个主详字段、2 个自动编号、10 个文件字段、25 个图片字段；文本/加密长度、数字精度、上传数量、多选可见行数、重复选项和值域也会在 plan 阶段直接拒绝。从 MetadataService `1.1.88` 开始，MSAPI 存储字段容量以目标对象实际物理列为准，按数字序选择最小空槽，不再为 `J` 设置固定条数。字段删除会同步清理选项、筛选、相关列表、依赖、引用、自动编号、全局选项、语言、权限以及复合子字段元数据。
 
 ---
 
@@ -639,7 +639,7 @@ cloudcc create fields <projectPath> <fieldType> <objid> <fieldLabel> <remark> [e
   - 与 **`X`** 类似：多行文本；MetadataService spec 的 **`schemefieldLength`**（可选）为**最大字符数**，须为 **1～131072** 的整数；不传仍默认 **`32000`**
   - **Provider 边界**：上述 131072 上限要求 MetadataService **`1.1.86`** 或更高版本；兼容位置参数和 Lightning UIAPI 仍可能受 setup-service/setup-web 的 32000 校验限制
   - **`placeholder`**（可选）：输入区**提示信息**；**`argvs[10]`**
-  - **平台说明**：每个对象**最多 10 个** **`J`** 类型字段；条数由平台校验，**CLI 创建时不统计**，请在对象上自行控制数量
+  - **槽位容量**：MetadataService **`1.1.88`** 起，MSAPI 不限制 `J` 的固定数量；`J` 与 `A` 共享目标对象实际存在的 **`clob_fieldN`** 槽位，并选择数字序最小的空槽。真实槽位全部占用时返回 **`field_slot_exhausted`**；Lightning UIAPI 仍可能受 setup-service/setup-web 的既有限制
 - `X`（文本区）
   - `schemefieldLength`（可选）：多行文本**最大字符数**；**`argvs[9]`**；须为 **1～4000** 的整数；不传默认 **`4000`**（与平台常见上限一致）
   - `placeholder`（可选）：输入区**提示信息**；**`argvs[10]`**
@@ -709,7 +709,7 @@ cloudcc update fields <projectPath> <fieldId> <fieldType> <objid> <fieldLabel> <
 | CLI 类型编码 | 类型名称 | 说明 |
 | --- | --- | --- |
 | `X` | 文本区 | 多行文本，最多 4000 字符（`schemefieldLength`），见 **「X（文本区）」** |
-| `J` | 文本区（长） | MetadataService spec 显式长度最多 131072 字符、缺省仍为 32000；Lightning UIAPI 可能仍受平台 32000 限制；每对象最多 10 个 `J` 字段，见 **「J（文本区-长）」** |
+| `J` | 文本区（长） | MetadataService spec 显式长度最多 131072 字符、缺省仍为 32000；MSAPI `1.1.88+` 与 `A` 共享实际 `clob_fieldN` 槽位且无固定 `J` 条数限制；Lightning UIAPI 可能仍受平台长度和数量限制，见 **「J（文本区-长）」** |
 | `A` | 文本区（富文本） | 支持富文本内容、图文描述 |
 | `IMG` | 图片 | 上传数量见 **`defaultValue`**（`argvs[8]`），可选 **`formulaType`** / **`watermarkstatus`**（`argvs[9]` / `argvs[10]`），见上文 **「IMG（图片）」** |
 | `FL` | 文件 | 可上传文件数量见 **`defaultValue`**（`argvs[8]`），与 **`isrepeat`** 同步为同一数值，见上文 **「FL（文件）」** |
