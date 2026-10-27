@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.104-msapi
+# cc-customization-expert-msapi v2.2.106-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -89,6 +89,10 @@ Strict MetadataService package: low-code operations require MetadataService.
 从 `2.2.101` 与 MetadataService `1.1.87` 开始，`ccchat` 作为唯一一级 Domain 管理全局设置与对象微贴跟踪。MSAPI 由 MetadataService 审计编排并交给 setup-service 权威执行；Lightning UIAPI 直连既有接口，horizontal UIAPI 失败关闭。数据归档不在本能力范围内。
 
 从 `2.2.104` 与 MetadataService `1.1.88` 开始，MSAPI 存储字段按目标对象实际物理列分配数字序最小的空槽；`J` 与 `A` 共享真实 `clob_fieldN` 池，`J` 不再有固定条数限制。Lightning setup-service/setup-web 的既有限制保持不变。
+
+从 `2.2.106` 与 MetadataService `1.1.90` 开始，单级跨对象计算字段公式在外层关联列会被目标表同名物理列遮蔽时于 plan 阶段返回 `formula_relationship_column_collision`，避免静默计算错误。
+
+从 `2.2.105` 与 MetadataService `1.1.89` 开始，MSAPI 公式字段支持沿单级或多级关系路径引用目标对象上的公式字段和累计汇总字段。运行 `cloudcc doc fields devguide` 查看完整 JSON、plan/apply/readback 命令、前置条件与错误处理。
 
 从 `2.2.93` 开始，字段公式能力按 setup-svc 的实际 SQL 执行链路说明：不再把独立 JavaScript 表达式引擎的函数当成字段公式内建函数；MySQL 原生函数、可选 Oracle 兼容存储函数和 CloudCC 专用函数分别记录。MetadataService `1.1.77` 会生成 MySQL `concat(...)` HYPERLINK，并在计划阶段执行目标数据库只读预检。
 

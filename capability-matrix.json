@@ -1,6 +1,6 @@
 {
   "schemaVersion": "cloudcc-dual-provider-capability-matrix/v1",
-  "releaseBaseline": "2.2.104",
+  "releaseBaseline": "2.2.106",
   "msapiBaseline": {
     "domains": 29,
     "operations": 144,

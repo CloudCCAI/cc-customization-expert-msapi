@@ -128,7 +128,7 @@ cloudcc doc platform/fields devguide
 
 字段元数据中的 `dataFieldRef` 不是业务 API 名，而是当前对象底层数据表中的物理存储槽位（例如 `str_field1`）。同一对象内，一个非 `none` 的物理槽位只能属于一个字段。通过 MetadataService 创建字段时，服务会读取 `tp_sys_schemetable` 的现有映射，并按字段类型分配首个可用空槽；调用方通常不应自行复制或硬编码该值。
 
-字段 `id` 也不是业务 API 名。创建字段时通常省略 `id`，由 MetadataService 生成 setup-svc 兼容的字段 ID；显式自定义字段 ID 必须以 `ffe` 开头、总长 20 位、只含 ASCII 字母数字且不能带下划线。不要把 `apiName`、`f_ci_` + `apiName`、对象前缀、年份或样例值拼成字段 ID。只有更新、删除、迁移回放或引用已有字段时才使用字段 ID，并且必须来自查询、scan、创建回执或平台详情回读。历史非法 ID 使用 `cloudcc audit fields` 检查，并用 `cloudcc repair fields` 生成受保护的修复计划，禁止直接修改租户表。
+字段 `id` 也不是业务 API 名。创建字段时通常省略 `id`，由 MetadataService 生成平台兼容的字段 ID；显式自定义字段 ID 必须以 `ffe` 开头、总长 20 位、只含 ASCII 字母数字且不能带下划线。不要把 `apiName`、`f_ci_` + `apiName`、对象前缀、年份或样例值拼成字段 ID。只有更新、删除、迁移回放或引用已有字段时才使用字段 ID，并且必须来自查询、scan、创建回执或平台详情回读。历史非法 ID 使用 `cloudcc audit fields` 检查，并用 `cloudcc repair fields` 生成受保护的修复计划，禁止直接修改租户表。
 
 本地选项列表同样不要自造 `tp_sys_code` 的 `id` / `code`。普通创建只传选项 `value` 等业务字段；同一字段下相同 `value`、语言和 render 代表同一个选项自然键，目标库已有重复自然键时需要先治理数据再重新生成计划。
 
@@ -204,7 +204,7 @@ cloudcc doc platform/fields devguide
 
 平台层面还支持但通常更偏高级配置的字段类型包括：
 
-1. 公式（`Z`）：创建时准备 `formulaText` 和公式返回类型 `formulaType`；`formulaText` 使用字段 API 名，内部执行表达式由 MetadataService 生成。普通公式字段语法以目标环境字段公式校验结果为准；可用运算符、完整函数清单和 `HYPERLINK(...)`、`IMAGE(...)`、`DOMAIN` 等表达式说明见 `platform/fields devguide`。
+1. 公式（`Z`）：创建时准备 `formulaText` 和公式返回类型 `formulaType`；`formulaText` 使用字段 API 名，内部执行表达式由 MetadataService 生成。公式既可引用同对象字段，也可沿关系路径引用目标对象上的普通字段、公式字段或累计汇总字段；完整 JSON、命令、前置条件、错误处理、运算符和函数说明见 `platform/fields devguide`。
 2. 自动编号
 3. 累计汇总（`C`）
 

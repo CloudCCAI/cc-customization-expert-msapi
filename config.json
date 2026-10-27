@@ -1,7 +1,7 @@
 {
     "packageName":  "cc-customization-expert-msapi",
-    "version":  "2.2.104-msapi",
-    "releaseDate":  "2026-10-22",
+    "version":  "2.2.106-msapi",
+    "releaseDate":  "2026-10-27",
     "compatCloudccCliVersion":  "2.5.3",
     "runtime":  "go",
     "domainCatalog":  {
@@ -2498,6 +2498,25 @@
                                          "sourceOfTruth":  "cc-customization-expert-go/config.json",
                                          "policy":  "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
                                          "minimumByCapability":  [
+                                                                     {
+                                                                         "capability":  "msapi.fields.crossObjectCalculatedReferences",
+                                                                         "label":  "Cross-object formula references to formula and rollup-summary fields",
+                                                                         "introducedInSkillVersion":  "2.2.106-msapi",
+                                                                         "minimumMetadataServiceVersion":  "1.1.90",
+                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.90",
+                                                                         "domains":  [
+                                                                                         "fields"
+                                                                                     ],
+                                                                         "operations":  [
+                                                                                            "create",
+                                                                                            "update",
+                                                                                            "upsert",
+                                                                                            "plan",
+                                                                                            "apply",
+                                                                                            "readback"
+                                                                                        ],
+                                                                         "reason":  "Requires relationship formula compilation to preserve calculated target fields as field-ID runtime expressions, including multi-level relationship aliases, and to fail closed when a one-hop target physical column would shadow the outer correlation."
+                                                                     },
                                                                      {
                                                                          "capability":  "msapi.fields.physicalSlotAllocation",
                                                                          "label":  "Stored-field allocation from actual physical columns",

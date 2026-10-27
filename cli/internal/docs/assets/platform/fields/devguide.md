@@ -37,7 +37,7 @@ MetadataService spec 是当前字段创建的主入口。调用方应在 JSON �
 
 ### 2.1 字段 ID 和选项 ID 规则
 
-- 创建字段时通常不要传 `id`。字段物理 ID 由 MetadataService 按 setup-svc 兼容格式生成。显式自定义字段 ID 必须匹配 `^ffe[A-Za-z0-9]{17}$`：以 `ffe` 开头、总长 20 位、只能包含 ASCII 字母和数字，不能带下划线。
+- 创建字段时通常不要传 `id`。字段物理 ID 由 MetadataService 按平台兼容格式生成。显式自定义字段 ID 必须匹配 `^ffe[A-Za-z0-9]{17}$`：以 `ffe` 开头、总长 20 位、只能包含 ASCII 字母和数字，不能带下划线。
 - `apiName` 是调用方需要设计和传入的业务稳定标识；`id` 是平台物理元数据 ID。不要把 `apiName`、`f_ci_` + `apiName`、对象前缀、年份、随机串或示例值拼成字段 `id`。
 - 只有更新、删除、精确迁移回放，或引用已经存在字段时，才使用字段 `id`；该值必须来自 `cloudcc get fields`、MetadataService scan/readback、创建回执或平台详情页回读。
 - 本地选项列表 `options[]` 中也不要自造 `id` 或 `code`。普通创建只传 `value`、排序、默认值、本地化等业务字段；MetadataService 会生成或复用 `tp_sys_code` 行 ID。
@@ -223,7 +223,7 @@ apply 阶段会优先批量执行字段主表行，再按既有顺序执行语�
 
 `lookupObjectId` / `lookupObj` 必须传被关联对象在 `tp_sys_object.ID` 中的对象 ID。不要传对象 API 名（`SCHEMETABLE_NAME`）、物理表名（`DATATABLE_NAME`）或显示名称。标准对象示例中 `account` 可能同时是对象 ID 和 API 名，容易造成误解；自定义对象通常不同，必须先解析出真实对象 ID 再创建查找字段。
 
-从 MetadataService `1.1.69` 开始，字段自动生成的反向相关列表与 setup-svc 入库规则一致：`relatedlist_type=custom`，新建相关列表、默认列和多语言行使用 `aee`、`afa`、`bcb` 前缀。再次计划历史字段时，服务端按布局、来源对象和关系字段自然键复用已有行并修正错误类型，不会通过放宽 setup-svc 查询来掩盖不一致数据。
+从 MetadataService `1.1.69` 开始，字段自动生成的反向相关列表按平台元数据规则保存：`relatedlist_type=custom`，新建相关列表、默认列和多语言行使用 `aee`、`afa`、`bcb` 前缀。再次计划历史字段时，服务端按布局、来源对象和关系字段自然键复用已有行并修正错误类型，不会通过放宽读取条件来掩盖不一致数据。
 
 对象默认搜索布局相关的字段、按钮和 lookup-layout ID 必须保持在平台 `rel_id` 的 20 字符边界内。MetadataService 生成的默认 ID 使用短 ID；不要在 spec 中覆盖为超长 ID，否则旧版 `to_mlang` 查询可能报 `Data too long for column 'rel_id'`。
 
@@ -248,7 +248,7 @@ MetadataService 支持平台开放的全部字段编码。编码区分大小写�
 
 公式字段创建时，调用方只传用户级公式定义：`formulaText` 使用字段 API 名或公式编辑器插入的字段引用，`formulaType` 表示公式返回类型。`executeExpression` 是平台内部执行表达式，由 MetadataService 根据目标环境元数据生成并写入；普通 CLI 调用不要提供这个参数，也不要把 API 名公式或物理列名手写进去。
 
-从 MetadataService `1.1.51` 开始，公式字段计划会在入库前解析 `formulaText` 并生成执行表达式；如果表达式引用的对象、字段或关联目标不存在，plan 阶段会失败并返回可定位的原因，例如缺少对象、缺少对象上的某个字段，或某个关系字段没有配置 lookup 目标对象。
+从 MetadataService `1.1.51` 开始，公式字段计划会在入库前解析 `formulaText` 并生成执行表达式；如果表达式引用的对象、字段或关联目标不存在，plan 阶段会失败并返回可定位的原因，例如缺少对象、缺少对象上的某个字段，或某个关系字段没有配置 lookup 目标对象。MetadataService `1.1.89` 起，关系路径末端可以是公式字段或累计汇总字段，不会再把这类虚拟计算字段当作物理列读取；建议使用 `1.1.90` 或更高版本，以便在单级关系的关联列会被目标表同名物理列遮蔽时于 plan 阶段失败关闭。
 
 ```json
 {
@@ -283,6 +283,56 @@ MetadataService 支持平台开放的全部字段编码。编码区分大小写�
 - 关联对象字段使用关系 API 名加目标字段 API 名，例如 `account__r.amount__c`。
 - 当前用户字段可使用 `$User.<field>`；如果目标环境没有对应用户字段，plan 会返回 `formula_user_field_not_found`。
 
+#### 跨对象引用公式字段和累计汇总字段
+
+公式可以沿已存在的查找或主详关系读取目标对象上的普通字段、公式字段和累计汇总字段。关系路径的每一段都使用字段 API 名：中间关系字段将 `__c` 写成 `__r`，最后一段保留目标字段的 `__c`。
+
+示例：当前对象存在关系字段 `contract__c`，目标合同对象存在累计汇总字段 `ContractAttributeAmount__c`，则公式写为：
+
+```text
+IF(contract__r.ContractAttributeAmount__c > 0, contract__r.ContractAttributeAmount__c, 0)
+```
+
+多级关系同样逐段连接，例如：
+
+```text
+account__r.region__r.regional_total__c
+```
+
+创建文件 `contract-rollup-formula.json`：
+
+```json
+{
+  "objectId": "<sourceObjectId>",
+  "apiName": "contract_attribute_amount_copy",
+  "label": "合同属性金额",
+  "type": "Z",
+  "formulaType": "N",
+  "formulaText": "IF(contract__r.ContractAttributeAmount__c > 0, contract__r.ContractAttributeAmount__c, 0)"
+}
+```
+
+先生成并检查计划，再应用并读取字段详情：
+
+```bash
+cloudcc plan msapi <projectPath> fields @contract-rollup-formula.json create
+cloudcc apply msapi <projectPath> <planId>
+cloudcc get fields <projectPath> <sourceObjectId>
+```
+
+在 `get fields` 返回结果中按创建回执的字段 ID 或 `apiName=contract_attribute_amount_copy` 完成回读确认。
+
+使用前必须满足：
+
+- 来源对象上的每个关系字段已经存在，并且关联目标对象正确。
+- 路径末端字段已经存在，API 名大小写和后缀正确。
+- 目标公式字段或累计汇总字段本身能够正常读取；调用方不需要为它创建物理列。
+- 使用 MetadataService `1.1.90` 或更高版本；`1.1.89` 已支持计算字段末端，但不会识别单级关系关联列与目标表物理列同名造成的歧义。
+
+CLI 会从 `formulaText` 自动解析跨对象依赖。不要手写 `executeExpression`，也不要为了绕过错误显式提供 `dataFieldRef`、物理表名或物理列名。普通创建场景也不需要传 `formulaRelevances`；只有迁移历史特殊依赖时才考虑显式补充。
+
+如果出现错误，优先按错误码修正元数据：`formula_field_not_found` 表示路径中的关系字段或末端字段不存在；`formula_lookup_object_missing` 表示关系字段没有有效目标对象；`formula_object_not_found` 表示对象选择器无效；`formula_relationship_column_collision` 表示单级关系的关联物理列名同时存在于目标对象表中，运行时无法安全区分内外层列。发生列名冲突时，应改用物理列名不冲突的关系字段或调整公式路径，不要绕过 plan 校验。不要通过创建与汇总字段同名的数据库列处理这些错误。
+
 常见失败原因：
 
 | 错误码 | 说明 |
@@ -290,6 +340,7 @@ MetadataService 支持平台开放的全部字段编码。编码区分大小写�
 | `formula_object_not_found` | 公式所属对象或被引用对象不存在。 |
 | `formula_field_not_found` | 公式引用了某对象上不存在的字段，错误信息会包含公式字段、缺失字段和对象。 |
 | `formula_lookup_object_missing` | 公式使用了关系引用，但关系字段没有 lookup 目标对象。 |
+| `formula_relationship_column_collision` | 单级关系的关联物理列名也存在于目标对象表中，运行时关联会产生歧义；改用不冲突的关系字段或调整公式路径。 |
 | `formula_user_field_not_found` | `$User.<field>` 引用了当前环境不存在的用户字段。 |
 | `formula_field_type_unsupported` | 公式引用了不支持参与普通公式计算的长文本或富文本字段。 |
 | `formula_sql_unsafe` | 公式包含 SQL 语句、注释或多语句分隔符；公式入口只允许单个表达式。 |
@@ -314,7 +365,7 @@ MetadataService 支持平台开放的全部字段编码。编码区分大小写�
 | `&` | 公式编辑器展示为串联；不同目标环境可能按不同表达式引擎处理，必须以目标字段公式校验通过为准。 |
 | `^` | 公式编辑器展示为乘方；不同目标环境可能按不同表达式引擎处理，必须以目标字段公式校验通过为准，不要默认等同于数据库 `POWER`。 |
 
-公式字段没有独立的 JavaScript 函数解释器。setup-svc 会把字段引用编译成 SQL，再用目标租户数据库执行限行查询做语法校验；`JavaScriptFunction` 中的同名方法不属于字段公式创建链路。因此，函数是否支持由“平台转换 + 当前数据库函数/存储函数 + 当前账号执行权限”共同决定。
+公式字段没有独立的 JavaScript 函数解释器。平台会把字段引用编译成 SQL，并使用目标数据库执行只读限行查询做语法校验；其他表达式工具中的同名方法不属于字段公式创建链路。因此，函数是否支持由“平台转换 + 当前数据库函数/存储函数 + 当前账号执行权限”共同决定。
 
 #### 平台直接转换的表达式
 
@@ -324,7 +375,7 @@ MetadataService 支持平台开放的全部字段编码。编码区分大小写�
 | `DOMAIN` | 当前源码把它替换为字面量 `'DOMAIN'`，不是自动解析当前租户域名；需要真实域名时应显式传入经过配置管理的值。 |
 | `==` | 保存时转换为 SQL 等号 `=`。 |
 
-setup-web 当前函数插入列表也只有 `HYPERLINK` 和 `DOMAIN`。`IMAGE(...)`、`VALUE(...)`、`TODAY()`、`ADDDAYS(...)` 等名称不会被平台公式编译器转换。
+当前平台直接转换的函数只有 `HYPERLINK` 和 `DOMAIN`。`IMAGE(...)`、`VALUE(...)`、`TODAY()`、`ADDDAYS(...)` 等名称不会被平台公式编译器转换。
 
 #### MySQL 原生表达式和函数
 
@@ -637,9 +688,9 @@ cloudcc create fields <projectPath> <fieldType> <objid> <fieldLabel> <remark> [e
 - **仅公用 `helps` / `defaultValue`、无 `argvs[9]` 起专属参数的类型**：`D`、`F`、`T`、`H`、`A`、`AD` 等（**不含** **`IMG`** / **`FL`** / **`ENC`** / **`ENCD`** / **`LT`** 等已单列的类型；见上文各节）
 - `J`（文本区-长）
   - 与 **`X`** 类似：多行文本；MetadataService spec 的 **`schemefieldLength`**（可选）为**最大字符数**，须为 **1～131072** 的整数；不传仍默认 **`32000`**
-  - **Provider 边界**：上述 131072 上限要求 MetadataService **`1.1.86`** 或更高版本；兼容位置参数和 Lightning UIAPI 仍可能受 setup-service/setup-web 的 32000 校验限制
+  - **Provider 边界**：上述 131072 上限要求 MetadataService **`1.1.86`** 或更高版本；其他字段创建入口可能仍使用 32000 的长度限制
   - **`placeholder`**（可选）：输入区**提示信息**；**`argvs[10]`**
-  - **槽位容量**：MetadataService **`1.1.88`** 起，MSAPI 不限制 `J` 的固定数量；`J` 与 `A` 共享目标对象实际存在的 **`clob_fieldN`** 槽位，并选择数字序最小的空槽。真实槽位全部占用时返回 **`field_slot_exhausted`**；Lightning UIAPI 仍可能受 setup-service/setup-web 的既有限制
+  - **槽位容量**：MetadataService **`1.1.88`** 起，MSAPI 不限制 `J` 的固定数量；`J` 与 `A` 共享目标对象实际存在的 **`clob_fieldN`** 槽位，并选择数字序最小的空槽。真实槽位全部占用时返回 **`field_slot_exhausted`**；其他字段创建入口可能使用不同容量规则
 - `X`（文本区）
   - `schemefieldLength`（可选）：多行文本**最大字符数**；**`argvs[9]`**；须为 **1～4000** 的整数；不传默认 **`4000`**（与平台常见上限一致）
   - `placeholder`（可选）：输入区**提示信息**；**`argvs[10]`**
