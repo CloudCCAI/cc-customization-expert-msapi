@@ -248,7 +248,7 @@ MetadataService 支持平台开放的全部字段编码。编码区分大小写�
 
 公式字段创建时，调用方只传用户级公式定义：`formulaText` 使用字段 API 名或公式编辑器插入的字段引用，`formulaType` 表示公式返回类型。`executeExpression` 是平台内部执行表达式，由 MetadataService 根据目标环境元数据生成并写入；普通 CLI 调用不要提供这个参数，也不要把 API 名公式或物理列名手写进去。
 
-从 MetadataService `1.1.51` 开始，公式字段计划会在入库前解析 `formulaText` 并生成执行表达式；如果表达式引用的对象、字段或关联目标不存在，plan 阶段会失败并返回可定位的原因，例如缺少对象、缺少对象上的某个字段，或某个关系字段没有配置 lookup 目标对象。MetadataService `1.1.89` 起，关系路径末端可以是公式字段或累计汇总字段，不会再把这类虚拟计算字段当作物理列读取；建议使用 `1.1.90` 或更高版本，以便在单级关系的关联列会被目标表同名物理列遮蔽时于 plan 阶段失败关闭。
+从 MetadataService `1.1.91` 开始，公式字段计划在入库前同时校验公式返回类型、关系路径类型和末端字段类型。引用对象、字段或关系目标不存在，或者字段类型不在公开契约内时，plan 阶段都会失败并返回可定位的错误。候选字段和计划校验使用同一套规则，避免文档、交互选择与实际编译不一致。
 
 ```json
 {
@@ -272,8 +272,8 @@ MetadataService 支持平台开放的全部字段编码。编码区分大小写�
 字段创建时三个公式相关字段要分工明确：
 
 - `formulaText`：用户级公式表达式，使用字段 API 名或公式编辑器插入的字段引用，例如 `amount__c-discount__c`。
-- `formulaType`：公式字段返回类型，常用编码包括文本 `S`、币种 `c`、日期 `D`、日期时间 `F`、数字 `N`、百分比 `P`、URL `U`、选项列表 `L`。
-- `executeExpression`：平台内部执行表达式。创建普通公式字段时不要传；MetadataService 会根据 `formulaText`、`formulaType` 和目标对象字段元数据自动生成。只有迁移已有字段且没有 `formulaText` 的高级场景，才可使用已有字段回读到的执行表达式作为兜底输入。
+- `formulaType`：公式字段返回类型，只支持文本 `S`、币种 `c`、日期 `D`、日期时间 `F`、数字 `N`、百分比 `P`、URL `U`、选项列表 `L`。
+- `executeExpression`：平台内部执行表达式。CLI 新建或修改公式字段时禁止传入；MetadataService 会根据 `formulaText`、`formulaType` 和目标对象字段元数据自动生成。历史字段仅查询或执行不修改公式定义的更新时，服务会保留已有内部表达式。
 - `formulaReferences`：普通字段引用关系，写入 `tp_sys_field_reference`；不要把它当成跨对象公式依赖。
 - `formulaRelevances` / `relevances`：跨对象公式依赖，写入 `tp_sys_relevance`。MetadataService 会从 `formulaText` 中的跨对象引用自动派生；只有需要补充已有历史依赖或特殊依赖时才显式提供，每项至少包含被引用对象 `relobjid` 和被引用字段 `relfieldid`。同对象公式通常不需要提供。
 
@@ -283,55 +283,42 @@ MetadataService 支持平台开放的全部字段编码。编码区分大小写�
 - 关联对象字段使用关系 API 名加目标字段 API 名，例如 `account__r.amount__c`。
 - 当前用户字段可使用 `$User.<field>`；如果目标环境没有对应用户字段，plan 会返回 `formula_user_field_not_found`。
 
-#### 跨对象引用公式字段和累计汇总字段
+#### 公式字段可引用类型与跨对象路径
 
-公式可以沿已存在的查找或主详关系读取目标对象上的普通字段、公式字段和累计汇总字段。关系路径的每一段都使用字段 API 名：中间关系字段将 `__c` 写成 `__r`，最后一段保留目标字段的 `__c`。
+公式是否能选择某字段，取决于字段在公式中的角色，而不是对象上是否存在该字段。
 
-示例：当前对象存在关系字段 `contract__c`，目标合同对象存在累计汇总字段 `ContractAttributeAmount__c`，则公式写为：
+| 角色 | 支持的类型编码 | 规则 |
+| --- | --- | --- |
+| 公式返回类型 | `S c D F N P U L` | 新建或修改公式时，`formulaType` 只能取这些值。 |
+| 末端操作数字段 | `S U P c N D F L Q B X E H V IMG SCORE MR` | 可以在同对象公式中引用，也可以作为跨对象关系路径的最后一段。 |
+| 关系路径字段 | `Y M` | 只用于继续遍历关联对象，不能作为路径末端值。 |
+| 不可作为新公式操作数 | `Z C J A FL enc encd AD LT T` | 包括公式、累计汇总、长文本/富文本、文件、加密、复合地址/定位及内部类型。未知类型也拒绝。 |
 
-```text
-IF(contract__r.ContractAttributeAmount__c > 0, contract__r.ContractAttributeAmount__c, 0)
-```
+复合字段展开的子字段、已删除或已禁用字段、当前正在编辑的公式字段、没有可用物理映射的普通字段，也不会进入可选列表。已有 `Z/C` 字段可以正常查询；若更新时没有修改公式定义，服务会保留历史值，但新建公式或修改 `formulaText/formulaType` 时不能继续引用 `Z/C`。
 
-多级关系同样逐段连接，例如：
-
-```text
-account__r.region__r.regional_total__c
-```
-
-创建文件 `contract-rollup-formula.json`：
-
-```json
-{
-  "objectId": "<sourceObjectId>",
-  "apiName": "contract_attribute_amount_copy",
-  "label": "合同属性金额",
-  "type": "Z",
-  "formulaType": "N",
-  "formulaText": "IF(contract__r.ContractAttributeAmount__c > 0, contract__r.ContractAttributeAmount__c, 0)"
-}
-```
-
-先生成并检查计划，再应用并读取字段详情：
+先查询目标环境候选，再编写公式：
 
 ```bash
-cloudcc plan msapi <projectPath> fields @contract-rollup-formula.json create
-cloudcc apply msapi <projectPath> <planId>
-cloudcc get fields <projectPath> <sourceObjectId>
+# 当前对象可作为末端操作数或关系入口的字段
+cloudcc candidates fields <projectPath> <object>
+
+# 沿关系路径查看目标对象候选；多级路径使用点号连接
+cloudcc candidates fields <projectPath> <object> account__r.region__r
+
+# 编辑已有公式时排除自身；排错时同时查看被排除字段及原因
+cloudcc candidates fields <projectPath> <object> --current-field-id <fieldId> --include-unsupported
 ```
 
-在 `get fields` 返回结果中按创建回执的字段 ID 或 `apiName=contract_attribute_amount_copy` 完成回读确认。
+返回结果中的 `selectable=true` 表示可作为公式末端操作数，`traversable=true` 表示可继续进入关系对象；`supported=false` 的记录会给出 `reason`。默认不返回不支持项，只有 `--include-unsupported` 才返回。
 
-使用前必须满足：
+跨对象公式只能沿已经存在的查找关系或主详关系遍历。中间关系字段把 `__c` 写成 `__r`，最后一段保留目标字段 API 名。例如：
 
-- 来源对象上的每个关系字段已经存在，并且关联目标对象正确。
-- 路径末端字段已经存在，API 名大小写和后缀正确。
-- 目标公式字段或累计汇总字段本身能够正常读取；调用方不需要为它创建物理列。
-- 使用 MetadataService `1.1.90` 或更高版本；`1.1.89` 已支持计算字段末端，但不会识别单级关系关联列与目标表物理列同名造成的歧义。
+```text
+account__r.annual_revenue__c
+account__r.region__r.region_code__c
+```
 
-CLI 会从 `formulaText` 自动解析跨对象依赖。不要手写 `executeExpression`，也不要为了绕过错误显式提供 `dataFieldRef`、物理表名或物理列名。普通创建场景也不需要传 `formulaRelevances`；只有迁移历史特殊依赖时才考虑显式补充。
-
-如果出现错误，优先按错误码修正元数据：`formula_field_not_found` 表示路径中的关系字段或末端字段不存在；`formula_lookup_object_missing` 表示关系字段没有有效目标对象；`formula_object_not_found` 表示对象选择器无效；`formula_relationship_column_collision` 表示单级关系的关联物理列名同时存在于目标对象表中，运行时无法安全区分内外层列。发生列名冲突时，应改用物理列名不冲突的关系字段或调整公式路径，不要绕过 plan 校验。不要通过创建与汇总字段同名的数据库列处理这些错误。
+关系路径的每一段必须是 `Y` 或 `M`，最后一段必须属于末端操作数类型。目标公式字段 `Z` 和累计汇总字段 `C` 即使可以在字段查询中看到，也不能插入新公式。不要手写 `executeExpression`、物理表名、物理列名或 `dataFieldRef` 来绕过类型校验。
 
 常见失败原因：
 
@@ -340,9 +327,14 @@ CLI 会从 `formulaText` 自动解析跨对象依赖。不要手写 `executeExpr
 | `formula_object_not_found` | 公式所属对象或被引用对象不存在。 |
 | `formula_field_not_found` | 公式引用了某对象上不存在的字段，错误信息会包含公式字段、缺失字段和对象。 |
 | `formula_lookup_object_missing` | 公式使用了关系引用，但关系字段没有 lookup 目标对象。 |
-| `formula_relationship_column_collision` | 单级关系的关联物理列名也存在于目标对象表中，运行时关联会产生歧义；改用不冲突的关系字段或调整公式路径。 |
+| `formula_relationship_type_unsupported` | 关系路径中间段不是 `Y` 或 `M`，不能继续遍历。 |
 | `formula_user_field_not_found` | `$User.<field>` 引用了当前环境不存在的用户字段。 |
-| `formula_field_type_unsupported` | 公式引用了不支持参与普通公式计算的长文本或富文本字段。 |
+| `formula_reference_type_unsupported` | 末端字段类型不在公开操作数类型集合内，例如 `Z`、`C`、`J`、`A`。 |
+| `formula_result_type_unsupported` | `formulaType` 不属于 `S/c/D/F/N/P/U/L`。 |
+| `formula_physical_mapping_missing` | 普通末端字段没有可用于公式编译的物理映射。 |
+| `formula_self_reference_unsupported` | 公式直接或通过解析结果引用了自身。 |
+| `formula_composite_child_unsupported` | 引用了地址、地理定位等复合字段的内部子字段。 |
+| `formula_field_inactive` | 引用了已删除或已禁用字段。 |
 | `formula_sql_unsafe` | 公式包含 SQL 语句、注释或多语句分隔符；公式入口只允许单个表达式。 |
 | `formula_function_unsupported` | 目标数据库已知不支持这种函数用法，例如 MySQL 的 `decode(...)` 或数值掩码 `to_char(...)`。 |
 | `formula_sql_invalid` | 编译后的表达式未通过目标数据库只读预检，常见原因是函数不存在、参数不匹配或 SQL 语法不属于当前数据库。 |

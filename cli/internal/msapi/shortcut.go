@@ -193,6 +193,9 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 		}
 		return Handle("plan", "msapi", []string{projectPath, domain, string(body), operation}, stdout, cwd)
 	}
+	if domain == "fields" && strings.TrimSpace(action) == "candidates" {
+		return handleFormulaFieldCandidatesShortcut(projectPath, rest, stdout, cwd)
+	}
 	if resource == "profile" {
 		return handleProfileShortcut(action, projectPath, rest, stdout, cwd)
 	}
@@ -292,6 +295,40 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 		return err
 	}
 	return Handle("plan", "msapi", []string{projectPath, domain, string(body), operation}, stdout, cwd)
+}
+
+func handleFormulaFieldCandidatesShortcut(projectPath string, args []string, stdout io.Writer, cwd string) error {
+	c, _, err := newClient([]string{projectPath}, cwd)
+	if err != nil {
+		return err
+	}
+	if len(args) == 0 || strings.TrimSpace(args[0]) == "" {
+		return fmt.Errorf("cloudcc candidates fields <projectPath> <object> [relationship-path] [--current-field-id <id>] [--include-unsupported]")
+	}
+	values := url.Values{}
+	values.Set("object", strings.TrimSpace(args[0]))
+	for i := 1; i < len(args); i++ {
+		arg := strings.TrimSpace(args[i])
+		switch arg {
+		case "--include-unsupported":
+			values.Set("includeUnsupported", "true")
+		case "--current-field-id":
+			if i+1 >= len(args) || strings.TrimSpace(args[i+1]) == "" {
+				return fmt.Errorf("--current-field-id requires a field ID")
+			}
+			i++
+			values.Set("currentFieldId", strings.TrimSpace(args[i]))
+		default:
+			if strings.HasPrefix(arg, "--") {
+				return fmt.Errorf("unsupported formula candidate option: %s", arg)
+			}
+			if values.Get("path") != "" {
+				return fmt.Errorf("only one relationship path may be provided")
+			}
+			values.Set("path", arg)
+		}
+	}
+	return c.getJSON(stdout, "/metadata/v1/fields:formula-candidates?"+values.Encode())
 }
 
 func handleCcchatShortcut(action string, resource string, projectPath string, args []string, stdout io.Writer, cwd string) error {

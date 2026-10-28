@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"cloudcc-customization-expert-go/internal/config"
+	"cloudcc-customization-expert-go/internal/console"
 	"cloudcc-customization-expert-go/internal/horizontal"
 	"cloudcc-customization-expert-go/internal/jsonx"
 )
@@ -26,7 +27,7 @@ import (
 const defaultServiceURL = "http://127.0.0.1:8087"
 
 var metadataServicePromptReader io.Reader = os.Stdin
-var metadataServicePromptWriter io.Writer = os.Stderr
+var metadataServicePromptWriter io.Writer = console.Stderr()
 
 type client struct {
 	baseURL          string
@@ -64,6 +65,9 @@ func Handle(action string, resource string, args []string, stdout io.Writer, cwd
 	case "normalize", "validate", "plan":
 		body, err := planRequest(resource, action, remaining)
 		if err != nil {
+			return err
+		}
+		if err := validateFormulaFieldPlan(body); err != nil {
 			return err
 		}
 		var formulaValidation *validationRuleFormulaResult
@@ -202,6 +206,56 @@ func Handle(action string, resource string, args []string, stdout io.Writer, cwd
 	default:
 		return fmt.Errorf("unsupported MetadataService command: cloudcc %s %s", action, resource)
 	}
+}
+
+var supportedFormulaResultTypes = map[string]bool{
+	"S": true, "c": true, "D": true, "F": true,
+	"N": true, "P": true, "U": true, "L": true,
+}
+
+func validateFormulaFieldPlan(body map[string]any) error {
+	if normalizeDomain(stringValue(body["domain"])) != "fields" {
+		return nil
+	}
+	spec, _ := body["spec"].(map[string]any)
+	if spec == nil {
+		return nil
+	}
+	fields := []map[string]any{spec}
+	if batch, ok := spec["fields"].([]any); ok {
+		fields = fields[:0]
+		for _, raw := range batch {
+			if field, ok := raw.(map[string]any); ok {
+				fields = append(fields, field)
+			}
+		}
+	}
+	for _, field := range fields {
+		fieldType := formulaFirstNonBlank(
+			stringValue(field["type"]), stringValue(field["fieldType"]),
+			stringValue(field["fdtype"]), stringValue(field["schemefieldType"]))
+		if fieldType != "Z" {
+			continue
+		}
+		formulaType := formulaFirstNonBlank(
+			stringValue(field["formulaType"]), stringValue(field["expressionType"]))
+		if formulaType != "" && !supportedFormulaResultTypes[formulaType] {
+			return fmt.Errorf("formula_result_type_unsupported: formulaType %s is not supported; use one of S, c, D, F, N, P, U, or L", formulaType)
+		}
+		if _, supplied := field["executeExpression"]; supplied {
+			return fmt.Errorf("formula_execute_expression_internal: provide formulaText and formulaType; do not supply executeExpression")
+		}
+	}
+	return nil
+}
+
+func formulaFirstNonBlank(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return strings.TrimSpace(value)
+		}
+	}
+	return ""
 }
 
 func rejectHorizontalRestrictedBeforeClient(action string, args []string, cwd string) error {

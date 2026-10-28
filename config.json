@@ -1,6 +1,6 @@
 {
     "packageName":  "cc-customization-expert-msapi",
-    "version":  "2.2.106-msapi",
+    "version":  "2.2.108-msapi",
     "releaseDate":  "2026-10-27",
     "compatCloudccCliVersion":  "2.5.3",
     "runtime":  "go",
@@ -467,6 +467,7 @@
                                                 "actions":  [
                                                                 "get",
                                                                 "detail",
+                                                                "candidates",
                                                                 "create",
                                                                 "update",
                                                                 "delete",
@@ -475,6 +476,7 @@
                                                             ],
                                                 "commands":  [
                                                                  "cloudcc get fields \u003cprojectPath\u003e [object]",
+                                                                 "cloudcc candidates fields \u003cprojectPath\u003e \u003cobject\u003e [relationship-path] [--current-field-id \u003cid\u003e] [--include-unsupported]",
                                                                  "cloudcc create fields \u003cprojectPath\u003e \u003cspec\u003e",
                                                                  "cloudcc audit fields \u003cprojectPath\u003e [options]",
                                                                  "cloudcc repair fields \u003cprojectPath\u003e \u003cspec\u003e"
@@ -2499,11 +2501,11 @@
                                          "policy":  "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
                                          "minimumByCapability":  [
                                                                      {
-                                                                         "capability":  "msapi.fields.crossObjectCalculatedReferences",
-                                                                         "label":  "Cross-object formula references to formula and rollup-summary fields",
-                                                                         "introducedInSkillVersion":  "2.2.106-msapi",
-                                                                         "minimumMetadataServiceVersion":  "1.1.90",
-                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.90",
+                                                                         "capability":  "msapi.fields.formulaTypeContract",
+                                                                         "label":  "Formula result, terminal operand, and relationship traversal type contract",
+                                                                         "introducedInSkillVersion":  "2.2.108-msapi",
+                                                                         "minimumMetadataServiceVersion":  "1.1.91",
+                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.1.91",
                                                                          "domains":  [
                                                                                          "fields"
                                                                                      ],
@@ -2515,7 +2517,7 @@
                                                                                             "apply",
                                                                                             "readback"
                                                                                         ],
-                                                                         "reason":  "Requires relationship formula compilation to preserve calculated target fields as field-ID runtime expressions, including multi-level relationship aliases, and to fail closed when a one-hop target physical column would shadow the outer correlation."
+                                                                         "reason":  "Requires candidate discovery and plan-time enforcement of the public formula contract: result types S/c/D/F/N/P/U/L, terminal operands S/U/P/c/N/D/F/L/Q/B/X/E/H/V/IMG/SCORE/MR, and Y/M relationship traversal only. Existing formula and rollup-summary fields remain readable but are not new formula operands."
                                                                      },
                                                                      {
                                                                          "capability":  "msapi.fields.physicalSlotAllocation",

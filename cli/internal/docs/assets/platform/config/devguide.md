@@ -170,6 +170,8 @@ cloudcc doc list
 
 安装器自动选择 AMD64/ARM64：Mac 使用 `~/.local/bin` 和用户 shell 启动文件，Windows 使用 `%LOCALAPPDATA%\CloudCC\bin` 和用户 PATH。无需管理员权限。Mac 新终端自动生效，当前终端执行 export；Windows 安装会话立即生效，其他终端和应用重启后生效。
 
+Windows CLI `2.2.107` 起不通过 `chcp` 改变共享控制台代码页。控制台中文使用原生 Unicode 输出，文件重定向和管道保持 UTF-8；`cloudcc --version`、帮助和文档在命令结束后会继续保留在 CMD 或 Windows Terminal 中。
+
 入口引用完整技能包，升级保留目录即可继续使用；移动目录后重跑安装。重复执行不重复添加 PATH，不覆盖非受管同名文件。Windows 技能路径不能包含 `%` 或换行。无需全局安装时，`tools/bin/cloudcc` 或 `tools\bin\cloudcc.cmd` 仍可自动选择随包架构。
 
 全局安装只解决命令发现；业务操作仍读取命令指定项目或当前目录的 `cloudcc-cli.config.json`，不会自动选择租户，也不修改项目连接配置。

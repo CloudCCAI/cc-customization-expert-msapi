@@ -204,7 +204,7 @@ cloudcc doc platform/fields devguide
 
 平台层面还支持但通常更偏高级配置的字段类型包括：
 
-1. 公式（`Z`）：创建时准备 `formulaText` 和公式返回类型 `formulaType`；`formulaText` 使用字段 API 名，内部执行表达式由 MetadataService 生成。公式既可引用同对象字段，也可沿关系路径引用目标对象上的普通字段、公式字段或累计汇总字段；完整 JSON、命令、前置条件、错误处理、运算符和函数说明见 `platform/fields devguide`。
+1. 公式（`Z`）：创建时准备 `formulaText` 和公式返回类型 `formulaType`；`formulaText` 使用字段 API 名，内部执行表达式由 MetadataService 生成。公式返回类型限 `S/c/D/F/N/P/U/L`；可选末端字段类型限 `S/U/P/c/N/D/F/L/Q/B/X/E/H/V/IMG/SCORE/MR`，跨对象路径只能经过 `Y/M` 关系字段。已有公式字段和累计汇总字段可以读取、可以在未修改公式时原样保留，但不能作为新建或变更公式的操作数。先运行 `cloudcc candidates fields` 查看目标环境候选，完整 JSON、命令和错误处理见 `platform/fields devguide`。
 2. 自动编号
 3. 累计汇总（`C`）
 

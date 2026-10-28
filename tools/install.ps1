@@ -43,15 +43,14 @@ $launcher = @(
     $marker,
     '@echo off',
     'setlocal EnableExtensions DisableDelayedExpansion',
-    ('for /f "tokens=2 delims=:." %%C in (''chcp'') do set "CLOUDCC_CODEPAGE=%%C"'),
-    'chcp 65001 >nul',
     ('"' + $binary + '" %*'),
     'set "CLOUDCC_EXIT=%errorlevel%"',
-    'chcp %CLOUDCC_CODEPAGE% >nul',
     'exit /b %CLOUDCC_EXIT%'
 ) -join "`r`n"
 New-Item -ItemType Directory -Path $binDir -Force | Out-Null
-# Decode the executable path as UTF-8; restore the console code page after execution.
+# The Go executable handles native Windows Unicode console output. The launcher
+# must not mutate the shared console code page because CMD/ConPTY may redraw and
+# erase the command output when the code page is restored.
 [IO.File]::WriteAllText($destination, $launcher + "`r`n", (New-Object Text.UTF8Encoding($false)))
 $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
 $entries = @($userPath -split ';' | Where-Object {

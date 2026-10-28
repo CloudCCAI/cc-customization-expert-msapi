@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.106-msapi
+# cc-customization-expert-msapi v2.2.108-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -27,6 +27,8 @@ cloudcc doc list
 ```
 
 安装器在 `%LOCALAPPDATA%\CloudCC\bin` 创建启动器并配置用户 PATH；安装 PowerShell 会话立即可用，其他已打开的终端/应用需重启。只临时设置当前进程的脚本策略，不修改系统级执行策略或 PATH。
+
+从 `2.2.107` 开始，Windows 全局启动器不再切换或恢复共享控制台代码页；CLI 在控制台使用原生 Unicode 输出，重定向或管道保持 UTF-8，命令结束后输出不会被终端重绘清除。
 
 包内 `tools/bin/cloudcc` 和 `tools\bin\cloudcc.cmd` 也会自动选择平台/架构，可不全局安装而直接运行。全局命令引用当前完整技能目录，正常原地升级后继续可用；移动目录后重新安装。重复安装不会重复增加 PATH，已有非受管同名文件会报错而不会被覆盖。Windows 技能路径不能包含 `%` 或换行。
 
@@ -90,9 +92,7 @@ Strict MetadataService package: low-code operations require MetadataService.
 
 从 `2.2.104` 与 MetadataService `1.1.88` 开始，MSAPI 存储字段按目标对象实际物理列分配数字序最小的空槽；`J` 与 `A` 共享真实 `clob_fieldN` 池，`J` 不再有固定条数限制。Lightning setup-service/setup-web 的既有限制保持不变。
 
-从 `2.2.106` 与 MetadataService `1.1.90` 开始，单级跨对象计算字段公式在外层关联列会被目标表同名物理列遮蔽时于 plan 阶段返回 `formula_relationship_column_collision`，避免静默计算错误。
-
-从 `2.2.105` 与 MetadataService `1.1.89` 开始，MSAPI 公式字段支持沿单级或多级关系路径引用目标对象上的公式字段和累计汇总字段。运行 `cloudcc doc fields devguide` 查看完整 JSON、plan/apply/readback 命令、前置条件与错误处理。
+从 `2.2.108` 与 MetadataService `1.1.91` 开始，公式字段严格执行公开类型契约：返回类型仅 `S/c/D/F/N/P/U/L`；可选末端引用类型仅 `S/U/P/c/N/D/F/L/Q/B/X/E/H/V/IMG/SCORE/MR`；`Y/M` 只用于关系路径。已有公式和累计汇总字段可读取、可在未修改公式定义时原样保留，但不能作为新建或变更公式的操作数。先运行 `cloudcc candidates fields` 查看目标环境候选与排除原因，再按 `cloudcc doc fields devguide` 完成计划和应用。
 
 从 `2.2.93` 开始，字段公式能力按 setup-svc 的实际 SQL 执行链路说明：不再把独立 JavaScript 表达式引擎的函数当成字段公式内建函数；MySQL 原生函数、可选 Oracle 兼容存储函数和 CloudCC 专用函数分别记录。MetadataService `1.1.77` 会生成 MySQL `concat(...)` HYPERLINK，并在计划阶段执行目标数据库只读预检。
 
