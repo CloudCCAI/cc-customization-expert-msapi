@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.108-msapi
+# cc-customization-expert-msapi v2.2.109-msapi
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -93,6 +93,8 @@ Strict MetadataService package: low-code operations require MetadataService.
 从 `2.2.104` 与 MetadataService `1.1.88` 开始，MSAPI 存储字段按目标对象实际物理列分配数字序最小的空槽；`J` 与 `A` 共享真实 `clob_fieldN` 池，`J` 不再有固定条数限制。Lightning setup-service/setup-web 的既有限制保持不变。
 
 从 `2.2.108` 与 MetadataService `1.1.91` 开始，公式字段严格执行公开类型契约：返回类型仅 `S/c/D/F/N/P/U/L`；可选末端引用类型仅 `S/U/P/c/N/D/F/L/Q/B/X/E/H/V/IMG/SCORE/MR`；`Y/M` 只用于关系路径。已有公式和累计汇总字段可读取、可在未修改公式定义时原样保留，但不能作为新建或变更公式的操作数。先运行 `cloudcc candidates fields` 查看目标环境候选与排除原因，再按 `cloudcc doc fields devguide` 完成计划和应用。
+
+从 `2.2.109` 与 MetadataService `1.1.92` 开始，`lookupFilter` 支持独立查询、候选、计划式创建/更新/停用/清空/删除，也可把同一友好结构嵌入 `fields.lookupFilter`，与 `Y/M/MR` 关系字段一起创建或更新。完整流程见 `cloudcc doc lookupFilter devguide`。
 
 从 `2.2.93` 开始，字段公式能力按 setup-svc 的实际 SQL 执行链路说明：不再把独立 JavaScript 表达式引擎的函数当成字段公式内建函数；MySQL 原生函数、可选 Oracle 兼容存储函数和 CloudCC 专用函数分别记录。MetadataService `1.1.77` 会生成 MySQL `concat(...)` HYPERLINK，并在计划阶段执行目标数据库只读预检。
 

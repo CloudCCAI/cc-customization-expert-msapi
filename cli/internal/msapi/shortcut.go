@@ -38,6 +38,9 @@ var lowCodeShortcutDomains = map[string]string{
 	"fieldDependency":        "field-dependencies",
 	"field-dependency":       "field-dependencies",
 	"field-dependencies":     "field-dependencies",
+	"lookupFilter":           "lookup-filters",
+	"lookup-filter":          "lookup-filters",
+	"lookup-filters":         "lookup-filters",
 	"fieldTracking":          "field-tracking",
 	"fieldTrack":             "field-tracking",
 	"field-tracking":         "field-tracking",
@@ -213,6 +216,9 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 	}
 	if domain == "field-dependencies" && (isShortcutRead(action) || strings.TrimSpace(action) == "candidates") {
 		return handleFieldDependencyReadShortcut(action, projectPath, rest, stdout, cwd)
+	}
+	if domain == "lookup-filters" && (isShortcutRead(action) || strings.TrimSpace(action) == "candidates") {
+		return handleLookupFilterReadShortcut(action, projectPath, rest, stdout, cwd)
 	}
 	if domain == "field-tracking" && (isShortcutRead(action) || strings.TrimSpace(action) == "candidates") {
 		return handleFieldTrackingReadShortcut(action, projectPath, rest, stdout, cwd)
@@ -437,6 +443,29 @@ func handleFieldTrackingReadShortcut(action string, projectPath string, args []s
 		path = "/metadata/v1/field-tracking:candidates?object=" + url.QueryEscape(strings.TrimSpace(args[0]))
 	}
 	return c.getJSON(stdout, path)
+}
+
+func handleLookupFilterReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
+	c, _, err := newClient([]string{projectPath}, cwd)
+	if err != nil {
+		return err
+	}
+	action = strings.TrimSpace(action)
+	if action == "detail" || action == "editInfo" || action == "candidates" {
+		if len(args) != 2 || strings.TrimSpace(args[0]) == "" || strings.TrimSpace(args[1]) == "" {
+			return fmt.Errorf("cloudcc %s lookupFilter <projectPath> <object> <field>", action)
+		}
+		path := "/metadata/v1/lookup-filters/" + url.PathEscape(strings.TrimSpace(args[1]))
+		if action == "candidates" {
+			path += ":candidates"
+		}
+		path += "?object=" + url.QueryEscape(strings.TrimSpace(args[0]))
+		return c.getJSON(stdout, path)
+	}
+	if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
+		return fmt.Errorf("cloudcc get lookupFilter <projectPath> <object>")
+	}
+	return c.getJSON(stdout, "/metadata/v1/lookup-filters?object="+url.QueryEscape(strings.TrimSpace(args[0])))
 }
 
 func handleDetailPageReportReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
@@ -2271,6 +2300,13 @@ func shortcutPlanSpec(action string, resource string, args []string) (map[string
 		if strings.TrimSpace(action) == "applyGlobalDependency" || strings.TrimSpace(action) == "apply-global" {
 			operation = "apply-global"
 		}
+		return body, operation, err
+	}
+	if resource == "lookupFilter" || resource == "lookup-filter" || resource == "lookup-filters" {
+		if (strings.TrimSpace(action) == "delete" || strings.TrimSpace(action) == "remove") && len(args) == 2 {
+			return map[string]any{"object": strings.TrimSpace(args[0]), "field": strings.TrimSpace(args[1])}, "delete", nil
+		}
+		body, _, err := shortcutBodySpec(action, resource, args)
 		return body, operation, err
 	}
 	if resource == "object" {

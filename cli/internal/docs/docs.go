@@ -121,6 +121,10 @@ func normalizeModule(module string) (string, error) {
 		strings.EqualFold(module, "field-dependencies") {
 		return "platform/fieldDependency", nil
 	}
+	if strings.EqualFold(module, "lookupFilter") || strings.EqualFold(module, "lookup-filter") ||
+		strings.EqualFold(module, "lookup-filters") {
+		return "platform/lookupFilter", nil
+	}
 	if strings.EqualFold(module, "fieldTracking") || strings.EqualFold(module, "fieldTrack") ||
 		strings.EqualFold(module, "field-tracking") {
 		return "platform/fieldTracking", nil

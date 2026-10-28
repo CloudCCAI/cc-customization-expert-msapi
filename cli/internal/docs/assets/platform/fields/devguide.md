@@ -184,7 +184,7 @@ apply 阶段会优先批量执行字段主表行，再按既有顺序执行语�
 
 新建自定义对象且名称字段类型为自动编号时，对象 spec 可直接提供 `showFormat`、`beginIndex`；MetadataService 会为默认名称字段生成对应配置。已有对象若历史上缺少 `tp_sys_autonum`，应先审计并补齐数据，不能依赖编辑页容忍空结果。
 
-查找字段筛选支持 `conditionVals` 条件配置；计划会设置主字段的 `isenableFilter` / `filterType` / `filterLogic`，并替换该字段的 `tp_sys_lookup_filter_condition` 条件行：
+从 MetadataService `1.1.92` 开始，关系字段（`Y` / `M` / `MR`）可在创建或更新字段时直接使用友好的 `lookupFilter`。它与独立的 `lookupFilter` Domain 共用同一套解析和校验逻辑：
 
 ```json
 {
@@ -193,19 +193,18 @@ apply 阶段会优先批量执行字段主表行，再按既有顺序执行语�
   "label": "档案定义",
   "type": "Y",
   "lookupObjectId": "obj_archive_definition",
-  "isenableFilter": true,
-  "filterType": "1l,2r",
-  "conditionVals": {
-    "filter": "1 AND 2",
-    "data": [
-      {"leftvalue":"obj_archive_definition-<statusFieldId>","op":"e","valfld":"value","val":"Active","rightvalue":""},
-      {"leftvalue":"obj_archive_definition-<ownerFieldId>","op":"e","valfld":"field","val":"","rightvalue":"<sourceObjectId>-<ownerFieldId>"}
+  "lookupFilter": {
+    "enabled": true,
+    "logic": "1 AND 2",
+    "conditions": [
+      {"left":{"scope":"lookupObject","field":"status"},"operator":"equals","right":{"value":"Active"}},
+      {"left":{"scope":"lookupObject","field":"owner_id"},"operator":"equals","right":{"scope":"sourceObject","field":"owner_id"}}
     ]
   }
 }
 ```
 
-其中 `valfld=value` 使用 `val` 常量；`valfld=field` 使用 `rightvalue=<objectId>-<fieldId>`。重新发布带筛选的字段会先删除该字段的旧条件，再按顺序写入新条件，避免已删除条件继续生效。
+省略 `lookupFilter` 会保留现有规则；`{"enabled":false}` 只停用规则并保留条件；`{"clear":true}` 会停用并删除条件；显式 `null` 会被拒绝。最多支持 10 条条件。旧版 `conditionVals` 仍兼容，但新脚本应使用友好结构。查询、候选字段和独立维护流程见 `cloudcc doc lookupFilter devguide`。
 
 查找关系（`Y`）和主详关系（`M`）未显式传 `relatedLists` 时，MetadataService 会按 `lookupObjectId` 查询被关联对象的所有布局并创建相关列表；此时 `childrelationName` 必填，它会原样作为相关列表标签，不能依赖对象名称回退。`mainlayoutIds` 决定桌面/移动布局是否显示，默认列使用来源对象的名称字段，并同步中文、英文、日文标签。例如：
 

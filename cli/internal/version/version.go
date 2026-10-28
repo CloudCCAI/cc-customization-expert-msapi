@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.108"
+const Version = "2.2.109"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,6 +48,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- Lookup filters are now a first-class MSAPI domain: lookupFilter supports list/detail/candidates plus plan/apply create, update, disable, clear, and delete. The same friendly lookupFilter model can be embedded in Y/M/MR field create or update specs. Requires MetadataService 1.1.92.")
 		fmt.Fprintln(stderr, "- Formula-field planning now uses an explicit public type contract: result types S/c/D/F/N/P/U/L; terminal reference types S/U/P/c/N/D/F/L/Q/B/X/E/H/V/IMG/SCORE/MR; relationship traversal through Y/M only. Formula and rollup-summary fields remain readable but cannot be selected as new formula operands. Use cloudcc candidates fields to inspect target-environment choices. Requires MetadataService 1.1.91.")
 		fmt.Fprintln(stderr, "- Windows global CLI output no longer disappears after command completion: managed launchers do not mutate the shared console code page, native console streams use Unicode output, and redirected output remains UTF-8.")
 		fmt.Fprintln(stderr, "- Stored fields now allocate from actual physical columns. MSAPI requires MetadataService 1.1.88; J and A share the discovered clob_fieldN pool without a fixed J count. Lightning setup-service/setup-web limits are unchanged.")

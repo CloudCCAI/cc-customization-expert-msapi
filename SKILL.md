@@ -1,12 +1,12 @@
 ---
 name: cc-customization-expert-msapi
-version: 2.2.108-msapi
+version: 2.2.109-msapi
 description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService."
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.2.108-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.2.109-msapi
 
-当前技能版本：`2.2.108-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.2.109-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
 
@@ -97,6 +97,7 @@ tools/bin/cloudcc doc user devguide
 - 从技能 `2.2.101` 与 MetadataService `1.1.87` 开始，`ccchat` 是全局设置与对象微贴跟踪的唯一一级 Domain。MSAPI 由 MetadataService 审计并调用 setup-service 权威执行，Lightning UIAPI 直连既有接口，horizontal UIAPI 失败关闭；Mongo 路由仍归 setup-service，数据归档不在范围内。完整用法见 `cloudcc doc ccchat devguide`。
 - 从技能 `2.2.104` 与 MetadataService `1.1.88` 开始，MSAPI 存储字段从目标对象实际物理列中选择数字序最小的空槽；`J` 与 `A` 共享真实 `clob_fieldN` 池，`J` 不再受固定条数限制，槽位耗尽、错族、越界和 apply 漂移均失败关闭。Lightning setup-service/setup-web 的既有限制保持不变。
 - 从技能 `2.2.108` 与 MetadataService `1.1.91` 开始，公式字段严格执行公开类型契约：返回类型仅 `S/c/D/F/N/P/U/L`；可选末端引用类型仅 `S/U/P/c/N/D/F/L/Q/B/X/E/H/V/IMG/SCORE/MR`；`Y/M` 仅用于关系路径。已有公式和累计汇总字段可读取、可在未修改公式定义时原样保留，但不能作为新建或变更公式的操作数。先用 `cloudcc candidates fields` 获取目标环境候选与排除原因，完整流程见 `cloudcc doc fields devguide`。
+- 从技能 `2.2.109` 与 MetadataService `1.1.92` 开始，`lookupFilter` 是独立 MSAPI Domain，支持列表、详情、候选、创建、更新、停用、清空和删除；同一友好模型也可嵌入 `fields.lookupFilter`，在创建或更新 `Y/M/MR` 关系字段时一起提交。省略表示保留，`enabled=false` 表示停用并保留条件，`clear=true` 表示停用并删除条件。完整流程见 `cloudcc doc lookupFilter devguide`。
 - 从技能 `2.2.93` 开始，字段公式文档以 setup-svc 实际 SQL 执行链路为准：不再把独立 JavaScript 表达式引擎的 `VALUE/TODAY/ADDDAYS/...` 当成字段公式内建函数，改为记录 MySQL 原生写法及目标库已安装的 `to_char/to_date/to_number/trunc`、`to_mcode/to_mlang/to_mlang_type`。MetadataService `1.1.77` 会为 MySQL HYPERLINK 生成 `concat(...)`，并在计划阶段对目标数据库执行只读预检。
 - 从技能 `2.2.94` 开始，自定义设置字段新增/修改统一走 MetadataService 局部更新：字段标签按 `relationId + type + country` 插入或更新并保留已有语言行 ID，布局采用非破坏式补齐并复用空父 ID 的 setup-svc 根布局，无效布局策略、更新 0 行或自然键歧义会失败；CLI 用户文档只保留真实可用的 plan/apply/readback 命令。需要 MetadataService `1.1.80`。
 - `fieldDependency` 的完整用户入口是 `cloudcc doc fieldDependency`：先查询 candidates 和当前配置，再使用同一套字段对/JSON spec 命令；MSAPI 写入只生成 plan 并支持 changes/rollback，Lightning UIAPI 直接提交，horizontal UIAPI 失败关闭。自定义模式的 `mappings` 是完整替换，空数组不同于 delete；全局模式禁止携带 mappings。
