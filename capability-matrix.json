@@ -1,9 +1,9 @@
 {
   "schemaVersion": "cloudcc-dual-provider-capability-matrix/v1",
-  "releaseBaseline": "2.2.109",
+  "releaseBaseline": "2.2.110",
   "msapiBaseline": {
     "domains": 30,
-    "operations": 150,
+    "operations": 154,
     "source": "MetadataService capability catalog; live replay evidence coverage remains independently audited"
   },
   "semantics": {

@@ -5,7 +5,7 @@
 ## 1. 使用前准备
 
 - 使用 MSAPI 包，或让 Universal 包明确选择 MSAPI provider；UIAPI 不支持该 Domain。
-- MetadataService 版本不低于 `1.1.71`，并启用 `MDS_BUSINESS_DATA_INDEX_ENABLED=true`。
+- MetadataService 版本不低于 `1.1.93`，并启用 `MDS_BUSINESS_DATA_INDEX_ENABLED=true`。
 - 使用技能包内置 CLI，并先确认 provider：
 
 ```bash
@@ -20,7 +20,8 @@ cloudcc domain dataIndex
 
 - `data:index:read`：查看索引、规划、分析、读取优化方案和任务状态。
 - `data:index:write`：创建索引。
-- `data:index:optimize`：执行已确认的优化建议。
+- `data:index:delete:plan`：生成索引删除计划，不执行 DDL。
+- `data:index:delete:approve`：人工批准并启动删除任务；只应授予交互式人工操作账号。
 - 跨组织管理仅在明确授权时使用 `data:index:admin`。
 
 ## 2. 完整命令参考
@@ -32,18 +33,21 @@ cloudcc domain dataIndex
 | 创建索引 | `cloudcc create dataIndex [projectPath] <object> --fields <f1,f2> [--name <name>] --confirm [--wait] [--poll-interval-ms <n>]` | 是 |
 | 分析可优化项 | `cloudcc analyze dataIndex [projectPath] <object>` | 否 |
 | 读取优化方案 | `cloudcc optimization-plan dataIndex [projectPath] <planId>` | 否 |
-| 执行指定建议 | `cloudcc optimize dataIndex [projectPath] <planId> --recommendations <id1,id2> --confirm [--wait] [--poll-interval-ms <n>]` | 是 |
-| 执行全部安全建议 | `cloudcc optimize dataIndex [projectPath] <planId> --all-executable --confirm [--wait] [--poll-interval-ms <n>]` | 是 |
-| 查询创建或优化任务 | `cloudcc status dataIndex [projectPath] <jobId>` | 否 |
+| 生成删除计划 | `cloudcc plan-delete dataIndex [projectPath] <object> --indexes <indexRef,...> --reason <text> [--ticket <id>]` | 否 |
+| 读取删除计划 | `cloudcc delete-plan dataIndex [projectPath] <planId>` | 否 |
+| 人工批准删除 | `cloudcc approve-delete dataIndex [projectPath] <planId> --challenge <value> --fingerprint <value> [--wait] [--poll-interval-ms <n>]` | 是 |
+| 查询删除审计事件 | `cloudcc delete-events dataIndex [projectPath] <planId>` | 否 |
+| 查询创建或删除任务 | `cloudcc status dataIndex [projectPath] <jobId>` | 否 |
 
 参数说明：
 
 - `--fields`：按索引顺序传入一至四个字段 API 名，使用英文逗号分隔。
 - `--name`：可选逻辑索引名；省略时由服务端生成符合目标数据库长度限制的名称。
-- `--confirm`：创建和优化的强制确认开关，缺少时 CLI 在网络写请求前失败。
+- `--confirm`：仅用于创建索引；删除不接受一步 `--confirm`。
 - `--wait`：持续轮询到 `SUCCEEDED` 或 `FAILED`；省略时立即返回 `jobId`。
 - `--poll-interval-ms`：配合 `--wait` 设置正整数轮询间隔，默认 1000 毫秒。
-- `--recommendations` 与 `--all-executable` 二选一；前者用于精确执行已审阅的建议 ID。
+- `--indexes` 使用 `get`/`analyze` 返回的稳定 `indexRef`，不得传物理表名、列名或 SQL。
+- `--challenge` 与 `--fingerprint` 必须逐字来自已人工审阅的删除计划。
 
 ## 3. 创建索引的完整流程
 
@@ -87,40 +91,43 @@ cloudcc get dataIndex <projectPath> Account
 - 默认平台上限为每表 32 个，可由 `MDS_BUSINESS_DATA_INDEX_MAX_PER_TABLE` 调整；实际有效上限取平台与数据库限制中的较小值。
 - 标准索引 DDL 可能持有元数据锁并占用额外磁盘空间，大表必须评估维护窗口与回退方案。
 
-## 5. 优化索引的完整流程
+## 5. 删除索引的完整流程
 
 ```bash
-# 1. 只分析，不执行 DDL；保存返回的 planId
-cloudcc analyze dataIndex <projectPath> Account
+# 1. 查看 indexRef、唯一性、主键和风险标签
+cloudcc get dataIndex <projectPath> Account
 
-# 2. 读取并审阅方案、expiresAt 和 recommendations
-cloudcc optimization-plan dataIndex <projectPath> <planId>
+# 2. 生成不可变计划，不执行 DDL
+cloudcc plan-delete dataIndex <projectPath> Account \
+  --indexes <indexRef1,indexRef2> --reason "已审阅的历史索引清理" --ticket CHANGE-001
 
-# 3A. 精确执行选中的安全建议
-cloudcc optimize dataIndex <projectPath> <planId> \
-  --recommendations <recommendationId1,recommendationId2> --confirm --wait
+# 3. 人工读取并审阅 targets、beforeCount、predictedAfterCount、表数据量、challenge、fingerprint 和 expiresAt
+cloudcc delete-plan dataIndex <projectPath> <planId>
 
-# 3B. 或执行方案中全部 executable=true 的建议
-cloudcc optimize dataIndex <projectPath> <planId> \
-  --all-executable --confirm --wait
+# 4. 使用具备 approve scope 的人工凭据发起独立批准
+cloudcc approve-delete dataIndex <projectPath> <planId> \
+  --challenge <approvalChallenge> --fingerprint <fingerprint> --wait
 
-# 4. 未等待时，用 optimize 返回的 dio... jobId 查询
+# 5. 查询任务和追加式审计事件
 cloudcc status dataIndex <projectPath> <jobId>
+cloudcc delete-events dataIndex <projectPath> <planId>
 ```
 
-`analyze` 只生成带索引快照指纹和有效期的方案。只有平台管理、普通、非唯一、非系统保护且结构完全重复的索引才可能标记为 `executable=true`。左前缀覆盖、未使用、非平台管理、唯一、主键、约束支撑和系统索引只提供人工审阅建议。
+主键和唯一索引始终为 `BLOCKED`。`sys_*`、`index_*`、`idx_createdate_*`、`idx_c<数字>_ownerid`、未纳管和平台默认索引只增加风险标签，不再永久阻断非唯一索引。删除计划可以同时返回可删除与阻断项，只对 `deletable=true` 项计算预计剩余数量。
 
-方案过期或分析后索引结构发生变化时，执行会失败；重新运行 `analyze`，不要绕过指纹检查。
+删除计划同时返回 `tableRowCount`、`tableRowCountExact`、`rowCountWarningThreshold`、`rowCountWarning`、`rowCountWarningCode` 和提示文本。默认谨慎阈值为 1,000,000 行，可通过 `MDS_BUSINESS_DATA_INDEX_DELETE_ROW_WARNING_THRESHOLD` 调整。服务最多读取“阈值 + 1”行：未超阈值时数量精确；超过阈值时数量表示“至少这么多行”，并返回 `CAUTION_LARGE_TABLE`，人工应评估查询计划、写入开销和维护窗口后再批准。若计划时未告警、批准时数据量已经跨过阈值，批准返回 `data_index_delete_row_count_changed`，必须重新生成并审阅计划。警告不替代主键/唯一索引硬阻断，也不自动拒绝已经审阅过大表警告的审批。
+
+计划请求永远不执行 DDL。批准必须是第二个请求，要求独立 `data:index:delete:approve` scope、一次性 challenge 和指纹；方案过期、已使用或索引结构变化时必须重新计划并重新人工批准。旧 `optimize --confirm` 不再执行删除。
 
 ## 6. 任务结果与失败处理
 
-- 创建任务 ID 通常以 `dix` 开头，优化任务 ID 通常以 `dio` 开头；`status` 会自动选择正确的状态端点。
-- `--wait` 返回 `SUCCEEDED` 或 `FAILED` 的最终任务 JSON。自动化脚本还应检查 `status`、`outcome`、`errorCode` 和 `errorMessage`，不要只看进程退出码。
+- 创建任务 ID 通常以 `dix` 开头，删除任务 ID 以 `dij` 开头；`status` 会自动选择正确的状态端点。
+- 删除终态为 `VERIFIED`、`PARTIAL` 或 `FAILED`。DDL 不承诺批量事务原子性，必须检查每个 item、实际剩余数量、前后指纹和回读事件。
 - 遇到容量、锁、键长、权限或空间错误时，先按稳定错误码修复原因，再重新执行 `plan` 或 `analyze`。
 
 ## 7. 回滚与删除边界
 
-CLI 不提供任意删除索引命令。优化只会删除方案中可执行的安全重复索引，并在执行前重新验证快照。若需要恢复被优化删除的平台索引，使用原对象和字段 API 名重新执行 `plan` 与 `create`；不要手写物理 DDL。
+除主键和唯一索引外，其他索引可进入人工确认删除流程。服务保存删除前定义和逐项结果，但数据库 DDL 通常自动提交，不宣称失败后自动原子回滚；需要恢复时按保存定义重新 `plan`/`create`，并对恢复操作重新确认。不要手写物理 DDL。
 
 更多专题文档：
 

@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.109"
+const Version = "2.2.110"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,6 +48,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- dataIndex deletion now requires an immutable delete plan and a separate challenge/fingerprint-bound human approval. Primary and unique indexes are blocked; other index-name patterns are risk labels. Requires MetadataService 1.1.93.")
 		fmt.Fprintln(stderr, "- Lookup filters are now a first-class MSAPI domain: lookupFilter supports list/detail/candidates plus plan/apply create, update, disable, clear, and delete. The same friendly lookupFilter model can be embedded in Y/M/MR field create or update specs. Requires MetadataService 1.1.92.")
 		fmt.Fprintln(stderr, "- Formula-field planning now uses an explicit public type contract: result types S/c/D/F/N/P/U/L; terminal reference types S/U/P/c/N/D/F/L/Q/B/X/E/H/V/IMG/SCORE/MR; relationship traversal through Y/M only. Formula and rollup-summary fields remain readable but cannot be selected as new formula operands. Use cloudcc candidates fields to inspect target-environment choices. Requires MetadataService 1.1.91.")
 		fmt.Fprintln(stderr, "- Windows global CLI output no longer disappears after command completion: managed launchers do not mutate the shared console code page, native console streams use Unicode output, and redirected output remains UTF-8.")
@@ -403,7 +404,10 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc create dataIndex [projectPath] <object> --fields <field1,field2> [--name <name>] --confirm [--wait] [--poll-interval-ms <n>]")
 	fmt.Fprintln(stdout, "  cloudcc analyze dataIndex [projectPath] <object>")
 	fmt.Fprintln(stdout, "  cloudcc optimization-plan dataIndex [projectPath] <planId>")
-	fmt.Fprintln(stdout, "  cloudcc optimize dataIndex [projectPath] <planId> (--recommendations <ids>|--all-executable) --confirm [--wait] [--poll-interval-ms <n>]")
+	fmt.Fprintln(stdout, "  cloudcc plan-delete dataIndex [projectPath] <object> --indexes <indexRef,...> --reason <text> [--ticket <id>]")
+	fmt.Fprintln(stdout, "  cloudcc delete-plan dataIndex [projectPath] <planId>")
+	fmt.Fprintln(stdout, "  cloudcc approve-delete dataIndex [projectPath] <planId> --challenge <value> --fingerprint <value> [--wait] [--poll-interval-ms <n>]")
+	fmt.Fprintln(stdout, "  cloudcc delete-events dataIndex [projectPath] <planId>")
 	fmt.Fprintln(stdout, "  cloudcc status dataIndex [projectPath] <jobId>")
 	fmt.Fprintln(stdout, "  cloudcc doc dataBulk [introduction|devguide|operations|limits|troubleshooting]")
 	fmt.Fprintln(stdout, "  cloudcc schema dataBulk [projectPath] <object>")

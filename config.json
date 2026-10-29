@@ -1,7 +1,7 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.2.109-msapi",
-  "releaseDate": "2026-10-28",
+  "version": "2.2.110-msapi",
+  "releaseDate": "2026-10-29",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
   "domainCatalog": {
@@ -125,7 +125,7 @@
           "uiapi": "unavailable",
           "universal": "requires-msapi"
         },
-        "minimumBackendVersion": "1.1.71",
+        "minimumBackendVersion": "1.1.93",
         "documentationCommand": "cloudcc doc dataIndex",
         "actions": [
           "get",
@@ -133,7 +133,10 @@
           "create",
           "analyze",
           "optimization-plan",
-          "optimize",
+          "plan-delete",
+          "delete-plan",
+          "approve-delete",
+          "delete-events",
           "status"
         ],
         "actionSemantics": null,
@@ -2562,6 +2565,27 @@
     "policy": "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
     "minimumByCapability": [
       {
+        "capability": "msapi.businessData.confirmedIndexDeletion",
+        "label": "Human-confirmed non-primary non-unique index deletion",
+        "introducedInSkillVersion": "2.2.110-msapi",
+        "minimumMetadataServiceVersion": "1.1.93",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.93",
+        "domains": [
+          "data-index"
+        ],
+        "operations": [
+          "list",
+          "analyze",
+          "plan-delete",
+          "delete-plan",
+          "approve-delete",
+          "delete-events",
+          "status",
+          "readback"
+        ],
+        "reason": "Requires stable index references, primary/unique hard protection, challenge-bound separate human approval, stale-plan checks, append-only audit events, item outcomes, and metadata readback."
+      },
+      {
         "capability": "msapi.lookupFilters.lifecycle",
         "label": "Lookup-filter lifecycle and embedded relationship-field filters",
         "introducedInSkillVersion": "2.2.109-msapi",
@@ -2799,10 +2823,9 @@
           "create",
           "analyze",
           "optimization-plan",
-          "optimize",
           "status"
         ],
-        "reason": "Requires the first-class dataIndex lifecycle domain, capacity checks, analyze-before-apply optimization, metadata readback, redundancy guards, and independent data:index scopes."
+        "reason": "Requires the first-class dataIndex lifecycle domain, capacity checks, analysis, metadata readback, redundancy guards, and independent data:index scopes. Destructive optimization is superseded by the 2.2.110 human-confirmed deletion capability."
       },
       {
         "capability": "msapi.objectsAndLayouts.assignmentParity",

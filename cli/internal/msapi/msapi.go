@@ -360,6 +360,28 @@ func HandleDataIndexDomain(action string, args []string, stdout io.Writer, cwd s
 		}
 		return c.getJSON(stdout, "/metadata/v1/data/index-optimization-plans/"+
 			url.PathEscape(strings.TrimSpace(remaining[0])))
+	case "plan-delete":
+		return c.runDataIndexDeletePlan(stdout, remaining)
+	case "delete-plan":
+		if len(remaining) < 1 || strings.TrimSpace(remaining[0]) == "" {
+			return fmt.Errorf("cloudcc delete-plan dataIndex [projectPath] <planId>")
+		}
+		if err := c.ensureCloudccAccessToken(); err != nil {
+			return err
+		}
+		return c.getJSON(stdout, "/metadata/v1/data/index-delete-plans/"+
+			url.PathEscape(strings.TrimSpace(remaining[0])))
+	case "approve-delete":
+		return c.runDataIndexDeleteApproval(stdout, remaining)
+	case "delete-events":
+		if len(remaining) < 1 || strings.TrimSpace(remaining[0]) == "" {
+			return fmt.Errorf("cloudcc delete-events dataIndex [projectPath] <planId>")
+		}
+		if err := c.ensureCloudccAccessToken(); err != nil {
+			return err
+		}
+		return c.getJSON(stdout, "/metadata/v1/data/index-delete-plans/"+
+			url.PathEscape(strings.TrimSpace(remaining[0]))+"/events")
 	case "optimize":
 		return c.runDataIndexOptimization(stdout, remaining)
 	case "status":
@@ -373,6 +395,9 @@ func HandleDataIndexDomain(action string, args []string, stdout io.Writer, cwd s
 		path := "/metadata/v1/data/index-jobs/" + url.PathEscape(jobID)
 		if strings.HasPrefix(strings.ToLower(jobID), "dio") {
 			path = "/metadata/v1/data/index-optimization-jobs/" + url.PathEscape(jobID)
+		}
+		if strings.HasPrefix(strings.ToLower(jobID), "dij") {
+			path = "/metadata/v1/data/index-delete-jobs/" + url.PathEscape(jobID)
 		}
 		return c.getJSON(stdout, path)
 	default:
@@ -528,32 +553,83 @@ func (c *client) runDataIndex(stdout io.Writer, action string, command *dataInde
 }
 
 func (c *client) runDataIndexOptimization(stdout io.Writer, args []string) error {
-	usage := "cloudcc optimize dataIndex [projectPath] <planId> (--recommendations <id1,id2>|--all-executable) --confirm [--wait] [--poll-interval-ms <n>]"
+	return fmt.Errorf("cloudcc optimize dataIndex no longer deletes indexes; use plan-delete, review the plan, then approve-delete with a human approval credential")
+}
+
+func (c *client) runDataIndexDeletePlan(stdout io.Writer, args []string) error {
+	const usage = "cloudcc plan-delete dataIndex [projectPath] <object> --indexes <indexRef,...> --reason <text> [--ticket <id>]"
 	if len(args) < 1 || strings.TrimSpace(args[0]) == "" {
-		return fmt.Errorf("%s", usage)
+		return fmt.Errorf(usage)
+	}
+	refs := []string{}
+	reason := ""
+	ticket := ""
+	for i := 1; i < len(args); i++ {
+		switch args[i] {
+		case "--indexes":
+			i++
+			if i >= len(args) {
+				return fmt.Errorf("%s: --indexes requires comma-separated indexRef values", usage)
+			}
+			for _, value := range strings.Split(args[i], ",") {
+				if value = strings.TrimSpace(value); value != "" {
+					refs = append(refs, value)
+				}
+			}
+		case "--reason":
+			i++
+			if i >= len(args) || strings.TrimSpace(args[i]) == "" {
+				return fmt.Errorf("%s: --reason is required", usage)
+			}
+			reason = strings.TrimSpace(args[i])
+		case "--ticket":
+			i++
+			if i >= len(args) || strings.TrimSpace(args[i]) == "" {
+				return fmt.Errorf("%s: --ticket requires a value", usage)
+			}
+			ticket = strings.TrimSpace(args[i])
+		default:
+			return fmt.Errorf("%s: unsupported option %s", usage, args[i])
+		}
+	}
+	if len(refs) == 0 || reason == "" {
+		return fmt.Errorf("%s: --indexes and --reason are required", usage)
+	}
+	body := map[string]any{"indexRefs": refs, "reason": reason}
+	if ticket != "" {
+		body["ticketId"] = ticket
+	}
+	if err := c.ensureCloudccAccessToken(); err != nil {
+		return err
+	}
+	return c.writeJSON(stdout, http.MethodPost, "/metadata/v1/data/objects/"+
+		url.PathEscape(strings.TrimSpace(args[0]))+"/indexes:delete-plan", body)
+}
+
+func (c *client) runDataIndexDeleteApproval(stdout io.Writer, args []string) error {
+	const usage = "cloudcc approve-delete dataIndex [projectPath] <planId> --challenge <value> --fingerprint <value> [--wait] [--poll-interval-ms <n>]"
+	if len(args) < 1 || strings.TrimSpace(args[0]) == "" {
+		return fmt.Errorf(usage)
 	}
 	planID := strings.TrimSpace(args[0])
-	ids := []string{}
-	allExecutable := false
-	confirmed := false
+	challenge := ""
+	fingerprint := ""
 	wait := false
 	pollInterval := time.Second
 	for i := 1; i < len(args); i++ {
 		switch args[i] {
-		case "--recommendations":
+		case "--challenge":
 			i++
-			if i >= len(args) {
-				return fmt.Errorf("%s: --recommendations requires comma-separated IDs", usage)
+			if i >= len(args) || strings.TrimSpace(args[i]) == "" {
+				return fmt.Errorf("%s: --challenge is required", usage)
 			}
-			for _, value := range strings.Split(args[i], ",") {
-				if value = strings.TrimSpace(value); value != "" {
-					ids = append(ids, value)
-				}
+			challenge = strings.TrimSpace(args[i])
+		case "--fingerprint":
+			i++
+			if i >= len(args) || strings.TrimSpace(args[i]) == "" {
+				return fmt.Errorf("%s: --fingerprint is required", usage)
 			}
-		case "--all-executable":
-			allExecutable = true
-		case "--confirm":
-			confirmed = true
+			fingerprint = strings.TrimSpace(args[i])
 		case "--wait":
 			wait = true
 		case "--poll-interval-ms":
@@ -570,21 +646,16 @@ func (c *client) runDataIndexOptimization(stdout io.Writer, args []string) error
 			return fmt.Errorf("%s: unsupported option %s", usage, args[i])
 		}
 	}
-	if !confirmed {
-		return fmt.Errorf("%s: --confirm is required after reviewing the optimization plan", usage)
+	if challenge == "" || fingerprint == "" {
+		return fmt.Errorf("%s: --challenge and --fingerprint are required after human review", usage)
 	}
-	if allExecutable && len(ids) > 0 {
-		return fmt.Errorf("%s: select exactly one of --recommendations or --all-executable", usage)
-	}
-	if !allExecutable && len(ids) == 0 {
-		return fmt.Errorf("%s: select --recommendations or --all-executable", usage)
-	}
-	body := map[string]any{"recommendationIds": ids, "allExecutable": allExecutable, "confirmed": true}
 	if err := c.ensureCloudccAccessToken(); err != nil {
 		return err
 	}
-	job, err := c.requestJSONMap(http.MethodPost, "/metadata/v1/data/index-optimization-plans/"+
-		url.PathEscape(planID)+":apply", body)
+	job, err := c.requestJSONMap(http.MethodPost, "/metadata/v1/data/index-delete-plans/"+
+		url.PathEscape(planID)+":approve", map[string]any{
+		"approvalChallenge": challenge, "expectedFingerprint": fingerprint, "confirmed": true,
+	})
 	if err != nil {
 		return err
 	}
@@ -593,16 +664,16 @@ func (c *client) runDataIndexOptimization(stdout io.Writer, args []string) error
 	}
 	jobID := strings.TrimSpace(stringValue(job["jobId"]))
 	if jobID == "" {
-		return fmt.Errorf("dataIndex optimization response did not include jobId")
+		return fmt.Errorf("dataIndex delete approval response did not include jobId")
 	}
 	for {
 		status := strings.ToUpper(strings.TrimSpace(stringValue(job["status"])))
-		if contains([]string{"SUCCEEDED", "FAILED"}, status) {
+		if contains([]string{"VERIFIED", "PARTIAL", "FAILED"}, status) {
 			return writePrettyJSON(stdout, job)
 		}
 		time.Sleep(pollInterval)
 		job, err = c.requestJSONMap(http.MethodGet,
-			"/metadata/v1/data/index-optimization-jobs/"+url.PathEscape(jobID), nil)
+			"/metadata/v1/data/index-delete-jobs/"+url.PathEscape(jobID), nil)
 		if err != nil {
 			return err
 		}
