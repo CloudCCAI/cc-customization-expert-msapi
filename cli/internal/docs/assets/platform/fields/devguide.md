@@ -43,6 +43,15 @@ MetadataService spec 是当前字段创建的主入口。调用方应在 JSON �
 - 本地选项列表 `options[]` 中也不要自造 `id` 或 `code`。普通创建只传 `value`、排序、默认值、本地化等业务字段；MetadataService 会生成或复用 `tp_sys_code` 行 ID。
 - 对同一字段，本地选项的自然键是 `(codetype=字段ID, codevalue=选项值, LANG, RENDER)`。重复提交相同值、语言和 render 不会靠新 ID 变成合法新选项；目标库若已经存在多条相同自然键，需要先治理重复数据再重新 plan。
 
+### 2.2 新增选项：先读、去重、提交、回读
+
+适用于单选 `L`、多选 `Q` 的本地选项及其引用的全局选项列表。
+
+1. **先读**：读取目标环境字段及完整已有选项；字段引用全局列表时，先确认真实 `globalSelectId` 并读取该列表的已有值，不能只看本地 spec 或凭名称猜测。
+2. **去重和复用**：将待新增值与已有值、待新增值彼此比较；本地选项按上述自然键（字段、值、语言、render）匹配，全局列表按其列表范围和接口自然键匹配。已有选项直接复用真实 ID/编码，不创建同义替代项或自行生成 ID。全部已存在时无需写入。
+3. **提交**：只新增缺失值，保留已有选项和引用。按接口语义构造请求：增量接口只传缺失值，全量接口提交保留已有值的去重合并结果；全局列表的 `optionsMode` 见 `cloudcc doc globalSelectList devguide`，不得为追加选项而使用破坏性替换。MSAPI 先审阅 plan，再 apply。
+4. **回读核验**：提交完成后重新读取同一字段或列表，逐项确认新增值存在、自然键无重复、已有值及 ID/编码未丢失或改变。异步 apply 先等待完成再回读；回执成功不能代替回读。读取不完整或核验不一致时停止并排查，不宣告完成，也不盲目重提。
+
 #### 审计和修复历史字段 ID
 
 早期版本创建的自定义字段可能存在错误前缀、非 20 位长度、下划线或其他非法字符。先执行只读审计：
@@ -89,7 +98,7 @@ cloudcc apply msapi <projectPath> <planId>
     {"value": "已驳回"}
   ],
   "profileFieldJson": [
-    {"profileId": "aaa000001", "visible": "true", "readonly": "false"}
+    {"profileId": "<otherProfileId>", "visible": "true", "readonly": "false"}
   ],
   "layoutPlacements": [
     {"layoutId": "<layoutId>", "sectionId": "<sectionId>", "rowIndex": 1, "colIndex": 1}
@@ -118,7 +127,7 @@ cloudcc apply msapi <projectPath> <planId>
 | `formulaText` / `formulaType` | 公式字段需要 | 用户级公式表达式和返回类型；不要手写 `executeExpression`。 |
 | `showFormat` / `beginIndex` | 自动编号字段需要 | 自动编号显示格式和起始序号。 |
 | `summarizedObj` / `childtype` / `aggregateField` | 累计汇总需要 | 子对象、汇总方式和被汇总字段。 |
-| `profileFieldJson` | 否 | 字段级简档权限，必须使用真实回读的简档 ID。 |
+| `profileFieldJson` | 否 | 字段级简档权限，必须使用真实回读的简档 ID。MetadataService `1.1.94+` 创建字段时始终补齐并校正系统管理员 `aaa000001` 为可见、非只读，因此调用方无需传管理员行。其他简档按输入保留。 |
 | `layoutPlacements` | 否 | 字段落位到页面布局的显式配置。 |
 
 #### 2.3.1 数字精度上限
@@ -168,6 +177,8 @@ apply 阶段会优先批量执行字段主表行，再按既有顺序执行语�
 物理槽位仍然由服务端按对象维度统一分配：同一个 `fields[]` 中多个文本字段会依次占用 `str_field1`、`str_field2` 等首个可用槽位；已有字段的槽位会先被保留，不会被新字段抢占；预检失败的字段不计入可执行字段数量，也不会占用同对象字段数量上限。除迁移回放外不要手写 `dataFieldRef`；如果必须手写，必须保证同一对象内不重复，否则该字段会在 plan 阶段成为 `FAILED_PRECHECK`，或在并发 apply 校验中触发 `field_slot_conflict`。
 
 如果一个批量 spec 中的字段分属不同对象，可以在每个字段上覆盖 `objectId`；未覆盖时继承根级 `objectId`。查找字段、主详字段、自动编号、公式、累计汇总、地址和地理定位等高级字段仍使用下文相同字段定义，批量只是提交载体，不会降低单字段校验要求。
+
+批量 spec 也可以在根级提供 `profileFieldJson`、`profileFields` 或 `fieldPermissions` 作为公共权限。字段项自身存在非空权限集合时以字段项为准；字段项省略权限时继承根级集合。MetadataService `1.1.94+` 随后为每个新字段独立生成权限行 ID，并统一补齐系统管理员 `aaa000001` 的 `visible=1`、`readonly=0`，不会复用根级权限行 ID。`AD`/`LT` 复合字段的父字段和全部物理子字段也执行相同规则。普通 update 若省略权限集合则不改变现有权限；显式更新管理员权限时仍会强制校正可见与只读值。`encryptvisible` 是独立的加密字段权限，不因系统管理员身份自动开启。
 
 自动编号字段必须同时生成字段行和 `tp_sys_autonum` 配置，不能只把字段类型设为 `V`：
 

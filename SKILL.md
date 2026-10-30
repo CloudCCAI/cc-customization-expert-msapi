@@ -1,14 +1,16 @@
 ---
 name: cc-customization-expert-msapi
-version: 2.2.110-msapi
+version: 2.2.112-msapi
 description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService."
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.2.110-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.2.112-msapi
 
-当前技能版本：`2.2.110-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.2.112-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
+
+- 选项列表字段（单选/多选）新增选项前，必须先读取目标字段的已有选项；引用全局选项列表时还须读取所绑定列表的已有值。按目标字段或列表及选项自然键去重，已有选项直接复用，不重复创建；提交内容须符合当前接口的增量或全量语义，全量更新必须保留已有选项。提交后必须回读，确认新增值存在、无重复且已有选项未丢失；回读不一致时不得宣告完成，也不得盲目重复提交。完整操作见 `cloudcc doc fields devguide`。
 
 - 低代码元数据统一使用稳定的 CloudCC CLI 词汇和共享能力矩阵；高代码资源继续使用 CloudCC 原有 resource/API 通道。
 - 执行模式从 `CLOUDCC_EXECUTION_MODE`、当前环境 `executionMode` / `execution_mode`、包默认值依次解析；仅支持 `auto`、`msapi`、`uiapi`。
@@ -99,6 +101,7 @@ tools/bin/cloudcc doc user devguide
 - 从技能 `2.2.108` 与 MetadataService `1.1.91` 开始，公式字段严格执行公开类型契约：返回类型仅 `S/c/D/F/N/P/U/L`；可选末端引用类型仅 `S/U/P/c/N/D/F/L/Q/B/X/E/H/V/IMG/SCORE/MR`；`Y/M` 仅用于关系路径。已有公式和累计汇总字段可读取、可在未修改公式定义时原样保留，但不能作为新建或变更公式的操作数。先用 `cloudcc candidates fields` 获取目标环境候选与排除原因，完整流程见 `cloudcc doc fields devguide`。
 - 从技能 `2.2.109` 与 MetadataService `1.1.92` 开始，`lookupFilter` 是独立 MSAPI Domain，支持列表、详情、候选、创建、更新、停用、清空和删除；同一友好模型也可嵌入 `fields.lookupFilter`，在创建或更新 `Y/M/MR` 关系字段时一起提交。省略表示保留，`enabled=false` 表示停用并保留条件，`clear=true` 表示停用并删除条件。完整流程见 `cloudcc doc lookupFilter devguide`。
 - 从技能 `2.2.110` 与 MetadataService `1.1.93` 开始，`dataIndex` 删除必须先用 `plan-delete` 返回目标、风险、数量、challenge 和指纹，再由具备独立 approve scope 的人工操作方调用 `approve-delete`。主键和唯一索引硬阻断；名称前缀、未纳管和平台默认属性只作为风险标签。计划在批准前返回有界表数据量，超过默认 1,000,000 行的可配置阈值时提示 `CAUTION_LARGE_TABLE`；`tableRowCountExact=false` 表示至少该数量。旧 `optimize --confirm` 不再删除，所有删除逐项记录事件并回读。
+- 从技能 `2.2.112` 与 MetadataService `1.1.94` 开始，MSAPI 新建字段强制保证系统管理员简档 `aaa000001` 的字段权限为可见且非只读。省略管理员时自动补齐，显式传入限制值或重复行时统一校正并去重；批量字段在字段项未配置权限时继承根级权限，地址/地理位置复合子字段应用同一规则。普通更新省略权限时仍保持非破坏性；加密可见权限继续独立配置。
 - 从技能 `2.2.93` 开始，字段公式文档以 setup-svc 实际 SQL 执行链路为准：不再把独立 JavaScript 表达式引擎的 `VALUE/TODAY/ADDDAYS/...` 当成字段公式内建函数，改为记录 MySQL 原生写法及目标库已安装的 `to_char/to_date/to_number/trunc`、`to_mcode/to_mlang/to_mlang_type`。MetadataService `1.1.77` 会为 MySQL HYPERLINK 生成 `concat(...)`，并在计划阶段对目标数据库执行只读预检。
 - 从技能 `2.2.94` 开始，自定义设置字段新增/修改统一走 MetadataService 局部更新：字段标签按 `relationId + type + country` 插入或更新并保留已有语言行 ID，布局采用非破坏式补齐并复用空父 ID 的 setup-svc 根布局，无效布局策略、更新 0 行或自然键歧义会失败；CLI 用户文档只保留真实可用的 plan/apply/readback 命令。需要 MetadataService `1.1.80`。
 - `fieldDependency` 的完整用户入口是 `cloudcc doc fieldDependency`：先查询 candidates 和当前配置，再使用同一套字段对/JSON spec 命令；MSAPI 写入只生成 plan 并支持 changes/rollback，Lightning UIAPI 直接提交，horizontal UIAPI 失败关闭。自定义模式的 `mappings` 是完整替换，空数组不同于 delete；全局模式禁止携带 mappings。

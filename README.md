@@ -1,4 +1,6 @@
-# cc-customization-expert-msapi v2.2.110-msapi
+# cc-customization-expert-msapi v2.2.112-msapi
+
+选项列表字段新增选项必须先读取已有值、去重后提交、提交后回读核验；已有选项直接复用。详见 `cloudcc doc fields devguide`。
 
 CloudCC CRM/PaaS 离线 Go 技能，发布目标：`MSAPI`。
 
@@ -98,6 +100,8 @@ Strict MetadataService package: low-code operations require MetadataService.
 从 `2.2.109` 与 MetadataService `1.1.92` 开始，`lookupFilter` 支持独立查询、候选、计划式创建/更新/停用/清空/删除，也可把同一友好结构嵌入 `fields.lookupFilter`，与 `Y/M/MR` 关系字段一起创建或更新。完整流程见 `cloudcc doc lookupFilter devguide`。
 
 从 `2.2.110` 与 MetadataService `1.1.93` 开始，删除 `dataIndex` 必须经过 `plan-delete` 预览和独立 `approve-delete` 人工批准。主键和唯一索引禁止删除；其余索引名称和来源仅作为风险标签。计划会返回有界表数据量，超过可配置的默认 1,000,000 行阈值时提示 `CAUTION_LARGE_TABLE`，`tableRowCountExact=false` 表示至少该数量。challenge、fingerprint、approve scope、逐项事件和回读缺一不可，旧 `optimize --confirm` 不再执行删除。
+
+从 `2.2.112` 与 MetadataService `1.1.94` 开始，MSAPI 新建字段会自动补齐并强制校正系统管理员 `aaa000001` 为可见、非只读。重复管理员权限会去重；批量字段项省略权限时继承根级权限；地址和地理位置子字段使用同一规则。普通更新未传权限时不产生权限变更，加密可见权限仍独立配置。
 
 从 `2.2.93` 开始，字段公式能力按 setup-svc 的实际 SQL 执行链路说明：不再把独立 JavaScript 表达式引擎的函数当成字段公式内建函数；MySQL 原生函数、可选 Oracle 兼容存储函数和 CloudCC 专用函数分别记录。MetadataService `1.1.77` 会生成 MySQL `concat(...)` HYPERLINK，并在计划阶段执行目标数据库只读预检。
 
