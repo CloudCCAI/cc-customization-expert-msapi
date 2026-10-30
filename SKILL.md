@@ -1,12 +1,12 @@
 ---
 name: cc-customization-expert-msapi
-version: 2.2.112-msapi
+version: 2.2.113-msapi
 description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService."
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.2.112-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.2.113-msapi
 
-当前技能版本：`2.2.112-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.2.113-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
 
@@ -102,6 +102,7 @@ tools/bin/cloudcc doc user devguide
 - 从技能 `2.2.109` 与 MetadataService `1.1.92` 开始，`lookupFilter` 是独立 MSAPI Domain，支持列表、详情、候选、创建、更新、停用、清空和删除；同一友好模型也可嵌入 `fields.lookupFilter`，在创建或更新 `Y/M/MR` 关系字段时一起提交。省略表示保留，`enabled=false` 表示停用并保留条件，`clear=true` 表示停用并删除条件。完整流程见 `cloudcc doc lookupFilter devguide`。
 - 从技能 `2.2.110` 与 MetadataService `1.1.93` 开始，`dataIndex` 删除必须先用 `plan-delete` 返回目标、风险、数量、challenge 和指纹，再由具备独立 approve scope 的人工操作方调用 `approve-delete`。主键和唯一索引硬阻断；名称前缀、未纳管和平台默认属性只作为风险标签。计划在批准前返回有界表数据量，超过默认 1,000,000 行的可配置阈值时提示 `CAUTION_LARGE_TABLE`；`tableRowCountExact=false` 表示至少该数量。旧 `optimize --confirm` 不再删除，所有删除逐项记录事件并回读。
 - 从技能 `2.2.112` 与 MetadataService `1.1.94` 开始，MSAPI 新建字段强制保证系统管理员简档 `aaa000001` 的字段权限为可见且非只读。省略管理员时自动补齐，显式传入限制值或重复行时统一校正并去重；批量字段在字段项未配置权限时继承根级权限，地址/地理位置复合子字段应用同一规则。普通更新省略权限时仍保持非破坏性；加密可见权限继续独立配置。
+- 从技能 `2.2.113` 与 MetadataService `1.1.95` 开始，`lookupFilter` 使用与运行时一致的类型化操作符契约，补齐 `startsWith`、`in/notIn`、`isNull/isNotNull`，并修正 `lessOrEqual=m`、`greaterOrEqual=h`。`candidates` 返回逐字段可用操作符、排除原因和选项键；友好输入与旧 `conditionVals` 统一校验，选项标签归一化为存储键，自关联歧义失败关闭。使用前必须阅读 `cloudcc doc lookupFilter devguide`。
 - 从技能 `2.2.93` 开始，字段公式文档以 setup-svc 实际 SQL 执行链路为准：不再把独立 JavaScript 表达式引擎的 `VALUE/TODAY/ADDDAYS/...` 当成字段公式内建函数，改为记录 MySQL 原生写法及目标库已安装的 `to_char/to_date/to_number/trunc`、`to_mcode/to_mlang/to_mlang_type`。MetadataService `1.1.77` 会为 MySQL HYPERLINK 生成 `concat(...)`，并在计划阶段对目标数据库执行只读预检。
 - 从技能 `2.2.94` 开始，自定义设置字段新增/修改统一走 MetadataService 局部更新：字段标签按 `relationId + type + country` 插入或更新并保留已有语言行 ID，布局采用非破坏式补齐并复用空父 ID 的 setup-svc 根布局，无效布局策略、更新 0 行或自然键歧义会失败；CLI 用户文档只保留真实可用的 plan/apply/readback 命令。需要 MetadataService `1.1.80`。
 - `fieldDependency` 的完整用户入口是 `cloudcc doc fieldDependency`：先查询 candidates 和当前配置，再使用同一套字段对/JSON spec 命令；MSAPI 写入只生成 plan 并支持 changes/rollback，Lightning UIAPI 直接提交，horizontal UIAPI 失败关闭。自定义模式的 `mappings` 是完整替换，空数组不同于 delete；全局模式禁止携带 mappings。

@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.112"
+const Version = "2.2.113"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,6 +48,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- Lookup filters now use a runtime-aligned typed operator contract in MetadataService 1.1.95: startsWith, in/notIn, isNull/isNotNull, correct m/h ordering, picklist label-to-key normalization, exclusion reasons, legacy conditionVals validation, and self-relationship fail-closed behavior. Run cloudcc doc lookupFilter devguide.")
 		fmt.Fprintln(stderr, "- Field creation now enforces full system-administrator access in MetadataService 1.1.94: aaa000001 is added when omitted, restrictive or duplicate administrator rows are normalized to visible=1 and readonly=0, batch items inherit root permissions when absent, and AD/LT child fields receive the same protection.")
 		fmt.Fprintln(stderr, "- Picklist guidance requires reading existing options before adding, deduplicating and reusing existing values, submitting with the provider update semantics, and verifying new and preserved values through readback.")
 		fmt.Fprintln(stderr, "- dataIndex deletion now requires an immutable delete plan and a separate challenge/fingerprint-bound human approval. Primary and unique indexes are blocked; other index-name patterns are risk labels. Requires MetadataService 1.1.93.")
