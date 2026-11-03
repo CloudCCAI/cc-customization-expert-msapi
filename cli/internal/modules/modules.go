@@ -182,6 +182,20 @@ var genericEndpoints = map[string]map[string]endpoint{
 		"update": {"setup", "/api/profile/saveProfile"},
 		"delete": {"setup", "/api/profile/delProfile"},
 	},
+	"publicGroup": {
+		"get":        {"setup", "/api/publicGroup/getPublicGrouplist"},
+		"getList":    {"setup", "/api/publicGroup/getPublicGrouplist"},
+		"detail":     {"setup", "/api/publicGroup/detail"},
+		"candidates": {"setup", "/api/publicGroup/getPermissionDataJson"},
+		"newInfo":    {"setup", "/api/publicGroup/getPermissionDataJson"},
+		"editInfo":   {"setup", "/api/publicGroup/getPermissionDataJson"},
+		"create":     {"setup", "/api/publicGroup/save"},
+		"update":     {"setup", "/api/publicGroup/save"},
+		"save":       {"setup", "/api/publicGroup/save"},
+		"assign":     {"setup", "/api/publicGroup/save"},
+		"delete":     {"setup", "/api/publicGroup/delete"},
+		"popup":      {"setup", "/api/publicGroup/popup"},
+	},
 	"recordType": {
 		"get":         {"setup", "/api/recordType/getRecordTypeList"},
 		"getList":     {"setup", "/api/recordType/getRecordTypeList"},
@@ -338,6 +352,9 @@ func Handle(action string, resource string, args []string, stdout io.Writer, std
 	if resource == "ccChat" {
 		resource = "ccchat"
 	}
+	if resource == "publicGroups" || resource == "public-group" || resource == "public-groups" || resource == "public_group" || resource == "publicgroup" {
+		resource = "publicGroup"
+	}
 	switch resource {
 	case "highcode":
 		if action == "format" {
@@ -411,6 +428,8 @@ func Handle(action string, resource string, args []string, stdout io.Writer, std
 		return handleMenu(action, args, stdout, cwd)
 	case "user":
 		return handleUser(action, args, stdout, cwd)
+	case "publicGroup":
+		return handlePublicGroup(action, args, stdout, cwd)
 	case "jsp", "site", "skill":
 		return fmt.Errorf("%s %s is deferred to P4 or a later task in the Go rewrite", action, resource)
 	}
@@ -515,6 +534,180 @@ func handleUser(action string, args []string, stdout io.Writer, cwd string) erro
 		return err
 	}
 	return postClass(stdout, projectPath, cfg, ep.base, ep.path, body)
+}
+
+func handlePublicGroup(action string, args []string, stdout io.Writer, cwd string) error {
+	ep, ok := genericEndpoints["publicGroup"][action]
+	if !ok {
+		return fmt.Errorf("unsupported publicGroup action: %s", action)
+	}
+	projectPath := firstArg(args, cwd)
+	rest := argsAfterProject(args)
+	body, err := publicGroupUIAPIRequestBody(action, rest)
+	if err != nil {
+		return err
+	}
+	cfg, err := config.Load(projectPath)
+	if err != nil {
+		return err
+	}
+	if action != "create" && action != "update" && action != "save" && action != "assign" {
+		return postClass(stdout, projectPath, cfg, ep.base, ep.path, body)
+	}
+	var writeResponse map[string]any
+	if err := postClassResponse(projectPath, cfg, ep.base, ep.path, body, &writeResponse); err != nil {
+		return err
+	}
+	groupID := publicGroupText(body["id"])
+	if groupID == "" {
+		groupID = publicGroupResponseID(writeResponse)
+	}
+	if groupID == "" {
+		return printJSON(stdout, map[string]any{"write": writeResponse,
+			"readback": map[string]any{"status": "unavailable", "reason": "public_group_id_missing_in_save_response"}})
+	}
+	var readback map[string]any
+	if err := postClassResponse(projectPath, cfg, "setup", "/api/publicGroup/detail",
+		map[string]any{"id": groupID, "groupId": groupID}, &readback); err != nil {
+		return err
+	}
+	return printJSON(stdout, map[string]any{"write": writeResponse, "readback": readback})
+}
+
+func publicGroupResponseID(response map[string]any) string {
+	if response == nil {
+		return ""
+	}
+	for _, key := range []string{"id", "groupId", "publicGroupId"} {
+		if value := publicGroupText(response[key]); value != "" {
+			return value
+		}
+	}
+	for _, key := range []string{"data", "result", "publicGroup"} {
+		if nested, ok := response[key].(map[string]any); ok {
+			if value := publicGroupResponseID(nested); value != "" {
+				return value
+			}
+		}
+	}
+	return ""
+}
+
+func publicGroupUIAPIRequestBody(action string, args []string) (map[string]any, error) {
+	if len(args) == 0 || strings.TrimSpace(args[0]) == "" {
+		switch action {
+		case "get", "getList", "candidates", "newInfo", "popup":
+			return map[string]any{}, nil
+		default:
+			return nil, fmt.Errorf("cloudcc %s publicGroup <projectPath> <selector-or-encodedJson>", action)
+		}
+	}
+	if action == "update" || action == "save" || action == "assign" {
+		if len(args) == 2 && strings.TrimSpace(args[0]) != "" {
+			body, err := jsonx.ParseEncodedObject(args[1], "cloudcc "+action+" publicGroup")
+			if err != nil {
+				return nil, err
+			}
+			if _, exists := body["id"]; !exists {
+				body["id"] = strings.TrimSpace(args[0])
+			}
+			return normalizePublicGroupUIAPISaveBody(action, body)
+		}
+	}
+	if body, err := jsonx.ParseEncodedObject(args[0], "cloudcc "+action+" publicGroup"); err == nil {
+		if action == "create" || action == "update" || action == "save" || action == "assign" {
+			return normalizePublicGroupUIAPISaveBody(action, body)
+		}
+		return body, nil
+	}
+	selector := strings.TrimSpace(args[0])
+	switch action {
+	case "detail", "editInfo", "delete":
+		return map[string]any{"id": selector, "groupId": selector}, nil
+	case "get", "getList":
+		return map[string]any{"searchKeyWord": selector}, nil
+	case "candidates", "newInfo", "popup":
+		return map[string]any{"id": selector, "groupId": selector}, nil
+	default:
+		return nil, fmt.Errorf("cloudcc %s publicGroup expects an encoded JSON body", action)
+	}
+}
+
+func normalizePublicGroupUIAPISaveBody(action string, body map[string]any) (map[string]any, error) {
+	result := copyStringAnyMap(body)
+	if selector := publicGroupText(result["selector"]); selector != "" {
+		if _, exists := result["id"]; !exists {
+			result["id"] = selector
+		}
+		delete(result, "selector")
+	}
+	if action == "assign" {
+		mode := strings.ToLower(publicGroupText(result["mode"]))
+		if mode != "" && mode != "replace" {
+			return nil, fmt.Errorf("Lightning UIAPI publicGroup assignment supports mode=replace only; use the MSAPI provider for add/remove diffs")
+		}
+		delete(result, "mode")
+	}
+	members, exists := result["members"]
+	if !exists {
+		return result, nil
+	}
+	items, ok := members.([]any)
+	if !ok {
+		return nil, fmt.Errorf("publicGroup members must be an array")
+	}
+	selected := make([]map[string]any, 0, len(items))
+	for index, raw := range items {
+		member, ok := raw.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("publicGroup members[%d] must be an object", index)
+		}
+		selector := publicGroupText(member["selector"])
+		if selector == "" {
+			selector = publicGroupText(member["id"])
+		}
+		if selector == "" {
+			return nil, fmt.Errorf("publicGroup members[%d] requires selector or id", index)
+		}
+		storageType, err := publicGroupStorageType(publicGroupText(member["type"]))
+		if err != nil {
+			return nil, fmt.Errorf("publicGroup members[%d]: %w", index, err)
+		}
+		item := map[string]any{"id": selector, "type": storageType}
+		if name := publicGroupText(member["name"]); name != "" {
+			item["name"] = name
+		}
+		selected = append(selected, item)
+	}
+	encoded, err := json.Marshal(selected)
+	if err != nil {
+		return nil, err
+	}
+	delete(result, "members")
+	result["selecteditems"] = string(encoded)
+	return result, nil
+}
+
+func publicGroupText(value any) string {
+	if value == nil {
+		return ""
+	}
+	return strings.TrimSpace(fmt.Sprint(value))
+}
+
+func publicGroupStorageType(value string) (string, error) {
+	switch strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(strings.TrimSpace(value), "-", ""), "_", "")) {
+	case "user":
+		return "User", nil
+	case "role":
+		return "Role", nil
+	case "roleandsubordinates", "roleandsub":
+		return "RoleAndSub", nil
+	case "publicgroup", "group":
+		return "Group", nil
+	default:
+		return "", fmt.Errorf("unsupported member type %q; expected user, role, roleAndSubordinates, or publicGroup", value)
+	}
 }
 
 func userRequestBody(action string, args []string) (map[string]any, error) {

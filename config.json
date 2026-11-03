@@ -1,6 +1,6 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.2.115-msapi",
+  "version": "2.2.116-msapi",
   "releaseDate": "2026-11-03",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
@@ -83,6 +83,7 @@
           "menus",
           "buttons",
           "roles",
+          "public-groups",
           "custom-settings",
           "dupe-catchers",
           "single-sign-ons",
@@ -1334,6 +1335,76 @@
         "documentation": {
           "introduction": "cloudcc doc platform/role introduction",
           "devguide": "cloudcc doc platform/role devguide"
+        }
+      },
+      {
+        "name": "public-groups",
+        "label": "Public groups",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "publicGroup",
+          "publicGroups",
+          "public-group",
+          "publicgroup"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": "1.1.98",
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "platform": "lightning",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          },
+          {
+            "provider": "uiapi",
+            "platform": "horizontal",
+            "backend": "main-app",
+            "transport": "uiapi",
+            "availability": "unavailable"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "capabilities",
+          "candidates",
+          "create",
+          "update",
+          "assign",
+          "delete",
+          "plan",
+          "apply",
+          "changes",
+          "rollback"
+        ],
+        "commands": [
+          "cloudcc get publicGroup <projectPath> [filter]",
+          "cloudcc detail publicGroup <projectPath> <selector>",
+          "cloudcc capabilities publicGroup <projectPath>",
+          "cloudcc candidates publicGroup <projectPath> <memberType> [selector] [filter]",
+          "cloudcc create publicGroup <projectPath> <@spec.json>",
+          "cloudcc update publicGroup <projectPath> <selector> <@patch.json>",
+          "cloudcc assign publicGroup <projectPath> <selector> <@assignment.json>",
+          "cloudcc delete publicGroup <projectPath> <selector>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/publicGroup introduction",
+          "devguide": "cloudcc doc platform/publicGroup devguide"
         }
       },
       {
@@ -2642,6 +2713,31 @@
     "sourceOfTruth": "cc-customization-expert-go/config.json",
     "policy": "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
     "minimumByCapability": [
+      {
+        "capability": "msapi.publicGroups.canonicalLifecycle",
+        "label": "Canonical public-group lifecycle",
+        "introducedInSkillVersion": "2.2.116-msapi",
+        "minimumMetadataServiceVersion": "1.1.98",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.98",
+        "domains": [
+          "public-groups"
+        ],
+        "operations": [
+          "list",
+          "detail",
+          "capabilities",
+          "candidates",
+          "create",
+          "update",
+          "assign",
+          "delete",
+          "plan",
+          "apply",
+          "changes",
+          "rollback"
+        ],
+        "reason": "Requires typed member resolution, unique selectors, add/remove/replace diffs, full-graph cycle checks, plan/apply drift guards and protected deletion."
+      },
       {
         "capability": "msapi.roles.canonicalLifecycle",
         "label": "Canonical role lifecycle",

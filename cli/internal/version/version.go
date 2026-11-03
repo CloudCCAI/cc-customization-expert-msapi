@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.115"
+const Version = "2.2.116"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,6 +48,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- Public groups are now a first-class publicGroup/public-groups domain: unique selectors, four typed member classes, candidates, create/update, add/remove/replace assignment, strict cycle and drift checks, guarded deletion, Lightning UIAPI replace adaptation, fail-closed horizontal UIAPI, readback and rollback. Run cloudcc doc publicGroup devguide. Requires MetadataService 1.1.98.")
 		fmt.Fprintln(stderr, "- Roles now provide a canonical self-contained lifecycle: capabilities, parent candidates, unique selectors, server-derived hierarchy creation, explicit subtree move, add/remove/replace user assignment, no-op protection, guarded deletion, readback and rollback. Run cloudcc doc role devguide. Requires MetadataService 1.1.97.")
 		fmt.Fprintln(stderr, "- Search layouts are now a first-class capability-aware MSAPI domain covering search results, lookup dialogs, menus, list views, quick create, and object-dependent duplicate merge. Unsupported legacy empty clears fail during planning. Run cloudcc doc searchLayout devguide before writing layouts. Requires MetadataService 1.1.96.")
 		fmt.Fprintln(stderr, "- Lookup filters now use a runtime-aligned typed operator contract in MetadataService 1.1.95: startsWith, in/notIn, isNull/isNotNull, correct m/h ordering, picklist label-to-key normalization, exclusion reasons, legacy conditionVals validation, and self-relationship fail-closed behavior. Run cloudcc doc lookupFilter devguide.")
@@ -500,6 +501,15 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc assign role <projectPath> <selector> <@assignment.json>  # MSAPI: plan only")
 	fmt.Fprintln(stdout, "  cloudcc delete role <projectPath> <selector>  # MSAPI: plan only")
 	fmt.Fprintln(stdout, "  cloudcc doc role devguide  # complete user guide")
+	fmt.Fprintln(stdout, "  cloudcc get publicGroup <projectPath> [filter]")
+	fmt.Fprintln(stdout, "  cloudcc detail publicGroup <projectPath> <id-or-unique-name>")
+	fmt.Fprintln(stdout, "  cloudcc capabilities publicGroup <projectPath>")
+	fmt.Fprintln(stdout, "  cloudcc candidates publicGroup <projectPath> <user|role|roleAndSubordinates|publicGroup> [group-selector] [filter]")
+	fmt.Fprintln(stdout, "  cloudcc create publicGroup <projectPath> <@spec.json>  # MSAPI: plan only")
+	fmt.Fprintln(stdout, "  cloudcc update publicGroup <projectPath> <selector> <@patch.json>  # MSAPI: plan only")
+	fmt.Fprintln(stdout, "  cloudcc assign publicGroup <projectPath> <selector> <@assignment.json>  # MSAPI: plan only")
+	fmt.Fprintln(stdout, "  cloudcc delete publicGroup <projectPath> <selector>  # MSAPI: plan only")
+	fmt.Fprintln(stdout, "  cloudcc doc publicGroup devguide  # complete user guide")
 	fmt.Fprintln(stdout, "  cloudcc get searchLayout <projectPath> <object>")
 	fmt.Fprintln(stdout, "  cloudcc capabilities searchLayout <projectPath> <object>")
 	fmt.Fprintln(stdout, "  cloudcc candidates searchLayout <projectPath> <object> <section>")

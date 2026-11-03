@@ -77,6 +77,12 @@ var lowCodeShortcutDomains = map[string]string{
 	"pagelayout":             "layouts",
 	"permission":             "permissions",
 	"profile":                "profiles",
+	"publicGroup":            "public-groups",
+	"publicGroups":           "public-groups",
+	"public-group":           "public-groups",
+	"public-groups":          "public-groups",
+	"public_group":           "public-groups",
+	"publicgroup":            "public-groups",
 	"recordType":             "record-types",
 	"report":                 "reports",
 	"reportMatrix":           "reports",
@@ -169,7 +175,7 @@ var lowCodeShortcutActions = map[string]bool{
 func IsLowCodeShortcut(action string, resource string) bool {
 	domain, ok := lowCodeShortcutDomains[strings.TrimSpace(resource)]
 	if strings.TrimSpace(action) == "capabilities" {
-		return ok && (domain == "search-layouts" || domain == "roles")
+		return ok && (domain == "search-layouts" || domain == "roles" || domain == "public-groups")
 	}
 	if !lowCodeShortcutActions[strings.TrimSpace(action)] {
 		return false
@@ -214,6 +220,9 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 	}
 	if resource == "role" && (isShortcutRead(action) || strings.TrimSpace(action) == "candidates" || strings.TrimSpace(action) == "capabilities") {
 		return handleRoleReadShortcut(action, projectPath, rest, stdout, cwd)
+	}
+	if domain == "public-groups" && (isShortcutRead(action) || strings.TrimSpace(action) == "candidates" || strings.TrimSpace(action) == "capabilities") {
+		return handlePublicGroupReadShortcut(action, projectPath, rest, stdout, cwd)
 	}
 	if resource == "sharingRule" && isShortcutRead(action) {
 		return handleSharingRuleReadShortcut(action, projectPath, rest, stdout, cwd)
@@ -1263,6 +1272,116 @@ func (c *client) resolveUniqueRole(selector string) (map[string]any, error) {
 	return role, nil
 }
 
+func handlePublicGroupReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
+	c, _, err := newClient([]string{projectPath}, cwd)
+	if err != nil {
+		return err
+	}
+	action = strings.TrimSpace(action)
+	if action == "capabilities" {
+		if len(args) != 0 {
+			return fmt.Errorf("cloudcc capabilities publicGroup <projectPath>")
+		}
+		return c.getJSON(stdout, "/metadata/v1/public-groups/capabilities")
+	}
+	if action == "candidates" {
+		if len(args) == 0 || len(args) > 3 || strings.TrimSpace(args[0]) == "" {
+			return fmt.Errorf("cloudcc candidates publicGroup <projectPath> <user|role|roleAndSubordinates|publicGroup> [group-selector] [filter]")
+		}
+		values := url.Values{}
+		values.Set("memberType", strings.TrimSpace(args[0]))
+		if len(args) >= 2 && strings.TrimSpace(args[1]) != "" {
+			values.Set("selector", strings.TrimSpace(args[1]))
+		}
+		if len(args) == 3 && strings.TrimSpace(args[2]) != "" {
+			values.Set("filter", strings.TrimSpace(args[2]))
+		}
+		return c.getJSON(stdout, "/metadata/v1/public-groups/candidates?"+values.Encode())
+	}
+	if action == "getList" || action == "newInfo" || (action == "get" && len(args) == 0) {
+		if len(args) > 1 {
+			return fmt.Errorf("cloudcc %s publicGroup <projectPath> [filter]", action)
+		}
+		filter := ""
+		if len(args) == 1 {
+			filter = strings.TrimSpace(args[0])
+		}
+		return c.getJSON(stdout, publicGroupListPath(filter, ""))
+	}
+	selector, err := publicGroupShortcutValue(args)
+	if err != nil {
+		return fmt.Errorf("cloudcc %s publicGroup <projectPath> <group-id-or-unique-name>: %w", action, err)
+	}
+	group, err := c.resolveUniquePublicGroup(selector)
+	if err != nil {
+		return err
+	}
+	return c.getJSON(stdout, "/metadata/v1/public-groups/"+
+		url.PathEscape(strings.TrimSpace(fmt.Sprint(group["id"]))))
+}
+
+func publicGroupShortcutValue(args []string) (string, error) {
+	if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
+		return "", fmt.Errorf("public-group selector is required (group id or unique name)")
+	}
+	value := strings.TrimSpace(args[0])
+	if !looksLikeJSONArg(value) {
+		return value, nil
+	}
+	body, err := parseObject(value, "public-group selector")
+	if err != nil {
+		return "", err
+	}
+	resolved := firstShortcutValue(body, "selector", "id", "groupId", "publicGroupId", "name", "filter")
+	if resolved == "" {
+		return "", fmt.Errorf("public-group selector JSON must contain selector, id, groupId, publicGroupId, or name")
+	}
+	return resolved, nil
+}
+
+func publicGroupListPath(filter string, selector string) string {
+	values := url.Values{}
+	if strings.TrimSpace(filter) != "" {
+		values.Set("filter", strings.TrimSpace(filter))
+	}
+	if strings.TrimSpace(selector) != "" {
+		values.Set("selector", strings.TrimSpace(selector))
+	}
+	if len(values) == 0 {
+		return "/metadata/v1/public-groups"
+	}
+	return "/metadata/v1/public-groups?" + values.Encode()
+}
+
+func (c *client) resolveUniquePublicGroup(selector string) (map[string]any, error) {
+	selector = strings.TrimSpace(selector)
+	if selector == "" {
+		return nil, fmt.Errorf("public-group selector is required (group id or unique name)")
+	}
+	response, err := c.requestJSONMap(http.MethodGet, publicGroupListPath("", selector), nil)
+	if err != nil {
+		return nil, err
+	}
+	rows, _ := response["publicGroups"].([]any)
+	if len(rows) == 0 {
+		return nil, fmt.Errorf("public-group selector %q matched 0 public groups", selector)
+	}
+	if len(rows) > 1 {
+		ids := make([]string, 0, len(rows))
+		for _, row := range rows {
+			if item, ok := row.(map[string]any); ok {
+				ids = append(ids, strings.TrimSpace(fmt.Sprint(item["id"])))
+			}
+		}
+		return nil, fmt.Errorf("public-group selector %q matched %d public groups: %s", selector, len(rows), strings.Join(ids, ", "))
+	}
+	group, ok := rows[0].(map[string]any)
+	if !ok || strings.TrimSpace(fmt.Sprint(group["id"])) == "" {
+		return nil, fmt.Errorf("public-group selector %q returned an invalid public group", selector)
+	}
+	return group, nil
+}
+
 func handleSharingRuleReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
 	c, _, err := newClient([]string{projectPath}, cwd)
 	if err != nil {
@@ -2302,6 +2421,28 @@ func shortcutProjectPath(args []string, cwd string) (string, []string) {
 
 func shortcutPlanSpec(action string, resource string, args []string) (map[string]any, string, error) {
 	operation := shortcutOperation(action, resource)
+	if lowCodeShortcutDomains[strings.TrimSpace(resource)] == "public-groups" {
+		switch strings.TrimSpace(action) {
+		case "update", "save", "assign":
+			if len(args) == 2 && strings.TrimSpace(args[0]) != "" && looksLikeJSONArg(args[1]) {
+				body, err := parseObject(args[1], "cloudcc "+action+" publicGroup")
+				if err != nil {
+					return nil, "", err
+				}
+				body["selector"] = strings.TrimSpace(args[0])
+				if strings.TrimSpace(action) == "assign" {
+					return body, "assign", nil
+				}
+				return body, "update", nil
+			}
+		case "delete":
+			if len(args) == 1 && strings.TrimSpace(args[0]) != "" && !looksLikeJSONArg(args[0]) {
+				return map[string]any{"selector": strings.TrimSpace(args[0])}, "delete", nil
+			}
+		}
+		body, _, err := shortcutBodySpec(action, resource, args)
+		return body, operation, err
+	}
 	if resource == "role" {
 		switch strings.TrimSpace(action) {
 		case "move":
@@ -3214,6 +3355,14 @@ func shortcutBodySpec(action string, resource string, args []string) (map[string
 }
 
 func shortcutOperation(action string, resource string) string {
+	if lowCodeShortcutDomains[strings.TrimSpace(resource)] == "public-groups" {
+		switch strings.TrimSpace(action) {
+		case "update", "modify", "editSave", "save":
+			return "update"
+		case "assign":
+			return "assign"
+		}
+	}
 	if resource == "role" {
 		switch strings.TrimSpace(action) {
 		case "update", "modify", "editSave", "save":
