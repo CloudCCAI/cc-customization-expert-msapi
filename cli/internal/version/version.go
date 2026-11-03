@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.114"
+const Version = "2.2.115"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,6 +48,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- Roles now provide a canonical self-contained lifecycle: capabilities, parent candidates, unique selectors, server-derived hierarchy creation, explicit subtree move, add/remove/replace user assignment, no-op protection, guarded deletion, readback and rollback. Run cloudcc doc role devguide. Requires MetadataService 1.1.97.")
 		fmt.Fprintln(stderr, "- Search layouts are now a first-class capability-aware MSAPI domain covering search results, lookup dialogs, menus, list views, quick create, and object-dependent duplicate merge. Unsupported legacy empty clears fail during planning. Run cloudcc doc searchLayout devguide before writing layouts. Requires MetadataService 1.1.96.")
 		fmt.Fprintln(stderr, "- Lookup filters now use a runtime-aligned typed operator contract in MetadataService 1.1.95: startsWith, in/notIn, isNull/isNotNull, correct m/h ordering, picklist label-to-key normalization, exclusion reasons, legacy conditionVals validation, and self-relationship fail-closed behavior. Run cloudcc doc lookupFilter devguide.")
 		fmt.Fprintln(stderr, "- Field creation now enforces full system-administrator access in MetadataService 1.1.94: aaa000001 is added when omitted, restrictive or duplicate administrator rows are normalized to visible=1 and readonly=0, batch items inherit root permissions when absent, and AD/LT child fields receive the same protection.")
@@ -489,6 +490,16 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc applyGlobalDependency fieldDependency <projectPath> <object> <controlField> <dependentField>  # MSAPI: plan only")
 	fmt.Fprintln(stdout, "  cloudcc delete fieldDependency <projectPath> <object> <controlField> <dependentField>  # MSAPI: plan only")
 	fmt.Fprintln(stdout, "  cloudcc doc fieldDependency devguide  # complete user guide")
+	fmt.Fprintln(stdout, "  cloudcc get role <projectPath> [filter]")
+	fmt.Fprintln(stdout, "  cloudcc detail role <projectPath> <id-or-unique-name>")
+	fmt.Fprintln(stdout, "  cloudcc capabilities role <projectPath>")
+	fmt.Fprintln(stdout, "  cloudcc candidates role <projectPath> <parent|createParent|moveParent|assignmentFallback> [role-selector]")
+	fmt.Fprintln(stdout, "  cloudcc create role <projectPath> <@spec.json>  # MSAPI: plan only")
+	fmt.Fprintln(stdout, "  cloudcc update role <projectPath> <selector> <@patch.json>  # MSAPI: plan only")
+	fmt.Fprintln(stdout, "  cloudcc move role <projectPath> <selector> <newParentSelector>  # MSAPI: plan only")
+	fmt.Fprintln(stdout, "  cloudcc assign role <projectPath> <selector> <@assignment.json>  # MSAPI: plan only")
+	fmt.Fprintln(stdout, "  cloudcc delete role <projectPath> <selector>  # MSAPI: plan only")
+	fmt.Fprintln(stdout, "  cloudcc doc role devguide  # complete user guide")
 	fmt.Fprintln(stdout, "  cloudcc get searchLayout <projectPath> <object>")
 	fmt.Fprintln(stdout, "  cloudcc capabilities searchLayout <projectPath> <object>")
 	fmt.Fprintln(stdout, "  cloudcc candidates searchLayout <projectPath> <object> <section>")

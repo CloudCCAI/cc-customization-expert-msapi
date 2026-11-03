@@ -1,6 +1,6 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.2.114-msapi",
+  "version": "2.2.115-msapi",
   "releaseDate": "2026-11-03",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
@@ -1290,7 +1290,7 @@
           "uiapi": "provider-adapter",
           "universal": "provider-selected"
         },
-        "minimumBackendVersion": null,
+        "minimumBackendVersion": "1.1.97",
         "routes": [
           {
             "provider": "msapi",
@@ -1308,13 +1308,28 @@
         "actions": [
           "get",
           "detail",
+          "capabilities",
+          "candidates",
           "create",
           "update",
-          "delete"
+          "move",
+          "assign",
+          "delete",
+          "plan",
+          "apply",
+          "changes",
+          "rollback"
         ],
         "commands": [
-          "cloudcc get role <projectPath> [selector]",
-          "cloudcc create role <projectPath> <spec>"
+          "cloudcc get role <projectPath> [filter]",
+          "cloudcc detail role <projectPath> <selector>",
+          "cloudcc capabilities role <projectPath>",
+          "cloudcc candidates role <projectPath> <purpose> [selector]",
+          "cloudcc create role <projectPath> <@spec.json>",
+          "cloudcc update role <projectPath> <selector> <@patch.json>",
+          "cloudcc move role <projectPath> <selector> <newParentSelector>",
+          "cloudcc assign role <projectPath> <selector> <@assignment.json>",
+          "cloudcc delete role <projectPath> <selector>"
         ],
         "documentation": {
           "introduction": "cloudcc doc platform/role introduction",
@@ -2627,6 +2642,32 @@
     "sourceOfTruth": "cc-customization-expert-go/config.json",
     "policy": "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
     "minimumByCapability": [
+      {
+        "capability": "msapi.roles.canonicalLifecycle",
+        "label": "Canonical role lifecycle",
+        "introducedInSkillVersion": "2.2.115-msapi",
+        "minimumMetadataServiceVersion": "1.1.97",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.97",
+        "domains": [
+          "roles"
+        ],
+        "operations": [
+          "list",
+          "detail",
+          "capabilities",
+          "candidates",
+          "create",
+          "update",
+          "move",
+          "assign",
+          "delete",
+          "plan",
+          "apply",
+          "changes",
+          "rollback"
+        ],
+        "reason": "Requires canonical selectors, server-derived closure rows, complete subtree moves, assignment diffs, no-op protection and hardened role deletion."
+      },
       {
         "capability": "msapi.searchLayouts.lifecycle",
         "label": "Capability-aware object search-layout lifecycle",

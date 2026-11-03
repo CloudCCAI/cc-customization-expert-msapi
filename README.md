@@ -1,4 +1,6 @@
-# cc-customization-expert-msapi v2.2.114-msapi
+# cc-customization-expert-msapi v2.2.115-msapi
+
+角色完整生命周期、父角色候选、子树移动和用户分配见 `cloudcc doc role devguide`；不要手工提交角色闭包、gap 或 level。
 
 搜索布局使用前先执行 `cloudcc capabilities searchLayout` 和目标 section 的 `candidates`，完整命令与 JSON 契约见 `cloudcc doc searchLayout devguide`。
 

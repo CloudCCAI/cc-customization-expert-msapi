@@ -140,6 +140,7 @@ var lowCodeShortcutActions = map[string]bool{
 	"assignPicklistValues":   true,
 	"assign-picklist-values": true,
 	"assign":                 true,
+	"move":                   true,
 	"add":                    true,
 	"remove":                 true,
 	"delete":                 true,
@@ -168,7 +169,7 @@ var lowCodeShortcutActions = map[string]bool{
 func IsLowCodeShortcut(action string, resource string) bool {
 	domain, ok := lowCodeShortcutDomains[strings.TrimSpace(resource)]
 	if strings.TrimSpace(action) == "capabilities" {
-		return ok && domain == "search-layouts"
+		return ok && (domain == "search-layouts" || domain == "roles")
 	}
 	if !lowCodeShortcutActions[strings.TrimSpace(action)] {
 		return false
@@ -211,7 +212,7 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 	if resource == "permission" && isShortcutRead(action) {
 		return handlePermissionSetReadShortcut(action, projectPath, rest, stdout, cwd)
 	}
-	if resource == "role" && isShortcutRead(action) {
+	if resource == "role" && (isShortcutRead(action) || strings.TrimSpace(action) == "candidates" || strings.TrimSpace(action) == "capabilities") {
 		return handleRoleReadShortcut(action, projectPath, rest, stdout, cwd)
 	}
 	if resource == "sharingRule" && isShortcutRead(action) {
@@ -1161,6 +1162,23 @@ func handleRoleReadShortcut(action string, projectPath string, args []string, st
 		return err
 	}
 	action = strings.TrimSpace(action)
+	if action == "capabilities" {
+		if len(args) != 0 {
+			return fmt.Errorf("cloudcc capabilities role <projectPath>")
+		}
+		return c.getJSON(stdout, "/metadata/v1/roles/capabilities")
+	}
+	if action == "candidates" {
+		if len(args) == 0 || len(args) > 2 || strings.TrimSpace(args[0]) == "" {
+			return fmt.Errorf("cloudcc candidates role <projectPath> <parent|createParent|moveParent|assignmentFallback> [role-selector]")
+		}
+		values := url.Values{}
+		values.Set("purpose", strings.TrimSpace(args[0]))
+		if len(args) == 2 && strings.TrimSpace(args[1]) != "" {
+			values.Set("selector", strings.TrimSpace(args[1]))
+		}
+		return c.getJSON(stdout, "/metadata/v1/roles/candidates?"+values.Encode())
+	}
 	if action == "getList" || action == "newInfo" || (action == "get" && len(args) == 0) {
 		if len(args) > 1 {
 			return fmt.Errorf("cloudcc %s role <projectPath> [filter]", action)
@@ -2284,6 +2302,26 @@ func shortcutProjectPath(args []string, cwd string) (string, []string) {
 
 func shortcutPlanSpec(action string, resource string, args []string) (map[string]any, string, error) {
 	operation := shortcutOperation(action, resource)
+	if resource == "role" {
+		switch strings.TrimSpace(action) {
+		case "move":
+			if len(args) != 2 || strings.TrimSpace(args[0]) == "" || strings.TrimSpace(args[1]) == "" {
+				return nil, "", fmt.Errorf("cloudcc move role <projectPath> <role-selector> <new-parent-selector>")
+			}
+			return map[string]any{"selector": strings.TrimSpace(args[0]), "newParentSelector": strings.TrimSpace(args[1])}, "move", nil
+		case "update", "assign":
+			if len(args) == 2 && strings.TrimSpace(args[0]) != "" && looksLikeJSONArg(args[1]) {
+				body, err := parseObject(args[1], "cloudcc "+action+" role")
+				if err != nil {
+					return nil, "", err
+				}
+				body["selector"] = strings.TrimSpace(args[0])
+				return body, strings.TrimSpace(action), nil
+			}
+		}
+		body, _, err := shortcutBodySpec(action, resource, args)
+		return body, operation, err
+	}
 	if lowCodeShortcutDomains[strings.TrimSpace(resource)] == "search-layouts" {
 		if strings.TrimSpace(action) != "update" && strings.TrimSpace(action) != "save" {
 			return nil, "", fmt.Errorf("cloudcc update searchLayout <projectPath> <@spec.json>")
@@ -3176,6 +3214,16 @@ func shortcutBodySpec(action string, resource string, args []string) (map[string
 }
 
 func shortcutOperation(action string, resource string) string {
+	if resource == "role" {
+		switch strings.TrimSpace(action) {
+		case "update", "modify", "editSave", "save":
+			return "update"
+		case "assign":
+			return "assign"
+		case "move":
+			return "move"
+		}
+	}
 	if resource == "object" && strings.TrimSpace(action) == "purge" {
 		return "physical-purge"
 	}
