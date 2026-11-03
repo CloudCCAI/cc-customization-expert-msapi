@@ -41,6 +41,9 @@ var lowCodeShortcutDomains = map[string]string{
 	"lookupFilter":           "lookup-filters",
 	"lookup-filter":          "lookup-filters",
 	"lookup-filters":         "lookup-filters",
+	"searchLayout":           "search-layouts",
+	"search-layout":          "search-layouts",
+	"search-layouts":         "search-layouts",
 	"fieldTracking":          "field-tracking",
 	"fieldTrack":             "field-tracking",
 	"field-tracking":         "field-tracking",
@@ -163,10 +166,13 @@ var lowCodeShortcutActions = map[string]bool{
 // IsLowCodeShortcut returns true for legacy low-code metadata CLI shortcuts that
 // must no longer fall through to setup-svc backed modules.
 func IsLowCodeShortcut(action string, resource string) bool {
+	domain, ok := lowCodeShortcutDomains[strings.TrimSpace(resource)]
+	if strings.TrimSpace(action) == "capabilities" {
+		return ok && domain == "search-layouts"
+	}
 	if !lowCodeShortcutActions[strings.TrimSpace(action)] {
 		return false
 	}
-	_, ok := lowCodeShortcutDomains[strings.TrimSpace(resource)]
 	return ok
 }
 
@@ -219,6 +225,9 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 	}
 	if domain == "lookup-filters" && (isShortcutRead(action) || strings.TrimSpace(action) == "candidates") {
 		return handleLookupFilterReadShortcut(action, projectPath, rest, stdout, cwd)
+	}
+	if domain == "search-layouts" && (isShortcutRead(action) || strings.TrimSpace(action) == "candidates" || strings.TrimSpace(action) == "capabilities") {
+		return handleSearchLayoutReadShortcut(action, projectPath, rest, stdout, cwd)
 	}
 	if domain == "field-tracking" && (isShortcutRead(action) || strings.TrimSpace(action) == "candidates") {
 		return handleFieldTrackingReadShortcut(action, projectPath, rest, stdout, cwd)
@@ -466,6 +475,31 @@ func handleLookupFilterReadShortcut(action string, projectPath string, args []st
 		return fmt.Errorf("cloudcc get lookupFilter <projectPath> <object>")
 	}
 	return c.getJSON(stdout, "/metadata/v1/lookup-filters?object="+url.QueryEscape(strings.TrimSpace(args[0])))
+}
+
+func handleSearchLayoutReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
+	c, _, err := newClient([]string{projectPath}, cwd)
+	if err != nil {
+		return err
+	}
+	action = strings.TrimSpace(action)
+	if action == "candidates" {
+		if len(args) != 2 || strings.TrimSpace(args[0]) == "" || strings.TrimSpace(args[1]) == "" {
+			return fmt.Errorf("cloudcc candidates searchLayout <projectPath> <object> <section>")
+		}
+		values := url.Values{}
+		values.Set("object", strings.TrimSpace(args[0]))
+		values.Set("section", strings.TrimSpace(args[1]))
+		return c.getJSON(stdout, "/metadata/v1/search-layouts/candidates?"+values.Encode())
+	}
+	if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
+		return fmt.Errorf("cloudcc %s searchLayout <projectPath> <object>", action)
+	}
+	path := "/metadata/v1/search-layouts?object=" + url.QueryEscape(strings.TrimSpace(args[0]))
+	if action == "capabilities" {
+		path = "/metadata/v1/search-layouts/capabilities?object=" + url.QueryEscape(strings.TrimSpace(args[0]))
+	}
+	return c.getJSON(stdout, path)
 }
 
 func handleDetailPageReportReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
@@ -2250,6 +2284,13 @@ func shortcutProjectPath(args []string, cwd string) (string, []string) {
 
 func shortcutPlanSpec(action string, resource string, args []string) (map[string]any, string, error) {
 	operation := shortcutOperation(action, resource)
+	if lowCodeShortcutDomains[strings.TrimSpace(resource)] == "search-layouts" {
+		if strings.TrimSpace(action) != "update" && strings.TrimSpace(action) != "save" {
+			return nil, "", fmt.Errorf("cloudcc update searchLayout <projectPath> <@spec.json>")
+		}
+		body, _, err := shortcutBodySpec(action, resource, args)
+		return body, "update", err
+	}
 	if lowCodeShortcutDomains[strings.TrimSpace(resource)] == "field-tracking" {
 		if strings.TrimSpace(action) == "clear" {
 			if len(args) != 1 || strings.TrimSpace(args[0]) == "" {

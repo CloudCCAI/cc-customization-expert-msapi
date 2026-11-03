@@ -1,15 +1,16 @@
 ---
 name: cc-customization-expert-msapi
-version: 2.2.113-msapi
+version: 2.2.114-msapi
 description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService."
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.2.113-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.2.114-msapi
 
-当前技能版本：`2.2.113-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.2.114-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
 
+- 搜索布局必须先运行 `cloudcc capabilities searchLayout <projectPath> <object>`，再对要修改的 section 运行 `cloudcc candidates searchLayout <projectPath> <object> <section>`；写入前阅读 `cloudcc doc searchLayout devguide`。六类 section 的字段和对象支持范围不得硬编码猜测。
 - 选项列表字段（单选/多选）新增选项前，必须先读取目标字段的已有选项；引用全局选项列表时还须读取所绑定列表的已有值。按目标字段或列表及选项自然键去重，已有选项直接复用，不重复创建；提交内容须符合当前接口的增量或全量语义，全量更新必须保留已有选项。提交后必须回读，确认新增值存在、无重复且已有选项未丢失；回读不一致时不得宣告完成，也不得盲目重复提交。完整操作见 `cloudcc doc fields devguide`。
 
 - 低代码元数据统一使用稳定的 CloudCC CLI 词汇和共享能力矩阵；高代码资源继续使用 CloudCC 原有 resource/API 通道。

@@ -1,7 +1,7 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.2.113-msapi",
-  "releaseDate": "2026-10-30",
+  "version": "2.2.114-msapi",
+  "releaseDate": "2026-11-03",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
   "domainCatalog": {
@@ -68,6 +68,7 @@
           "fields",
           "field-dependencies",
           "lookup-filters",
+          "search-layouts",
           "field-tracking",
           "ccchat",
           "global-select-lists",
@@ -614,6 +615,68 @@
         "documentation": {
           "introduction": "cloudcc doc lookupFilter introduction",
           "devguide": "cloudcc doc lookupFilter devguide"
+        }
+      },
+      {
+        "name": "search-layouts",
+        "label": "Object search layouts",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "searchLayout",
+          "search-layout",
+          "search-layouts"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "unavailable",
+          "universal": "requires-msapi"
+        },
+        "minimumBackendVersion": "1.1.96",
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "platform": "lightning",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "unavailable"
+          },
+          {
+            "provider": "uiapi",
+            "platform": "horizontal",
+            "backend": "main-app",
+            "transport": "uiapi",
+            "availability": "unavailable"
+          }
+        ],
+        "actions": [
+          "get",
+          "capabilities",
+          "candidates",
+          "update",
+          "plan",
+          "apply",
+          "changes",
+          "rollback"
+        ],
+        "commands": [
+          "cloudcc get searchLayout <projectPath> <object>",
+          "cloudcc capabilities searchLayout <projectPath> <object>",
+          "cloudcc candidates searchLayout <projectPath> <object> <section>",
+          "cloudcc update searchLayout <projectPath> <@search-layout.json>  # MSAPI: plan only",
+          "cloudcc doc searchLayout devguide"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc searchLayout introduction",
+          "devguide": "cloudcc doc searchLayout devguide"
         }
       },
       {
@@ -2564,6 +2627,28 @@
     "sourceOfTruth": "cc-customization-expert-go/config.json",
     "policy": "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
     "minimumByCapability": [
+      {
+        "capability": "msapi.searchLayouts.lifecycle",
+        "label": "Capability-aware object search-layout lifecycle",
+        "introducedInSkillVersion": "2.2.114-msapi",
+        "minimumMetadataServiceVersion": "1.1.96",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.96",
+        "domains": [
+          "search-layouts"
+        ],
+        "operations": [
+          "query",
+          "capabilities",
+          "candidates",
+          "update",
+          "plan",
+          "apply",
+          "changes",
+          "rollback",
+          "readback"
+        ],
+        "reason": "Requires the canonical six-section search-layout contract, per-object capability discovery, selector resolution, required-field invariants, exact-search controls, setup-service delegation, audited readback, and rollback."
+      },
       {
         "capability": "msapi.lookupFilters.typedOperators",
         "label": "Runtime-aligned typed lookup-filter operators and option values",

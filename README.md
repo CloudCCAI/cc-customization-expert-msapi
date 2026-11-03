@@ -1,4 +1,6 @@
-# cc-customization-expert-msapi v2.2.113-msapi
+# cc-customization-expert-msapi v2.2.114-msapi
+
+搜索布局使用前先执行 `cloudcc capabilities searchLayout` 和目标 section 的 `candidates`，完整命令与 JSON 契约见 `cloudcc doc searchLayout devguide`。
 
 选项列表字段新增选项必须先读取已有值、去重后提交、提交后回读核验；已有选项直接复用。详见 `cloudcc doc fields devguide`。
 
