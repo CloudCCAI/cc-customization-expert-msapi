@@ -1,6 +1,6 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.2.119-msapi",
+  "version": "2.2.120-msapi",
   "releaseDate": "2026-11-04",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
@@ -85,6 +85,7 @@
           "buttons",
           "roles",
           "public-groups",
+          "queues",
           "custom-settings",
           "dupe-catchers",
           "single-sign-ons",
@@ -1471,6 +1472,77 @@
         }
       },
       {
+        "name": "queues",
+        "label": "Record owner queues",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "queue"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": "1.1.101",
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "platform": "lightning",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          },
+          {
+            "provider": "uiapi",
+            "platform": "horizontal",
+            "backend": "main-app",
+            "transport": "uiapi",
+            "availability": "unavailable",
+            "reason": "No verified horizontal queue persistence contract."
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "capabilities",
+          "candidates",
+          "impact",
+          "create",
+          "update",
+          "assign",
+          "delete",
+          "plan",
+          "apply",
+          "changes",
+          "rollback"
+        ],
+        "commands": [
+          "cloudcc get queue <projectPath> [filter]",
+          "cloudcc detail queue <projectPath> <selector>",
+          "cloudcc capabilities queue <projectPath>",
+          "cloudcc candidates queue <projectPath> objects [keyword]",
+          "cloudcc candidates queue <projectPath> members <type> [keyword]",
+          "cloudcc impact queue <projectPath> <selector> delete",
+          "cloudcc create queue <projectPath> <@spec.json>",
+          "cloudcc update queue <projectPath> <selector> <@patch.json>",
+          "cloudcc assign queue <projectPath> <selector> <@assignment.json>",
+          "cloudcc delete queue <projectPath> <selector>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/queue introduction",
+          "devguide": "cloudcc doc platform/queue devguide"
+        }
+      },
+      {
         "name": "custom-settings",
         "label": "Custom settings",
         "kind": "resource",
@@ -2786,6 +2858,33 @@
     "sourceOfTruth": "cc-customization-expert-go/config.json",
     "policy": "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
     "minimumByCapability": [
+      {
+        "capability": "msapi.queues.canonicalLifecycle",
+        "label": "Platform-standard queue lifecycle",
+        "introducedInSkillVersion": "2.2.120-msapi",
+        "minimumMetadataServiceVersion": "1.1.101",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.101",
+        "domains": [
+          "queues"
+        ],
+        "operations": [
+          "list",
+          "detail",
+          "capabilities",
+          "candidates",
+          "delete-impact",
+          "create",
+          "update",
+          "assign",
+          "delete",
+          "plan",
+          "apply",
+          "changes",
+          "rollback",
+          "readback"
+        ],
+        "reason": "Requires platform queueSetup delegation, typed object/member candidates, owner-reference deletion protection, drift checks, readback and compensation."
+      },
       {
         "capability": "msapi.roles.migrationIdentity",
         "label": "Migration-safe role identity and validation",

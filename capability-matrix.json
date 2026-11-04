@@ -1,8 +1,8 @@
 {
   "schemaVersion": "cloudcc-dual-provider-capability-matrix/v1",
-  "releaseBaseline": "2.2.119",
+  "releaseBaseline": "2.2.120",
   "msapiBaseline": {
-    "domains": 32,
+    "domains": 33,
     "operations": 166,
     "source": "MetadataService capability catalog; live replay evidence coverage remains independently audited"
   },
@@ -49,6 +49,7 @@
     {"id":"permissions","uiapiResource":"permission","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","assign":"contract_tested","remove":"contract_tested","query":"contract_tested"}},
     {"id":"roles","uiapiResource":"role","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","assign":"contract_tested","query":"contract_tested"}},
     {"id":"public-groups","uiapiResource":"publicGroup","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","assign-replace":"contract_tested","query":"contract_tested","candidates":"contract_tested"}},
+    {"id":"queues","uiapiResource":"queue","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"mapped","delete":"contract_tested","assign-replace":"contract_tested","query":"contract_tested","candidates":"contract_tested","delete-impact":"contract_tested"}},
     {"id":"sharing-rules","uiapiResource":"sharingRule","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
     {"id":"validation-rules","uiapiResource":"validationRule","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
     {"id":"applications","uiapiResource":"application","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},

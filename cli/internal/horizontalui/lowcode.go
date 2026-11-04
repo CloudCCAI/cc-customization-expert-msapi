@@ -21,6 +21,7 @@ var aliases = map[string]string{
 	"ccchat-settings": "ccchat", "ccchat-feed-tracking": "ccchat",
 	"mobileSetting": "mobile-settings", "mobileSettings": "mobile-settings", "mobile-setting": "mobile-settings", "mobile-settings": "mobile-settings",
 	"publicGroup": "publicGroup", "publicGroups": "publicGroup", "public-group": "publicGroup", "public-groups": "publicGroup", "public_group": "publicGroup", "publicgroup": "publicGroup",
+	"queue": "queue", "queues": "queue",
 }
 
 // HandleLowCode fails closed until a maintained main-app Struts Action contract
@@ -45,6 +46,9 @@ func HandleLowCode(action string, resource string, _ []string, _ io.Writer, _ st
 	}
 	if resource == "publicGroup" {
 		return fmt.Errorf("public_group_horizontal_uiapi_unsupported: horizontal UIAPI has no maintained public-group management contract; use MSAPI")
+	}
+	if resource == "queue" {
+		return fmt.Errorf("queue_horizontal_uiapi_unsupported: horizontal UIAPI has no verified queue persistence contract; use MSAPI")
 	}
 	return fmt.Errorf("cloudcc %s %s is not supported by horizontal UIAPI: legacy main-app Jersey Resource endpoints are intentionally disabled; a maintained Struts Action adapter is required", action, resource)
 }

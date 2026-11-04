@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.119"
+const Version = "2.2.120"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,6 +48,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- Queue is now a first-class queue/queues record-owner domain. MSAPI provides candidates, delete impact, plan/apply drift checks, standard queueSetup execution, readback and rollback; Lightning uses the same standard service with readback; horizontal UIAPI fails closed. Run cloudcc doc queue devguide. Requires MetadataService 1.1.101.")
 		fmt.Fprintln(stderr, "- Role migration is reliable across retries: duplicate names are allowed with ID-first ambiguity protection, explicit parent:null creates roots, sourceSystem + externalKey produces stable target IDs and parent references, normalize/validate return structured issues, and invalid CLI validation exits non-zero. Requires MetadataService 1.1.100.")
 		fmt.Fprintln(stderr, "- Project layout guidance now includes the complete annotated tree, directory responsibilities, required/stage/on-demand/local creation rules, source ownership boundaries, and the actual scope of initialization and directory checks. Run cloudcc doc projectLayout devguide.")
 		fmt.Fprintln(stderr, "- Project layout registry and offline doctor cover root ownership, Git tracking/staging, local-only files, delivery indexes, duplicate dependencies and output registration. Client scripts use frontend/scripts/<object>/<name> consistently for creation, publishing and scanning. Registry schema v2 has no source-path selector. Creation rejects overwrite and path escape; explicit project paths select both source and connection configuration.")

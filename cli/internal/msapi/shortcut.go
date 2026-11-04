@@ -87,6 +87,7 @@ var lowCodeShortcutDomains = map[string]string{
 	"public-groups":          "public-groups",
 	"public_group":           "public-groups",
 	"publicgroup":            "public-groups",
+	"queue":                  "queues",
 	"recordType":             "record-types",
 	"report":                 "reports",
 	"reportMatrix":           "reports",
@@ -169,6 +170,7 @@ var lowCodeShortcutActions = map[string]bool{
 	"audit":                  true,
 	"repair":                 true,
 	"candidates":             true,
+	"impact":                 true,
 	"applyGlobalDependency":  true,
 	"apply-global":           true,
 	"clear":                  true,
@@ -179,7 +181,7 @@ var lowCodeShortcutActions = map[string]bool{
 func IsLowCodeShortcut(action string, resource string) bool {
 	domain, ok := lowCodeShortcutDomains[strings.TrimSpace(resource)]
 	if strings.TrimSpace(action) == "capabilities" {
-		return ok && (domain == "search-layouts" || domain == "roles" || domain == "public-groups" || domain == "mobile-settings")
+		return ok && (domain == "search-layouts" || domain == "roles" || domain == "public-groups" || domain == "mobile-settings" || domain == "queues")
 	}
 	if !lowCodeShortcutActions[strings.TrimSpace(action)] {
 		return false
@@ -230,6 +232,9 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 	}
 	if domain == "public-groups" && (isShortcutRead(action) || strings.TrimSpace(action) == "candidates" || strings.TrimSpace(action) == "capabilities") {
 		return handlePublicGroupReadShortcut(action, projectPath, rest, stdout, cwd)
+	}
+	if domain == "queues" && (isShortcutRead(action) || strings.TrimSpace(action) == "candidates" || strings.TrimSpace(action) == "capabilities" || strings.TrimSpace(action) == "impact") {
+		return handleQueueReadShortcut(action, projectPath, rest, stdout, cwd)
 	}
 	if resource == "sharingRule" && isShortcutRead(action) {
 		return handleSharingRuleReadShortcut(action, projectPath, rest, stdout, cwd)
@@ -1385,6 +1390,67 @@ func handlePublicGroupReadShortcut(action string, projectPath string, args []str
 		url.PathEscape(strings.TrimSpace(fmt.Sprint(group["id"]))))
 }
 
+func handleQueueReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
+	c, _, err := newClient([]string{projectPath}, cwd)
+	if err != nil {
+		return err
+	}
+	action = strings.TrimSpace(action)
+	if action == "capabilities" {
+		if len(args) != 0 {
+			return fmt.Errorf("cloudcc capabilities queue <projectPath>")
+		}
+		return c.getJSON(stdout, "/metadata/v1/queues/capabilities")
+	}
+	if action == "candidates" {
+		if len(args) < 1 || len(args) > 3 {
+			return fmt.Errorf("cloudcc candidates queue <projectPath> <objects|members> [memberType] [keyword]")
+		}
+		values := url.Values{}
+		kind := strings.TrimSpace(args[0])
+		values.Set("kind", kind)
+		if kind == "members" {
+			if len(args) < 2 || strings.TrimSpace(args[1]) == "" {
+				return fmt.Errorf("queue member candidates require user, role, or roleAndSubordinates")
+			}
+			values.Set("type", strings.TrimSpace(args[1]))
+			if len(args) == 3 && strings.TrimSpace(args[2]) != "" {
+				values.Set("keyword", strings.TrimSpace(args[2]))
+			}
+		} else if kind == "objects" {
+			if len(args) == 2 && strings.TrimSpace(args[1]) != "" {
+				values.Set("keyword", strings.TrimSpace(args[1]))
+			}
+			if len(args) == 3 {
+				return fmt.Errorf("object candidates accept at most one keyword")
+			}
+		} else {
+			return fmt.Errorf("queue candidate kind must be objects or members")
+		}
+		return c.getJSON(stdout, "/metadata/v1/queues/candidates?"+values.Encode())
+	}
+	if action == "impact" {
+		if len(args) != 2 || strings.TrimSpace(args[1]) != "delete" {
+			return fmt.Errorf("cloudcc impact queue <projectPath> <selector> delete")
+		}
+		return c.getJSON(stdout, "/metadata/v1/queues/"+url.PathEscape(strings.TrimSpace(args[0]))+"/delete-impact")
+	}
+	if action == "getList" || action == "get" {
+		if len(args) > 1 {
+			return fmt.Errorf("cloudcc get queue <projectPath> [filter]")
+		}
+		path := "/metadata/v1/queues"
+		if len(args) == 1 && strings.TrimSpace(args[0]) != "" {
+			path += "?filter=" + url.QueryEscape(strings.TrimSpace(args[0]))
+		}
+		return c.getJSON(stdout, path)
+	}
+	if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
+		return fmt.Errorf("cloudcc detail queue <projectPath> <selector>")
+	}
+	return c.getJSON(stdout, "/metadata/v1/queues/"+url.PathEscape(strings.TrimSpace(args[0])))
+}
+
 func publicGroupShortcutValue(args []string) (string, error) {
 	if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
 		return "", fmt.Errorf("public-group selector is required (group id or unique name)")
@@ -2486,6 +2552,25 @@ func shortcutProjectPath(args []string, cwd string) (string, []string) {
 
 func shortcutPlanSpec(action string, resource string, args []string) (map[string]any, string, error) {
 	operation := shortcutOperation(action, resource)
+	if lowCodeShortcutDomains[strings.TrimSpace(resource)] == "queues" {
+		switch strings.TrimSpace(action) {
+		case "update", "save", "assign":
+			if len(args) == 2 && strings.TrimSpace(args[0]) != "" && looksLikeJSONArg(args[1]) {
+				body, err := parseObject(args[1], "cloudcc "+action+" queue")
+				if err != nil {
+					return nil, "", err
+				}
+				body["selector"] = strings.TrimSpace(args[0])
+				return body, map[bool]string{true: "assign", false: "update"}[strings.TrimSpace(action) == "assign"], nil
+			}
+		case "delete":
+			if len(args) == 1 && strings.TrimSpace(args[0]) != "" {
+				return map[string]any{"selector": strings.TrimSpace(args[0])}, "delete", nil
+			}
+		}
+		body, _, err := shortcutBodySpec(action, resource, args)
+		return body, operation, err
+	}
 	if lowCodeShortcutDomains[strings.TrimSpace(resource)] == "public-groups" {
 		switch strings.TrimSpace(action) {
 		case "update", "save", "assign":
@@ -3420,6 +3505,14 @@ func shortcutBodySpec(action string, resource string, args []string) (map[string
 }
 
 func shortcutOperation(action string, resource string) string {
+	if lowCodeShortcutDomains[strings.TrimSpace(resource)] == "queues" {
+		switch strings.TrimSpace(action) {
+		case "update", "modify", "editSave", "save":
+			return "update"
+		case "assign":
+			return "assign"
+		}
+	}
 	if lowCodeShortcutDomains[strings.TrimSpace(resource)] == "public-groups" {
 		switch strings.TrimSpace(action) {
 		case "update", "modify", "editSave", "save":

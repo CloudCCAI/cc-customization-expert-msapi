@@ -198,6 +198,17 @@ var genericEndpoints = map[string]map[string]endpoint{
 		"delete":     {"setup", "/api/publicGroup/delete"},
 		"popup":      {"setup", "/api/publicGroup/popup"},
 	},
+	"queue": {
+		"get":          {"setup", "/api/queueSetup/list"},
+		"detail":       {"setup", "/api/queueSetup/query"},
+		"capabilities": {"setup", "/api/queueSetup/getAvailableTabs"},
+		"candidates":   {"setup", "/api/queueSetup/getAvailableTabs"},
+		"impact":       {"setup", "/api/queueSetup/checkBeforeDeleting"},
+		"create":       {"setup", "/api/queueSetup/save"},
+		"update":       {"setup", "/api/queueSetup/save"},
+		"assign":       {"setup", "/api/queueSetup/save"},
+		"delete":       {"setup", "/api/queueSetup/delete"},
+	},
 	"recordType": {
 		"get":         {"setup", "/api/recordType/getRecordTypeList"},
 		"getList":     {"setup", "/api/recordType/getRecordTypeList"},
@@ -360,6 +371,9 @@ func Handle(action string, resource string, args []string, stdout io.Writer, std
 	if resource == "publicGroups" || resource == "public-group" || resource == "public-groups" || resource == "public_group" || resource == "publicgroup" {
 		resource = "publicGroup"
 	}
+	if resource == "queues" {
+		resource = "queue"
+	}
 	switch resource {
 	case "highcode":
 		if action == "format" {
@@ -437,6 +451,8 @@ func Handle(action string, resource string, args []string, stdout io.Writer, std
 		return handleUser(action, args, stdout, cwd)
 	case "publicGroup":
 		return handlePublicGroup(action, args, stdout, cwd)
+	case "queue":
+		return handleQueue(action, args, stdout, cwd)
 	case "jsp", "site", "skill":
 		return fmt.Errorf("%s %s is deferred to P4 or a later task in the Go rewrite", action, resource)
 	}
