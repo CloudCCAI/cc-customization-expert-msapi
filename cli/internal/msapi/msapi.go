@@ -88,11 +88,19 @@ func Handle(action string, resource string, args []string, stdout io.Writer, cwd
 			if err != nil {
 				return err
 			}
-			return writePrettyJSON(stdout, map[string]any{
-				"valid":              metadataValidation["valid"] != false,
+			result := map[string]any{
+				"valid":              formulaValidation.Valid && validationResultValid(metadataValidation),
 				"formulaValidation":  formulaValidation,
 				"metadataValidation": metadataValidation,
-			})
+			}
+			return writeValidationResult(stdout, result)
+		}
+		if action == "normalize" || action == "validate" {
+			result, err := c.requestJSONMap(http.MethodPost, path, body)
+			if err != nil {
+				return err
+			}
+			return writeValidationResult(stdout, result)
 		}
 		return c.writeJSON(stdout, http.MethodPost, path, body)
 	case "apply":
@@ -1174,6 +1182,37 @@ func writePrettyJSON(stdout io.Writer, value any) error {
 	return nil
 }
 
+func writeValidationResult(stdout io.Writer, result map[string]any) error {
+	if err := writePrettyJSON(stdout, result); err != nil {
+		return err
+	}
+	if validationResultValid(result) {
+		return nil
+	}
+	code := validationFailureCode(result)
+	if code == "" {
+		code = "validation_failed"
+	}
+	return fmt.Errorf("metadata validation failed: %s", code)
+}
+
+func validationResultValid(result map[string]any) bool {
+	valid, ok := result["valid"].(bool)
+	return ok && valid
+}
+
+func validationFailureCode(result map[string]any) string {
+	if issues, ok := result["issues"].([]any); ok && len(issues) > 0 {
+		if issue, ok := issues[0].(map[string]any); ok {
+			return stringValue(issue["code"])
+		}
+	}
+	if nested, ok := result["metadataValidation"].(map[string]any); ok {
+		return validationFailureCode(nested)
+	}
+	return ""
+}
+
 func contains(values []string, requested string) bool {
 	for _, value := range values {
 		if value == requested {
@@ -1494,6 +1533,7 @@ func planRequest(resource string, action string, args []string) (map[string]any,
 		if err := rejectHighCodeMetadataBody(body, action); err != nil {
 			return nil, err
 		}
+		applyRoleExternalIdempotency(body)
 		return body, nil
 	}
 	if len(args) < 2 {
@@ -1510,13 +1550,41 @@ func planRequest(resource string, action string, args []string) (map[string]any,
 	if len(args) > 2 && strings.TrimSpace(args[2]) != "" {
 		operation = args[2]
 	}
-	return map[string]any{
+	body := map[string]any{
 		"domain":    normalizeDomain(args[0]),
 		"operation": operation,
 		"mode":      operation,
 		"spec":      spec,
 		"context":   defaultContext(),
-	}, nil
+	}
+	applyRoleExternalIdempotency(body)
+	return body, nil
+}
+
+func applyRoleExternalIdempotency(body map[string]any) {
+	if normalizeDomain(stringValue(body["domain"])) != "roles" {
+		return
+	}
+	spec, ok := body["spec"].(map[string]any)
+	if !ok {
+		return
+	}
+	externalKey := stringValue(spec["externalKey"])
+	if externalKey == "" {
+		return
+	}
+	sourceSystem := strings.ToLower(stringValue(spec["sourceSystem"]))
+	if sourceSystem == "" {
+		sourceSystem = "external"
+	}
+	contextValue, ok := body["context"].(map[string]any)
+	if !ok || contextValue == nil {
+		contextValue = defaultContext()
+		body["context"] = contextValue
+	}
+	if stringValue(contextValue["idempotencyKey"]) == "" {
+		contextValue["idempotencyKey"] = "roles:" + sourceSystem + ":" + externalKey
+	}
 }
 
 func mutationRequest(resource string, args []string) (map[string]any, error) {

@@ -1,6 +1,6 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.2.118-msapi",
+  "version": "2.2.119-msapi",
   "releaseDate": "2026-11-04",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
@@ -1354,7 +1354,7 @@
           "uiapi": "provider-adapter",
           "universal": "provider-selected"
         },
-        "minimumBackendVersion": "1.1.97",
+        "minimumBackendVersion": "1.1.100",
         "routes": [
           {
             "provider": "msapi",
@@ -2786,6 +2786,25 @@
     "sourceOfTruth": "cc-customization-expert-go/config.json",
     "policy": "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
     "minimumByCapability": [
+      {
+        "capability": "msapi.roles.migrationIdentity",
+        "label": "Migration-safe role identity and validation",
+        "introducedInSkillVersion": "2.2.119-msapi",
+        "minimumMetadataServiceVersion": "1.1.100",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.100",
+        "domains": [
+          "roles"
+        ],
+        "operations": [
+          "normalize",
+          "validate",
+          "create",
+          "plan",
+          "apply",
+          "readback"
+        ],
+        "reason": "Requires duplicate-name support, explicit root creation, deterministic external identities and parent references, structured validation issues, and non-zero CLI validation failure exits."
+      },
       {
         "capability": "msapi.mobileSettings.canonicalLifecycle",
         "label": "Canonical mobile-settings lifecycle",
