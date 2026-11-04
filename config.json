@@ -1,7 +1,7 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.2.116-msapi",
-  "releaseDate": "2026-11-03",
+  "version": "2.2.117-msapi",
+  "releaseDate": "2026-11-04",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
   "domainCatalog": {
@@ -71,6 +71,7 @@
           "search-layouts",
           "field-tracking",
           "ccchat",
+          "mobile-settings",
           "global-select-lists",
           "record-types",
           "layouts",
@@ -805,6 +806,68 @@
         "documentation": {
           "introduction": "cloudcc doc ccchat introduction",
           "devguide": "cloudcc doc ccchat devguide"
+        }
+      },
+      {
+        "name": "mobile-settings",
+        "label": "Mobile settings",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "mobileSetting",
+          "mobileSettings",
+          "mobile-setting"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": "1.1.99",
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "platform": "lightning",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter"
+          },
+          {
+            "provider": "uiapi",
+            "platform": "horizontal",
+            "backend": "main-app",
+            "transport": "uiapi",
+            "availability": "unavailable",
+            "reason": "No verified horizontal mobile-settings persistence contract."
+          }
+        ],
+        "actions": [
+          "capabilities",
+          "get",
+          "candidates",
+          "update",
+          "plan",
+          "apply",
+          "changes",
+          "rollback"
+        ],
+        "commands": [
+          "cloudcc capabilities mobileSetting <projectPath>",
+          "cloudcc get mobileSetting <projectPath> <resource>",
+          "cloudcc candidates mobileSetting <projectPath> <resource>",
+          "cloudcc update mobileSetting <projectPath> <resource> <encodedSpecJson|@file>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc mobileSetting introduction",
+          "devguide": "cloudcc doc mobileSetting devguide"
         }
       },
       {
@@ -2713,6 +2776,27 @@
     "sourceOfTruth": "cc-customization-expert-go/config.json",
     "policy": "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
     "minimumByCapability": [
+      {
+        "capability": "msapi.mobileSettings.canonicalLifecycle",
+        "label": "Canonical mobile-settings lifecycle",
+        "introducedInSkillVersion": "2.2.117-msapi",
+        "minimumMetadataServiceVersion": "1.1.99",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.99",
+        "domains": [
+          "mobile-settings"
+        ],
+        "operations": [
+          "capabilities",
+          "get",
+          "candidates",
+          "plan",
+          "apply",
+          "changes",
+          "rollback",
+          "readback"
+        ],
+        "reason": "Requires seven canonical mobile-setting resources, candidate validation, dependency ordering, setup-service delegation, drift checks, non-reversible-effect warnings, readback and rollback."
+      },
       {
         "capability": "msapi.publicGroups.canonicalLifecycle",
         "label": "Canonical public-group lifecycle",

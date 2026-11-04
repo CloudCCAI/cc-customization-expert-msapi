@@ -24,6 +24,7 @@ type endpoint struct {
 }
 
 var genericEndpoints = map[string]map[string]endpoint{
+	"mobileSetting": {},
 	"ccchat": {
 		"settings.get":        {"setup", "/api/chatterGroup/queryChatterSetup"},
 		"settings.update":     {"setup", "/api/chatterGroup/saveSetup"},
@@ -352,6 +353,9 @@ func Handle(action string, resource string, args []string, stdout io.Writer, std
 	if resource == "ccChat" {
 		resource = "ccchat"
 	}
+	if resource == "mobileSettings" || resource == "mobile-setting" || resource == "mobile-settings" {
+		resource = "mobileSetting"
+	}
 	if resource == "publicGroups" || resource == "public-group" || resource == "public-groups" || resource == "public_group" || resource == "publicgroup" {
 		resource = "publicGroup"
 	}
@@ -375,6 +379,8 @@ func Handle(action string, resource string, args []string, stdout io.Writer, std
 		return handleFieldTracking(action, args, stdout, cwd)
 	case "ccchat", "ccchatSetting", "ccchatFeedTracking", "feedTracking", "ccchat-settings", "ccchat-feed-tracking":
 		return handleCcchat(action, resource, args, stdout, cwd)
+	case "mobileSetting":
+		return handleMobileSettings(action, args, stdout, cwd)
 	case "fieldDependency":
 		return handleFieldDependency(action, args, stdout, cwd)
 	case "detailPageReport":

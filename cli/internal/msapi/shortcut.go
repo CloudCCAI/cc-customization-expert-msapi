@@ -30,6 +30,10 @@ var lowCodeShortcutDomains = map[string]string{
 	"feedTracking":           "ccchat",
 	"ccchat-settings":        "ccchat",
 	"ccchat-feed-tracking":   "ccchat",
+	"mobileSetting":          "mobile-settings",
+	"mobileSettings":         "mobile-settings",
+	"mobile-setting":         "mobile-settings",
+	"mobile-settings":        "mobile-settings",
 	"dupeCatcher":            "dupe-catchers",
 	"dashboard":              "dashboards",
 	"fields":                 "fields",
@@ -175,7 +179,7 @@ var lowCodeShortcutActions = map[string]bool{
 func IsLowCodeShortcut(action string, resource string) bool {
 	domain, ok := lowCodeShortcutDomains[strings.TrimSpace(resource)]
 	if strings.TrimSpace(action) == "capabilities" {
-		return ok && (domain == "search-layouts" || domain == "roles" || domain == "public-groups")
+		return ok && (domain == "search-layouts" || domain == "roles" || domain == "public-groups" || domain == "mobile-settings")
 	}
 	if !lowCodeShortcutActions[strings.TrimSpace(action)] {
 		return false
@@ -194,6 +198,9 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 	projectPath, rest := shortcutProjectPath(args, cwd)
 	if domain == "ccchat" {
 		return handleCcchatShortcut(action, resource, projectPath, rest, stdout, cwd)
+	}
+	if domain == "mobile-settings" {
+		return handleMobileSettingsShortcut(action, projectPath, rest, stdout, cwd)
 	}
 	if domain == "fields" && strings.TrimSpace(action) == "audit" {
 		return handleFieldIdAuditShortcut(projectPath, rest, stdout, cwd)
@@ -320,6 +327,64 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 		return err
 	}
 	return Handle("plan", "msapi", []string{projectPath, domain, string(body), operation}, stdout, cwd)
+}
+
+var mobileSettingsResources = map[string]string{
+	"parameters": "parameters", "parameter": "parameters",
+	"homepage":     "homepage",
+	"offlineCache": "offline-cache", "offline-cache": "offline-cache",
+	"recommendedModules": "recommended-modules", "recommended-modules": "recommended-modules",
+	"scanModules": "scan-modules", "scan-modules": "scan-modules",
+	"homepageShortcuts": "homepage-shortcuts", "homepage-shortcuts": "homepage-shortcuts",
+	"firstPage": "first-page", "first-page": "first-page",
+}
+
+var mobileSettingsOperations = map[string]string{
+	"parameters": "update-parameters", "homepage": "update-homepage", "offline-cache": "update-offline-cache",
+	"recommended-modules": "update-recommended-modules", "scan-modules": "update-scan-modules",
+	"homepage-shortcuts": "update-homepage-shortcuts", "first-page": "update-first-page",
+}
+
+func handleMobileSettingsShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
+	action = strings.TrimSpace(action)
+	c, _, err := newClient([]string{projectPath}, cwd)
+	if err != nil {
+		return err
+	}
+	if action == "capabilities" {
+		if len(args) != 0 {
+			return fmt.Errorf("cloudcc capabilities mobileSetting <projectPath>")
+		}
+		return c.getJSON(stdout, "/metadata/v1/mobile-settings/capabilities")
+	}
+	if len(args) == 0 {
+		return fmt.Errorf("cloudcc %s mobileSetting <projectPath> <parameters|homepage|offlineCache|recommendedModules|scanModules|homepageShortcuts|firstPage> [@spec.json]", action)
+	}
+	resource, ok := mobileSettingsResources[strings.TrimSpace(args[0])]
+	if !ok {
+		return fmt.Errorf("mobile_settings_resource_invalid: unsupported resource %q", args[0])
+	}
+	rest := args[1:]
+	switch action {
+	case "get":
+		if len(rest) == 0 {
+			return c.getJSON(stdout, "/metadata/v1/mobile-settings/"+resource)
+		}
+	case "candidates":
+		if len(rest) == 0 {
+			return c.getJSON(stdout, "/metadata/v1/mobile-settings/"+resource+"/candidates")
+		}
+	case "update":
+		if len(rest) == 1 && looksLikeJSONArg(rest[0]) {
+			body, parseErr := parseObject(rest[0], "cloudcc update mobileSetting "+resource)
+			if parseErr != nil {
+				return parseErr
+			}
+			encoded, _ := json.Marshal(body)
+			return Handle("plan", "msapi", []string{projectPath, "mobile-settings", string(encoded), mobileSettingsOperations[resource]}, stdout, cwd)
+		}
+	}
+	return fmt.Errorf("cloudcc %s mobileSetting <projectPath> %s%s", action, args[0], map[bool]string{true: " <encodedSpecJson|@file>", false: ""}[action == "update"])
 }
 
 func handleFormulaFieldCandidatesShortcut(projectPath string, args []string, stdout io.Writer, cwd string) error {

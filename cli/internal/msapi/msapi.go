@@ -2471,7 +2471,7 @@ func isHighCodeResourceDomain(value string) bool {
 
 func isCanonicalDomain(value string) bool {
 	switch strings.TrimSpace(value) {
-	case "objects", "fields", "field-dependencies", "lookup-filters", "search-layouts", "field-tracking", "ccchat", "detail-page-reports", "global-select-lists", "record-types", "layouts", "profiles", "permissions",
+	case "objects", "fields", "field-dependencies", "lookup-filters", "search-layouts", "field-tracking", "ccchat", "mobile-settings", "detail-page-reports", "global-select-lists", "record-types", "layouts", "profiles", "permissions",
 		"sharing-rules", "validation-rules", "applications", "menus", "buttons", "roles", "public-groups", "custom-settings", "dupe-catchers",
 		"single-sign-ons", "identity-providers", "approval-processes", "reports", "dashboards", "object-views", "api-registrars",
 		"fiscal-years", "areas":
@@ -2497,6 +2497,8 @@ func normalizeDomain(value string) string {
 		return "field-tracking"
 	case "ccChat", "cc-chat", "cc_chat", "ccchatSetting", "ccchatFeedTracking", "feedTracking", "ccchat-settings", "ccchat-feed-tracking":
 		return "ccchat"
+	case "mobileSetting", "mobileSettings", "mobile-setting", "mobile_settings", "mobilesetting", "mobilesettings":
+		return "mobile-settings"
 	case "detailPageReport", "detail-page-report", "detail_page_report", "detailpagereport", "detailPageChart", "detail-page-chart":
 		return "detail-page-reports"
 	case "recordType", "record-type", "record_type":

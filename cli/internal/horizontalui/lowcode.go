@@ -19,6 +19,7 @@ var aliases = map[string]string{
 	"apiRegister": "apiRegistrar", "api-registrar": "apiRegistrar", "api-register": "apiRegistrar",
 	"ccchat": "ccchat", "ccChat": "ccchat", "ccchatSetting": "ccchat", "ccchatFeedTracking": "ccchat", "feedTracking": "ccchat",
 	"ccchat-settings": "ccchat", "ccchat-feed-tracking": "ccchat",
+	"mobileSetting": "mobile-settings", "mobileSettings": "mobile-settings", "mobile-setting": "mobile-settings", "mobile-settings": "mobile-settings",
 	"publicGroup": "publicGroup", "publicGroups": "publicGroup", "public-group": "publicGroup", "public-groups": "publicGroup", "public_group": "publicGroup", "publicgroup": "publicGroup",
 }
 
@@ -38,6 +39,9 @@ func HandleLowCode(action string, resource string, _ []string, _ io.Writer, _ st
 	}
 	if resource == "ccchat" {
 		return fmt.Errorf("ccchat_horizontal_uiapi_unsupported: horizontal UIAPI has no maintained CCChat settings/feed-tracking contract; use MSAPI")
+	}
+	if resource == "mobile-settings" {
+		return fmt.Errorf("mobile_settings_horizontal_uiapi_unsupported: horizontal UIAPI has no verified mobile-settings persistence contract; use MSAPI")
 	}
 	if resource == "publicGroup" {
 		return fmt.Errorf("public_group_horizontal_uiapi_unsupported: horizontal UIAPI has no maintained public-group management contract; use MSAPI")

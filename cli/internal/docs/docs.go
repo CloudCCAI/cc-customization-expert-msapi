@@ -138,6 +138,10 @@ func normalizeModule(module string) (string, error) {
 		strings.EqualFold(module, "feedTracking") {
 		return "platform/ccchat", nil
 	}
+	if strings.EqualFold(module, "mobileSetting") || strings.EqualFold(module, "mobileSettings") ||
+		strings.EqualFold(module, "mobile-setting") || strings.EqualFold(module, "mobile-settings") {
+		return "platform/mobileSetting", nil
+	}
 	if strings.EqualFold(module, "detailPageReport") || strings.EqualFold(module, "detailPageChart") ||
 		strings.EqualFold(module, "detail-page-report") || strings.EqualFold(module, "detail-page-reports") {
 		return "platform/detailPageReport", nil

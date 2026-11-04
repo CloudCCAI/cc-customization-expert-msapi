@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.116"
+const Version = "2.2.117"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,6 +48,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- Mobile settings are now a first-class mobileSetting/mobile-settings domain covering parameters, homepage, offline cache, recommended modules, scan modules, homepage shortcuts, and first page. MSAPI is plan-first with drift checks, readback and rollback; Lightning uses setup-service with readback; horizontal UIAPI fails closed. Run cloudcc doc mobileSetting devguide. Requires MetadataService 1.1.99.")
 		fmt.Fprintln(stderr, "- Public groups are now a first-class publicGroup/public-groups domain: unique selectors, four typed member classes, candidates, create/update, add/remove/replace assignment, strict cycle and drift checks, guarded deletion, Lightning UIAPI replace adaptation, fail-closed horizontal UIAPI, readback and rollback. Run cloudcc doc publicGroup devguide. Requires MetadataService 1.1.98.")
 		fmt.Fprintln(stderr, "- Roles now provide a canonical self-contained lifecycle: capabilities, parent candidates, unique selectors, server-derived hierarchy creation, explicit subtree move, add/remove/replace user assignment, no-op protection, guarded deletion, readback and rollback. Run cloudcc doc role devguide. Requires MetadataService 1.1.97.")
 		fmt.Fprintln(stderr, "- Search layouts are now a first-class capability-aware MSAPI domain covering search results, lookup dialogs, menus, list views, quick create, and object-dependent duplicate merge. Unsupported legacy empty clears fail during planning. Run cloudcc doc searchLayout devguide before writing layouts. Requires MetadataService 1.1.96.")
@@ -528,6 +529,11 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc update ccchat <projectPath> feedTracking <encodedSpecJson|@file>  # MSAPI: plan only")
 	fmt.Fprintln(stdout, "  cloudcc clear ccchat <projectPath> feedTracking <object>  # MSAPI: plan only")
 	fmt.Fprintln(stdout, "  cloudcc doc ccchat devguide  # complete user guide")
+	fmt.Fprintln(stdout, "  cloudcc capabilities mobileSetting <projectPath>")
+	fmt.Fprintln(stdout, "  cloudcc get mobileSetting <projectPath> <parameters|homepage|offlineCache|recommendedModules|scanModules|homepageShortcuts|firstPage>")
+	fmt.Fprintln(stdout, "  cloudcc candidates mobileSetting <projectPath> <resource>")
+	fmt.Fprintln(stdout, "  cloudcc update mobileSetting <projectPath> <resource> <encodedSpecJson|@file>  # MSAPI: plan only")
+	fmt.Fprintln(stdout, "  cloudcc doc mobileSetting devguide  # complete user guide")
 	fmt.Fprintln(stdout, "  cloudcc get detailPageReport <projectPath> [object] [recordType]")
 	fmt.Fprintln(stdout, "  cloudcc detail detailPageReport <projectPath> <assignmentId>")
 	fmt.Fprintln(stdout, "  cloudcc candidates detailPageReport <projectPath> <object> [recordType]")
