@@ -25,6 +25,31 @@ const (
 
 type Config map[string]any
 
+// SetupServiceRequestTarget returns the request-scoped setup-service base URL only when
+// it is safe to forward as routing metadata. Invalid legacy values are intentionally
+// omitted so native MetadataService Domains remain usable and remote Domains fail closed.
+func SetupServiceRequestTarget(cfg Config) string {
+	return platformServiceRequestTarget(String(cfg, "setupSvc"))
+}
+
+func APIServiceRequestTarget(cfg Config) string {
+	return platformServiceRequestTarget(String(cfg, "apiSvc"))
+}
+
+func platformServiceRequestTarget(value string) string {
+	raw := strings.TrimSpace(value)
+	parsed, err := url.Parse(raw)
+	if err != nil || raw == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" ||
+		(parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Hostname() == "" {
+		return ""
+	}
+	parsed.Scheme = strings.ToLower(parsed.Scheme)
+	parsed.Host = strings.ToLower(parsed.Host)
+	parsed.Path = strings.TrimRight(parsed.Path, "/")
+	parsed.RawPath = ""
+	return parsed.String()
+}
+
 type HorizontalSessionCache struct {
 	Binding  string         `json:"binding"`
 	Token    string         `json:"token,omitempty"`

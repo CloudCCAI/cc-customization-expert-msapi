@@ -31,6 +31,8 @@ var metadataServicePromptWriter io.Writer = console.Stderr()
 
 type client struct {
 	baseURL          string
+	setupServiceURL  string
+	apiServiceURL    string
 	token            string
 	cloudccUserToken string
 	projectPath      string
@@ -1264,6 +1266,12 @@ func newClient(args []string, cwd string) (*client, []string, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	setupServiceURL := ""
+	apiServiceURL := ""
+	if cfg, cfgErr := config.Load(projectPath); cfgErr == nil {
+		setupServiceURL = config.SetupServiceRequestTarget(cfg)
+		apiServiceURL = config.APIServiceRequestTarget(cfg)
+	}
 	horizontalAuth := false
 	if platformMode == config.PlatformHorizontal && (token == "" || userToken == "") {
 		sessionToken, sessionErr := horizontalSessionToken(projectPath)
@@ -1280,6 +1288,8 @@ func newClient(args []string, cwd string) (*client, []string, error) {
 	}
 	return &client{
 		baseURL:          strings.TrimRight(baseURL, "/"),
+		setupServiceURL:  setupServiceURL,
+		apiServiceURL:    apiServiceURL,
 		token:            token,
 		cloudccUserToken: userToken,
 		projectPath:      projectPath,
@@ -2379,6 +2389,12 @@ func (c *client) doJSON(method string, path string, payload []byte) ([]byte, int
 	if c.cloudccUserToken != "" {
 		req.Header.Set("X-CloudCC-User-AccessToken", c.cloudccUserToken)
 	}
+	if c.setupServiceURL != "" {
+		req.Header.Set("X-CloudCC-Setup-Service-Base-URL", c.setupServiceURL)
+	}
+	if c.apiServiceURL != "" {
+		req.Header.Set("X-CloudCC-API-Service-Base-URL", c.apiServiceURL)
+	}
 	res, err := c.http.Do(req)
 	if err != nil {
 		return nil, 0, err
@@ -2421,6 +2437,12 @@ func (c *client) doReader(method string, path string, reader io.Reader, contentT
 	}
 	if c.cloudccUserToken != "" {
 		req.Header.Set("X-CloudCC-User-AccessToken", c.cloudccUserToken)
+	}
+	if c.setupServiceURL != "" {
+		req.Header.Set("X-CloudCC-Setup-Service-Base-URL", c.setupServiceURL)
+	}
+	if c.apiServiceURL != "" {
+		req.Header.Set("X-CloudCC-API-Service-Base-URL", c.apiServiceURL)
 	}
 	res, err := c.http.Do(req)
 	if err != nil {

@@ -19,7 +19,8 @@ cloudcc apply msapi <projectPath> <planId>
 cloudcc doc dashboard devguide
 ```
 
-查询命令直接调用 MetadataService 只读接口。创建、更新、替换和删除只生成 plan；复核 plan 后必须显式执行 `apply msapi` 才会入库。
+查询命令直接调用 MetadataService 只读接口。创建、更新和替换由 MetadataService 原生写入关系库；删除生成
+平台委托计划。复核 plan 后必须显式执行 `apply msapi` 才会产生变更。
 
 ## 2. `update` 与 `replace` 的区别
 
@@ -140,9 +141,35 @@ cloudcc replace dashboard . dashboard-id @dashboard.json
 
 ## 6. 删除与完整性
 
-`delete dashboard` 生成的计划依次删除该仪表板的筛选器、组件、最近访问记录和主记录。图表快照等运行期副作用由 MetadataService 的运行期效果处理，不要求调用方构造数据库清理参数。
+`delete dashboard` 只生成一个 `PLATFORM_DELETE` 步骤，整个操作委托给当前 CLI 环境的 `apiSvc` 标准接口
+`/api/dashboard/deleteDashboard`。标准服务负责主页组件引用保护、仪表板与组件关系清理、租户 Mongo
+`ChartSnapshot` 清理和配额更新。MetadataService 不再先删除 SQL，也不直接连接租户 Mongo。
+
+项目环境至少需要：
+
+```json
+{
+  "apiSvc": "https://tenant.example.com/apisvc",
+  "metadataService": {"url": "https://metadata.example.com"}
+}
+```
+
+CLI 通过 `X-CloudCC-API-Service-Base-URL` 请求级传递目标；MetadataService 不配置第二份 `apiSvc`。计划只保存
+地址指纹。计划与 apply 的 `apiSvc` 不一致时会 fail closed，并要求重新生成计划。
+
+删除不会自动重试，也不能自动回滚。平台接口内部包含关系库、Mongo 和配额等连续副作用，HTTP 超时后重复调用
+可能重复扣减配额。若返回 `uncertain_remote_outcome`，先执行 `detail dashboard`、检查实际仪表板页面及平台配额，
+再按审批流程决定恢复或修复，禁止直接重复 apply。
 
 删除后不可再通过详情接口读取该仪表板；执行前应始终复核 destructive plan。
+
+常见错误：
+
+- `api_service_target_required`：当前环境缺少合法 `apiSvc`。
+- `api_service_target_changed`：plan 与 apply 使用了不同环境或地址。
+- `platform_delete_plan_state_drifted`：仪表板在计划后发生变化，重新生成计划。
+- `platform_delete_rejected`：通常是主页组件仍在引用或平台权限拒绝。
+- `uncertain_remote_outcome`：不要自动重试，先进行只读状态和配额核对。
 
 ## 7. 验证
 

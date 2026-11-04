@@ -6,10 +6,10 @@
 
 - `emailTemplate` 只管理 `EMAIL` 类型，不管理短信模板。
 - `emailTemplateFolder` 管理邮件模板文件夹。
-- MSAPI 是完整且推荐的通道：读取、计划、应用、变更记录和回滚均由 MetadataService 管理。
+- MSAPI 是完整且推荐的通道：读取、计划、关系库写入、变更记录和回滚均由 MetadataService 管理，不调用 setup-service。
 - Lightning UIAPI 仅在 capability 明确广告时复用标准接口；缺少安全引用检查时删除失败关闭。
 - Horizontal UIAPI 当前没有已验证标准契约，失败关闭。可显式选择 MSAPI。
-- CLI 不修改 setup-web、setup-service，也不直接写平台业务表。
+- CLI 不修改 setup-web、setup-service；CLI 本身不直接写表，MSAPI 由 MetadataService 在计划、漂移和审计约束下写电子邮件模板元数据表。
 
 先检查项目连接与能力：
 
@@ -19,7 +19,7 @@ cloudcc get emailTemplateFolder <projectPath>
 cloudcc get emailTemplate <projectPath>
 ```
 
-`projectPath` 是含 CLI 项目配置的目录。访问令牌、MetadataService 地址和 setup-service 地址仍按项目通用配置提供，不要写入 spec。
+`projectPath` 是含 CLI 项目配置的目录。MSAPI 电子邮件模板只需要访问令牌、MetadataService 地址及其关系库数据源；`setupSvc` 不是本 Domain 的依赖，也不要写入 spec。若同一项目还使用 CCChat、搜索布局、移动端设置或队列等委托型 Domain，CLI 会从当前环境的 `setupSvc` 读取地址并随请求传给 MetadataService，无需在 MetadataService 再配置一份租户地址。
 
 ## 2. 稳定资源名与 selector
 
@@ -132,7 +132,7 @@ cloudcc update emailTemplate <projectPath> CaseEscalationNotice @patch.json
 cloudcc apply msapi <projectPath> <planId>
 ```
 
-更新正文时仍使用完整 `body`，并指定 `format` 与 `content`/`contentFile`。`description` 可显式清空；subject 与正文不可为空。MetadataService 先读取 before-state，将 patch 合并成完整 desired-state，再调用平台标准保存接口，避免省略字段被清空。
+更新正文时仍使用完整 `body`，并指定 `format` 与 `content`/`contentFile`。`description` 可显式清空；subject 与正文不可为空。MetadataService 先读取 before-state，将 patch 合并成完整 desired-state，再生成受 schema 校验和行数断言保护的 SQL 计划，避免省略字段被清空。
 
 文件夹更新：
 
@@ -161,7 +161,7 @@ cloudcc impact emailTemplateFolder <projectPath> 服务通知 delete
 cloudcc delete emailTemplateFolder <projectPath> 服务通知
 ```
 
-即使指定 `--cascade-templates`，当前版本仍要求先逐个模板完成独立引用检查并删除，然后删除空文件夹。这是故意的失败关闭策略，避免 setup-service 的隐式级联绕过模板引用保护。
+即使指定 `--cascade-templates`，当前版本仍要求先逐个模板完成独立引用检查并删除，然后删除空文件夹。这是故意的失败关闭策略，避免隐式级联绕过模板引用保护。
 
 模板删除流程：
 
@@ -172,11 +172,11 @@ cloudcc apply msapi <projectPath> <planId>
 
 ## 8. 计划、漂移、变更与回滚
 
-所有 MSAPI 写命令仅生成计划。计划包含 before/desired hash、标准接口、风险等级和正文摘要。应用前若模板或文件夹已被其他管理员修改，应用返回 state drift，必须重新读取并生成新计划；不要强行复用旧计划。
+所有 MSAPI 写命令仅生成计划。计划包含 before/desired hash、目标关系表、风险等级和正文摘要。应用前若模板或文件夹已被其他管理员修改，应用返回 state drift，必须重新读取并生成新计划；不要强行复用旧计划。
 
-应用后通过通用变更命令查看 ledger，并用生成的 rollback 信息回滚。创建回滚按 `apiName`/文件夹名称重新解析平台 ID；删除后重建可能得到新平台 ID，因此引用恢复必须按变更记录复核。回滚同样执行漂移检查和标准接口写后回读。
+应用后通过通用变更命令查看 ledger，并用生成的 rollback 信息回滚。创建回滚使用计划中的平台 ID；删除后重建可能得到新平台 ID，因此引用恢复必须按变更记录复核。回滚同样执行漂移检查、事务行数断言和写后回读。
 
-如果标准接口超时，MetadataService 会回读：
+如果关系库执行结果不确定，MetadataService 会基于 ledger 和读回状态判断：
 
 - 已是 desired：按成功收敛；
 - 仍是 before：最多安全重试；
@@ -191,7 +191,9 @@ cloudcc apply msapi <projectPath> <planId>
 - `email_template_folder_not_empty`：先逐个检查并删除/移动模板。
 - `email_template_folder_subject_resolution_unavailable`：租户没有安全 typed-subject 候选契约；不要提交底层权限串。
 - `email_template_plan_state_drifted`：计划后对象发生变化；重新 detail、更新 spec、重新 plan。
-- `cloudcc_setup_svc_not_configured`：MetadataService 未配置目标 setup-service 地址。
+- `setup_service_target_required`：只会出现在委托型 Domain；当前 CLI 环境缺少 `setupSvc`。电子邮件模板不应返回此错误。
+- `setup_service_target_changed`：委托型 Domain 的 plan 与 apply 使用了不同 `setupSvc`；重新确认当前环境并生成计划。
+- `metadata_table_missing` / `metadata_column_missing`：MetadataService 连接的数据源不是目标租户兼容 schema，先修正数据源，不要改走 setup-service 规避。
 - `cloudcc_access_token_required`：当前命令没有可转发的 CloudCC access token。
 
 HTTP 200 但平台业务结果为失败仍会被识别为错误；配额、权限和唯一性拒绝不会当成成功。

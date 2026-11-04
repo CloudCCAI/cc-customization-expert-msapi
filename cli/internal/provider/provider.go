@@ -100,7 +100,7 @@ func Resolve(projectPath string) (Selection, error) {
 			selection.SafetyLevel = safetyLevel(ModeUIAPI)
 			return selection, nil
 		}
-		if err := probeMetadataService(endpoint); err != nil {
+		if err := probeMetadataService(endpoint, setupServiceEndpoint(projectPath), apiServiceEndpoint(projectPath)); err != nil {
 			return Selection{}, fmt.Errorf("MetadataService is configured for auto mode but cannot be used; refusing silent UIAPI fallback: %w", err)
 		}
 		selection.SelectedMode = ModeMSAPI
@@ -204,10 +204,16 @@ func requestedModeAndEndpoint(projectPath string) (mode string, endpoint string,
 	return mode, strings.TrimRight(endpoint, "/"), true, nil
 }
 
-func probeMetadataService(endpoint string) error {
+func probeMetadataService(endpoint string, setupServiceURL string, apiServiceURL string) error {
 	req, err := http.NewRequest(http.MethodGet, strings.TrimRight(endpoint, "/")+"/metadata/v1/capabilities", nil)
 	if err != nil {
 		return err
+	}
+	if value := strings.TrimRight(strings.TrimSpace(setupServiceURL), "/"); value != "" {
+		req.Header.Set("X-CloudCC-Setup-Service-Base-URL", value)
+	}
+	if value := strings.TrimRight(strings.TrimSpace(apiServiceURL), "/"); value != "" {
+		req.Header.Set("X-CloudCC-API-Service-Base-URL", value)
 	}
 	response, err := (&http.Client{Timeout: 3 * time.Second}).Do(req)
 	if err != nil {
@@ -218,6 +224,22 @@ func probeMetadataService(endpoint string) error {
 		return fmt.Errorf("capability probe returned HTTP %d", response.StatusCode)
 	}
 	return nil
+}
+
+func setupServiceEndpoint(projectPath string) string {
+	cfg, err := config.Load(projectPath)
+	if err != nil {
+		return ""
+	}
+	return config.SetupServiceRequestTarget(cfg)
+}
+
+func apiServiceEndpoint(projectPath string) string {
+	cfg, err := config.Load(projectPath)
+	if err != nil {
+		return ""
+	}
+	return config.APIServiceRequestTarget(cfg)
 }
 
 func missingEndpointError(projectPath string) error {

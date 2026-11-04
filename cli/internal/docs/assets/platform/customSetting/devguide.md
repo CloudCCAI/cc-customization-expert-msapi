@@ -140,4 +140,34 @@ cloudcc rollback msapi <projectPath> <operationId>
 cloudcc delete customSetting <projectPath> <settingId>
 ```
 
-删除同样先生成计划。应用前确认业务代码、配置数据和布局不存在仍需保留的依赖。
+删除同样先生成计划，但执行边界与查询、创建、更新不同：MSAPI 会把整个删除操作委托给当前 CLI 环境的
+`setupSvc` 标准接口 `/api/customsetting/deleteobj`。标准服务根据租户 `dbIndex` 重命名非空 Mongo 值集合，
+自动计算 `_C_DEL<n>` 历史后缀，软删除关系库元数据并刷新平台缓存。MetadataService 不直接连接租户 Mongo，
+spec 中也不要提供 `setupSvc`、Mongo 地址或 `deleteSuffix`。
+
+项目环境至少需要：
+
+```json
+{
+  "setupSvc": "https://tenant.example.com/setup",
+  "metadataService": {"url": "https://metadata.example.com"}
+}
+```
+
+计划只保存目标地址指纹，不保存地址和令牌。生成计划后切换环境或修改 `setupSvc`，apply 会返回
+`setup_service_target_changed`，必须在正确环境重新生成计划。
+
+删除不会自动重试，也不能由 CLI 自动回滚。若返回 `uncertain_remote_outcome`，表示网络失败发生时远端状态
+不能安全判定；先执行 `detail customSetting` 并检查平台页面，禁止直接重复 apply。恢复需要按审批流程同时处理
+Mongo 集合、对象元数据和缓存。
+
+应用前确认业务代码、配置数据和布局不存在仍需保留的依赖，并检查计划只有一个 `PLATFORM_DELETE` 步骤，
+其 `platformDeleteMutation.targetService` 为 `SETUP`。
+
+常见错误：
+
+- `setup_service_target_required`：当前环境缺少合法 `setupSvc`。
+- `setup_service_target_changed`：plan 与 apply 的活动环境或地址不同。
+- `platform_delete_plan_state_drifted`：生成计划后自定义设置发生变化，重新生成计划。
+- `platform_delete_rejected`：平台标准服务拒绝删除，按返回信息处理依赖或权限问题。
+- `uncertain_remote_outcome`：不要自动重试，先做只读核对和人工恢复判断。

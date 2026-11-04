@@ -138,7 +138,36 @@ Lightning 命令会解析当前环境配置，并在需要时从 `CloudCCDev` �
 }
 ```
 
-## 8. 常见注意事项
+## 8. MSAPI Domain 路由与 `setupSvc`
+
+MSAPI 的统一原则是 MetadataService 原生能力优先，不是禁止调用 setup-service：
+
+| 数据/副作用归属 | MSAPI 执行方式 | `setupSvc` 要求 |
+|---|---|---|
+| 关系库元数据，例如电子邮件模板 | MetadataService 使用目标租户 JDBC 数据源直接读取并执行 plan/apply | 本 Domain 不需要 |
+| 动态租户 Mongo 数据，例如 CCChat | MetadataService 审计并委托 setup-service | 当前 CLI 环境必须配置 |
+| SQL + Mongo + cache 或生成视图等平台复合副作用，例如搜索布局、移动端设置、队列 | MetadataService 审计并委托平台标准 setup-service | 当前 CLI 环境必须配置 |
+| UIAPI | CLI 直接调用 setup-service | 当前 CLI 环境必须配置 |
+
+委托型 MSAPI 请求由 CLI 从当前 `use` 环境读取 `setupSvc`；仪表板标准删除还读取 `apiSvc`。CLI 规范化后
+分别通过 `X-CloudCC-Setup-Service-Base-URL` 和 `X-CloudCC-API-Service-Base-URL` 传给 MetadataService。
+MetadataService 不需要再维护同一租户的服务地址。plan 会记录目标指纹，apply 必须使用相同目标；切换环境或
+地址后应重新生成 plan。地址本身、凭据和查询参数不会写入 plan。
+
+```json
+{
+  "use": "dev",
+  "dev": {
+    "executionMode": "msapi",
+    "setupSvc": "https://tenant.example.com/setup",
+    "metadataService": {"url": "https://metadata.example.com"}
+  }
+}
+```
+
+`setupSvc` 只应出现在 CLI 项目环境配置中，不应写进业务 spec，也无需复制到 MetadataService 配置。若只使用原生关系库 Domain，可以不配置它。可用 `cloudcc capabilities <resource> <projectPath>` 查看 `executionBackend`、`setupServiceRequired` 和依赖状态。
+
+## 9. 常见注意事项
 
 - 执行路径错误会导致找不到 `cloudcc-cli.config.json`。
 - `env` 必须是配置中可识别的环境名称。

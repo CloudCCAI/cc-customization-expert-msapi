@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.121"
+const Version = "2.2.123"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,7 +48,8 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
-		fmt.Fprintln(stderr, "- Email templates are now first-class emailTemplate/emailTemplateFolder resources. MSAPI provides platform-standard setup-service delegation, contentFile expansion, plan/apply drift checks, guarded deletion, readback and rollback; complete user guidance is available through cloudcc doc emailTemplate devguide. Requires MetadataService 1.1.102.")
+		fmt.Fprintln(stderr, "- Custom-setting and dashboard deletion now use one target-bound platform-standard operation: setupSvc /api/customsetting/deleteobj and apiSvc /api/dashboard/deleteDashboard. CLI forwards both targets per request; MetadataService stores neither address, never retries uncertain deletes, and reports them as non-reversible. Query/create/update remain native. Requires MetadataService 1.1.104.")
+		fmt.Fprintln(stderr, "- MSAPI now prefers MetadataService native relational persistence for every Domain; only Mongo/compound platform-authoritative Domains use setup-service, whose request target comes from the active CLI project. Email templates are native metadata-db resources. Requires MetadataService 1.1.103.")
 		fmt.Fprintln(stderr, "- Queue is now a first-class queue/queues record-owner domain. MSAPI provides candidates, delete impact, plan/apply drift checks, standard queueSetup execution, readback and rollback; Lightning uses the same standard service with readback; horizontal UIAPI fails closed. Run cloudcc doc queue devguide. Requires MetadataService 1.1.101.")
 		fmt.Fprintln(stderr, "- Role migration is reliable across retries: duplicate names are allowed with ID-first ambiguity protection, explicit parent:null creates roots, sourceSystem + externalKey produces stable target IDs and parent references, normalize/validate return structured issues, and invalid CLI validation exits non-zero. Requires MetadataService 1.1.100.")
 		fmt.Fprintln(stderr, "- Project layout guidance now includes the complete annotated tree, directory responsibilities, required/stage/on-demand/local creation rules, source ownership boundaries, and the actual scope of initialization and directory checks. Run cloudcc doc projectLayout devguide.")

@@ -38,6 +38,7 @@ tools/bin/cloudcc doc platform/config devguide
     "executionMode": "msapi",
     "safetyMark": "请设置一个安全标识",
     "CloudCCDev": "请设置开发者密钥",
+    "setupSvc": "https://tenant.example.com/setup",
     "metadataService": {
       "url": "https://dc52.apis.cloudcc.cn/metadata"
     }
@@ -46,6 +47,8 @@ tools/bin/cloudcc doc platform/config devguide
 ```
 
 技能包初始化时先确认 `lightning|horizontal`，未指定时保持 Lightning。Lightning 再确认公有云或私有云：公有云使用技能根配置的默认地址 `https://dc52.apis.cloudcc.cn/metadata`；私有云需要把当前环境的 `metadataService.url` 改为本环境地址。项目级配置可在需要隔离项目环境时覆盖该配置。
+
+`setupSvc` 是当前 CLI 环境的唯一 setup-service 目标配置。UIAPI 直接使用它；MSAPI 仅在 Domain 数据位于动态租户 Mongo，或必须保留 SQL/Mongo/cache/生成视图等平台复合副作用时，把它请求级传给 MetadataService。关系库原生 Domain（包括电子邮件模板）不依赖它，MetadataService 也不需要重复配置租户 setup-service 地址。plan/apply 期间不要切换环境；委托型 plan 会校验目标指纹。
 
 横纵版必须显式初始化，不会改变默认 Lightning 模板：
 

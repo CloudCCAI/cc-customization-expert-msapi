@@ -1,6 +1,6 @@
 # 电子邮件模板
 
-`emailTemplate` 用于以稳定 API 名称管理平台设置页中的电子邮件模板，`emailTemplateFolder` 用于管理模板文件夹。CLI 复用平台标准 setup-service 能力；MSAPI 写操作先生成可审计计划，再由用户显式执行。
+`emailTemplate` 用于以稳定 API 名称管理平台设置页中的电子邮件模板，`emailTemplateFolder` 用于管理模板文件夹。MSAPI 由 MetadataService 直接读写平台关系库元数据；写操作先生成可审计计划，再由用户显式执行，不依赖 setup-service。Lightning UIAPI 仍复用平台标准 setup-service 接口。
 
 ```text
 cloudcc get emailTemplate <projectPath> [filter]
