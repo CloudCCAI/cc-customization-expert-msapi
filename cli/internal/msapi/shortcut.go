@@ -6,8 +6,11 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 var lowCodeShortcutDomains = map[string]string{
@@ -88,6 +91,8 @@ var lowCodeShortcutDomains = map[string]string{
 	"public_group":           "public-groups",
 	"publicgroup":            "public-groups",
 	"queue":                  "queues",
+	"emailTemplate":          "email-templates",
+	"emailTemplateFolder":    "email-templates",
 	"recordType":             "record-types",
 	"report":                 "reports",
 	"reportMatrix":           "reports",
@@ -181,7 +186,7 @@ var lowCodeShortcutActions = map[string]bool{
 func IsLowCodeShortcut(action string, resource string) bool {
 	domain, ok := lowCodeShortcutDomains[strings.TrimSpace(resource)]
 	if strings.TrimSpace(action) == "capabilities" {
-		return ok && (domain == "search-layouts" || domain == "roles" || domain == "public-groups" || domain == "mobile-settings" || domain == "queues")
+		return ok && (domain == "search-layouts" || domain == "roles" || domain == "public-groups" || domain == "mobile-settings" || domain == "queues" || domain == "email-templates")
 	}
 	if !lowCodeShortcutActions[strings.TrimSpace(action)] {
 		return false
@@ -235,6 +240,9 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 	}
 	if domain == "queues" && (isShortcutRead(action) || strings.TrimSpace(action) == "candidates" || strings.TrimSpace(action) == "capabilities" || strings.TrimSpace(action) == "impact") {
 		return handleQueueReadShortcut(action, projectPath, rest, stdout, cwd)
+	}
+	if domain == "email-templates" && (isShortcutRead(action) || strings.TrimSpace(action) == "capabilities" || strings.TrimSpace(action) == "impact") {
+		return handleEmailTemplateReadShortcut(action, resource, projectPath, rest, stdout, cwd)
 	}
 	if resource == "sharingRule" && isShortcutRead(action) {
 		return handleSharingRuleReadShortcut(action, projectPath, rest, stdout, cwd)
@@ -1451,6 +1459,44 @@ func handleQueueReadShortcut(action string, projectPath string, args []string, s
 	return c.getJSON(stdout, "/metadata/v1/queues/"+url.PathEscape(strings.TrimSpace(args[0])))
 }
 
+func handleEmailTemplateReadShortcut(action string, resource string, projectPath string, args []string, stdout io.Writer, cwd string) error {
+	c, _, err := newClient([]string{projectPath}, cwd)
+	if err != nil {
+		return err
+	}
+	action = strings.TrimSpace(action)
+	folder := strings.TrimSpace(resource) == "emailTemplateFolder"
+	base := "/metadata/v1/email-templates"
+	if folder {
+		base += "/folders"
+	}
+	if action == "capabilities" {
+		if len(args) != 0 {
+			return fmt.Errorf("cloudcc capabilities %s <projectPath>", resource)
+		}
+		return c.getJSON(stdout, "/metadata/v1/email-templates/capabilities")
+	}
+	if action == "impact" {
+		if len(args) != 2 || strings.TrimSpace(args[1]) != "delete" {
+			return fmt.Errorf("cloudcc impact %s <projectPath> <selector> delete", resource)
+		}
+		return c.getJSON(stdout, base+"/"+url.PathEscape(strings.TrimSpace(args[0]))+"/delete-impact")
+	}
+	if action == "get" || action == "getList" {
+		if len(args) > 1 {
+			return fmt.Errorf("cloudcc get %s <projectPath> [filter]", resource)
+		}
+		if len(args) == 1 && strings.TrimSpace(args[0]) != "" {
+			base += "?filter=" + url.QueryEscape(strings.TrimSpace(args[0]))
+		}
+		return c.getJSON(stdout, base)
+	}
+	if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
+		return fmt.Errorf("cloudcc detail %s <projectPath> <selector>", resource)
+	}
+	return c.getJSON(stdout, base+"/"+url.PathEscape(strings.TrimSpace(args[0])))
+}
+
 func publicGroupShortcutValue(args []string) (string, error) {
 	if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
 		return "", fmt.Errorf("public-group selector is required (group id or unique name)")
@@ -2552,6 +2598,57 @@ func shortcutProjectPath(args []string, cwd string) (string, []string) {
 
 func shortcutPlanSpec(action string, resource string, args []string) (map[string]any, string, error) {
 	operation := shortcutOperation(action, resource)
+	if lowCodeShortcutDomains[strings.TrimSpace(resource)] == "email-templates" {
+		folder := strings.TrimSpace(resource) == "emailTemplateFolder"
+		action = strings.TrimSpace(action)
+		if action == "delete" {
+			if len(args) < 1 || len(args) > 2 || strings.TrimSpace(args[0]) == "" {
+				return nil, "", fmt.Errorf("cloudcc delete %s <projectPath> <selector> [--cascade-templates]", resource)
+			}
+			body := map[string]any{"selector": strings.TrimSpace(args[0])}
+			if len(args) == 2 {
+				if !folder || strings.TrimSpace(args[1]) != "--cascade-templates" {
+					return nil, "", fmt.Errorf("unsupported delete option: %s", args[1])
+				}
+				body["cascadeTemplates"] = true
+			}
+			if folder {
+				return body, "delete-folder", nil
+			}
+			return body, "delete", nil
+		}
+		if action == "update" || action == "save" || action == "assign" {
+			if len(args) != 2 || strings.TrimSpace(args[0]) == "" || !looksLikeJSONArg(args[1]) {
+				return nil, "", fmt.Errorf("cloudcc %s %s <projectPath> <selector> <@spec.json>", action, resource)
+			}
+			body, err := parseObject(args[1], "cloudcc "+action+" "+resource)
+			if err != nil {
+				return nil, "", err
+			}
+			body["selector"] = strings.TrimSpace(args[0])
+			if !folder {
+				if err := expandEmailTemplateContent(body, args[1]); err != nil {
+					return nil, "", err
+				}
+				return body, "update", nil
+			}
+			if action == "assign" {
+				return body, "assign-folder-access", nil
+			}
+			return body, "update-folder", nil
+		}
+		body, _, err := shortcutBodySpec(action, resource, args)
+		if err != nil {
+			return nil, "", err
+		}
+		if !folder {
+			if err := expandEmailTemplateContent(body, firstShortcutArg(args, 0)); err != nil {
+				return nil, "", err
+			}
+			return body, "create", nil
+		}
+		return body, "create-folder", nil
+	}
 	if lowCodeShortcutDomains[strings.TrimSpace(resource)] == "queues" {
 		switch strings.TrimSpace(action) {
 		case "update", "save", "assign":
@@ -3505,6 +3602,28 @@ func shortcutBodySpec(action string, resource string, args []string) (map[string
 }
 
 func shortcutOperation(action string, resource string) string {
+	if lowCodeShortcutDomains[strings.TrimSpace(resource)] == "email-templates" {
+		folder := strings.TrimSpace(resource) == "emailTemplateFolder"
+		switch strings.TrimSpace(action) {
+		case "create":
+			if folder {
+				return "create-folder"
+			}
+			return "create"
+		case "update", "save":
+			if folder {
+				return "update-folder"
+			}
+			return "update"
+		case "assign":
+			return "assign-folder-access"
+		case "delete":
+			if folder {
+				return "delete-folder"
+			}
+			return "delete"
+		}
+	}
 	if lowCodeShortcutDomains[strings.TrimSpace(resource)] == "queues" {
 		switch strings.TrimSpace(action) {
 		case "update", "modify", "editSave", "save":
@@ -3565,6 +3684,45 @@ func shortcutOperation(action string, resource string) string {
 	default:
 		return "upsert"
 	}
+}
+
+func expandEmailTemplateContent(spec map[string]any, specArg string) error {
+	body, ok := spec["body"].(map[string]any)
+	if !ok {
+		return nil
+	}
+	fileValue, hasFile := body["contentFile"].(string)
+	_, hasContent := body["content"]
+	if !hasFile {
+		return nil
+	}
+	if hasContent {
+		return fmt.Errorf("emailTemplate body.content and body.contentFile are mutually exclusive")
+	}
+	fileValue = strings.TrimSpace(fileValue)
+	if fileValue == "" {
+		return fmt.Errorf("emailTemplate body.contentFile must not be empty")
+	}
+	base := ""
+	if strings.HasPrefix(strings.TrimSpace(specArg), "@") {
+		base = filepath.Dir(strings.TrimPrefix(strings.TrimSpace(specArg), "@"))
+	}
+	if !filepath.IsAbs(fileValue) && base != "" {
+		fileValue = filepath.Join(base, fileValue)
+	}
+	b, err := os.ReadFile(fileValue)
+	if err != nil {
+		return fmt.Errorf("read emailTemplate contentFile: %w", err)
+	}
+	if len(b) > 1024*1024 {
+		return fmt.Errorf("emailTemplate contentFile exceeds the 1 MiB CLI safety limit")
+	}
+	if !utf8.Valid(b) {
+		return fmt.Errorf("emailTemplate contentFile must be valid UTF-8")
+	}
+	body["content"] = string(b)
+	delete(body, "contentFile")
+	return nil
 }
 
 func isApiRegistrarShortcutResource(resource string) bool {

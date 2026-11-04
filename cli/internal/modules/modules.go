@@ -209,6 +209,15 @@ var genericEndpoints = map[string]map[string]endpoint{
 		"assign":       {"setup", "/api/queueSetup/save"},
 		"delete":       {"setup", "/api/queueSetup/delete"},
 	},
+	"emailTemplate": {
+		"get": {"setup", "/api/template/queryTemplateByFolder"}, "detail": {"setup", "/api/template/queryTemplateById"},
+		"create": {"setup", "/api/template/saveTemplate"}, "update": {"setup", "/api/template/saveTemplate"},
+	},
+	"emailTemplateFolder": {
+		"get": {"setup", "/api/templateFolder/queryTemplateFolder"}, "detail": {"setup", "/api/templateFolder/queryTemplateFolderById"},
+		"create": {"setup", "/api/templateFolder/saveTemplateFolder"}, "update": {"setup", "/api/templateFolder/saveTemplateFolder"},
+		"assign": {"setup", "/api/templateFolder/saveTemplateFolder"},
+	},
 	"recordType": {
 		"get":         {"setup", "/api/recordType/getRecordTypeList"},
 		"getList":     {"setup", "/api/recordType/getRecordTypeList"},
@@ -453,6 +462,8 @@ func Handle(action string, resource string, args []string, stdout io.Writer, std
 		return handlePublicGroup(action, args, stdout, cwd)
 	case "queue":
 		return handleQueue(action, args, stdout, cwd)
+	case "emailTemplate", "emailTemplateFolder":
+		return handleEmailTemplate(action, resource, args, stdout, cwd)
 	case "jsp", "site", "skill":
 		return fmt.Errorf("%s %s is deferred to P4 or a later task in the Go rewrite", action, resource)
 	}

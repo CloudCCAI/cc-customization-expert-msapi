@@ -1,6 +1,6 @@
 {
   "schemaVersion": "cloudcc-dual-provider-capability-matrix/v1",
-  "releaseBaseline": "2.2.120",
+  "releaseBaseline": "2.2.121",
   "msapiBaseline": {
     "domains": 33,
     "operations": 166,
@@ -50,6 +50,7 @@
     {"id":"roles","uiapiResource":"role","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","assign":"contract_tested","query":"contract_tested"}},
     {"id":"public-groups","uiapiResource":"publicGroup","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","assign-replace":"contract_tested","query":"contract_tested","candidates":"contract_tested"}},
     {"id":"queues","uiapiResource":"queue","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"mapped","delete":"contract_tested","assign-replace":"contract_tested","query":"contract_tested","candidates":"contract_tested","delete-impact":"contract_tested"}},
+    {"id":"email-templates","uiapiResource":"emailTemplate","uiapiState":"mapped","uiapiOperations":{"create":"mapped","update":"mapped","delete":"unsupported_no_safe_reference_contract","query":"mapped","folder-create":"mapped","folder-update":"mapped","folder-delete":"unsupported_no_safe_reference_contract"},"horizontalState":"unsupported_no_verified_contract"},
     {"id":"sharing-rules","uiapiResource":"sharingRule","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
     {"id":"validation-rules","uiapiResource":"validationRule","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
     {"id":"applications","uiapiResource":"application","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
