@@ -43,6 +43,7 @@ var projectFiles = []projectFile{
 var projectDirs = []string{
 	"frontend/pagecomponents",
 	"frontend/build",
+	"frontend/scripts",
 	"backend/classes",
 	"backend/triggers",
 	"backend/schedule",

@@ -1,5 +1,8 @@
 # CloudCC Project 开发指南（Go 版技能）
 
+项目目录职责、可选登记与只读检查见 `cloudcc doc projectLayout devguide`。调整目录前先遵守项目 AGENTS 与白名单；CLI 不自动迁移现有项目。
+
+
 ## 1. 前置条件与总体说明
 
 - 适用人群：CloudCC 前端组件、客户端脚本、后端类、触发器、定时器等二次开发工程师。

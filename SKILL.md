@@ -1,12 +1,12 @@
 ---
 name: cc-customization-expert-msapi
-version: 2.2.117-msapi
+version: 2.2.118-msapi
 description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService."
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.2.117-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.2.118-msapi
 
-当前技能版本：`2.2.117-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.2.118-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
 
@@ -73,6 +73,8 @@ tools/bin/cloudcc doc user devguide
 - 方案设计先读相关模块 introduction，实施前读 devguide；不要一次展开全部文档。索引覆盖多个平台及规划能力，是否可执行仍以具体文档、Domain 路由和目标环境检查为准。
 
 ## 必须保留
+
+- 项目目录初始化、审计或新增路径前读取 `cloudcc doc projectLayout devguide`，先遵守项目 AGENTS/白名单，再用 `doctor project-layout` 只读检查。可选 `docs/project-layout.json` 登记路径职责；不得自动迁移客户项目。客户端脚本统一位于 `frontend/scripts/<objectApi>/<name>/`，内部操作工具位于 `tools/`。create 不覆盖已有资源，publish 只读取规范路径。
 
 - 先运行 `tools/bin/cloudcc --version`，并使用技能包内置 `tools/bin/cloudcc`，不在线安装 CLI，不依赖全局 Node/npm。
 - 方案设计前读取 `platform/overview`、`platform/capabilityMap`、`platform/standardCapabilities`；低代码变更先读取目标模块 `devguide`。

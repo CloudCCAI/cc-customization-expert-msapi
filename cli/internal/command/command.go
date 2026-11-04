@@ -11,6 +11,7 @@ import (
 	"cloudcc-customization-expert-go/internal/modules"
 	"cloudcc-customization-expert-go/internal/msapi"
 	"cloudcc-customization-expert-go/internal/openapi"
+	"cloudcc-customization-expert-go/internal/projectlayout"
 	"cloudcc-customization-expert-go/internal/projectoutputs"
 	"cloudcc-customization-expert-go/internal/provider"
 	"cloudcc-customization-expert-go/internal/target"
@@ -48,7 +49,7 @@ func Run(args []string, stdout io.Writer, stderr io.Writer, cwd string) int {
 	action, resource := args[0], args[1]
 	rest := args[2:]
 
-	if version.IsVersionAction(action) && resource != "version" && !(action == "doctor" && (resource == "classes" || resource == "provider" || resource == "platform" || resource == "project-governance" || resource == "project-outputs" || resource == "test-governance")) {
+	if version.IsVersionAction(action) && resource != "version" && !(action == "doctor" && (resource == "classes" || resource == "provider" || resource == "platform" || resource == "project-layout" || resource == "project-governance" || resource == "project-outputs" || resource == "test-governance")) {
 		if err := version.Handle(action, append([]string{resource}, rest...), stdout, stderr); err != nil {
 			fmt.Fprintln(stderr, err)
 			return 1
@@ -58,6 +59,8 @@ func Run(args []string, stdout io.Writer, stderr io.Writer, cwd string) int {
 
 	var err error
 	switch {
+	case resource == "project-layout" && (action == "init" || action == "doctor"):
+		err = projectlayout.Handle(action, rest, stdout, cwd)
 	case action == "doctor" && resource == "provider":
 		projectPath := firstOr(rest, cwd)
 		err = provider.WriteDoctor(projectPath, stdout)

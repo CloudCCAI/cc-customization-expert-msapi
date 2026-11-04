@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.2.117-msapi
+# cc-customization-expert-msapi v2.2.118-msapi
 
 角色完整生命周期、父角色候选、子树移动和用户分配见 `cloudcc doc role devguide`；不要手工提交角色闭包、gap 或 level。
 
@@ -215,3 +215,7 @@ CloudCC 高代码主动调用外部 HTTP 服务时，先读取 `cloudcc doc plat
 ## Package Purity
 
 本包是生成产物，不包含 `.git`、`.claw`、测试夹具、项目证据、凭据或本地绝对路径。请勿直接修改 `dist/`；修改源代码或模板后使用仓库发布脚本重新生成。
+
+## 项目目录治理
+
+`cloudcc doc projectLayout devguide` 提供完整目录树、逐目录职责、必需/阶段/按需/本地创建条件、内容归属及初始化与检查能力边界。`doctor project-layout [projectPath]` 离线检查目录、Git 跟踪/暂存、交付入口及归属；`init project-layout [projectPath]` 只创建不覆盖的可选目录登记。客户端脚本的唯一源码路径为 `frontend/scripts/<objectApi>/<name>/`；创建、发布、扫描使用同一标准，支持显式 projectPath，已有资源不覆盖。

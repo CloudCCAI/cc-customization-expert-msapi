@@ -11,6 +11,7 @@ import (
 
 	"cloudcc-customization-expert-go/internal/config"
 	"cloudcc-customization-expert-go/internal/httpclient"
+	"cloudcc-customization-expert-go/internal/projectlayout"
 )
 
 type highCodeScanResult struct {
@@ -20,19 +21,17 @@ type highCodeScanResult struct {
 	ProjectPath string           `json:"projectPath"`
 	Totals      highCodeTotals   `json:"totals"`
 	Domains     []highCodeDomain `json:"domains"`
-	Legacy      highCodeLegacy   `json:"legacy"`
 }
 
 type highCodeTotals struct {
-	Domains           int `json:"domains"`
-	Assets            int `json:"assets"`
-	Configured        int `json:"configured"`
-	Publishable       int `json:"publishable"`
-	Files             int `json:"files"`
-	Issues            int `json:"issues"`
-	EmptyDomains      int `json:"emptyDomains"`
-	MissingDomains    int `json:"missingDomains"`
-	LegacyNodeScripts int `json:"legacyNodeScripts"`
+	Domains        int `json:"domains"`
+	Assets         int `json:"assets"`
+	Configured     int `json:"configured"`
+	Publishable    int `json:"publishable"`
+	Files          int `json:"files"`
+	Issues         int `json:"issues"`
+	EmptyDomains   int `json:"emptyDomains"`
+	MissingDomains int `json:"missingDomains"`
 }
 
 type highCodeDomain struct {
@@ -55,10 +54,6 @@ type highCodeAsset struct {
 	BundlePath  string   `json:"bundlePath,omitempty"`
 	Publishable bool     `json:"publishable"`
 	Issues      []string `json:"issues,omitempty"`
-}
-
-type highCodeLegacy struct {
-	NodeScripts []highCodeAsset `json:"nodeScripts,omitempty"`
 }
 
 type onlineHighCodeScanResult struct {
@@ -132,7 +127,7 @@ func scanHighCodeProject(projectPath string) (highCodeScanResult, error) {
 		{domain: "classes", relPath: "backend/classes", sourceExts: []string{".java"}, requiresConfig: true},
 		{domain: "triggers", relPath: "backend/triggers", sourceExts: []string{".java"}, requiresConfig: true},
 		{domain: "timer", relPath: "backend/schedule", sourceExts: []string{".java"}, requiresConfig: true},
-		{domain: "script", relPath: "script", sourceExts: []string{".js"}, requiresConfig: true},
+		{domain: "script", relPath: projectlayout.ClientScriptsPath, sourceExts: []string{".js"}, requiresConfig: true},
 		{domain: "html", relPath: "html", sourceExts: []string{".html"}, sourceNames: []string{"index.html"}, requiresConfig: true},
 	}
 	domains := make([]highCodeDomain, 0, len(specs)+3)
@@ -145,14 +140,12 @@ func scanHighCodeProject(projectPath string) (highCodeScanResult, error) {
 	}, true))
 	domains = append(domains, scanFileHighCodeDomain(projectPath, "sidecar", []string{"sidecar"}, false))
 
-	legacy := scanLegacyNodeScripts(projectPath)
 	result := highCodeScanResult{
 		Mode:        "go-local-highcode-scan",
 		Source:      "project:" + filepath.Base(projectPath),
 		Runtime:     "go",
 		ProjectPath: projectPath,
 		Domains:     domains,
-		Legacy:      legacy,
 	}
 	result.Totals.Domains = len(domains)
 	for _, domain := range domains {
@@ -171,8 +164,6 @@ func scanHighCodeProject(projectPath string) (highCodeScanResult, error) {
 			result.Totals.Issues += len(item.Issues)
 		}
 	}
-	result.Totals.LegacyNodeScripts = len(legacy.NodeScripts)
-	result.Totals.Issues += len(legacy.NodeScripts)
 	return result, nil
 }
 
@@ -526,41 +517,6 @@ func scanFileHighCodeDomain(projectPath string, domainName string, relPaths []st
 	}
 	finishHighCodeDomain(&domain)
 	return domain
-}
-
-func scanLegacyNodeScripts(projectPath string) highCodeLegacy {
-	base := filepath.Join(projectPath, "scripts")
-	var legacy highCodeLegacy
-	if info, err := os.Stat(base); err != nil || !info.IsDir() {
-		return legacy
-	}
-	_ = filepath.WalkDir(base, func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return nil
-		}
-		if shouldSkipHighCodePath(path, d) {
-			if d.IsDir() {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if d.IsDir() || !strings.EqualFold(filepath.Ext(d.Name()), ".js") {
-			return nil
-		}
-		legacy.NodeScripts = append(legacy.NodeScripts, highCodeAsset{
-			Name: strings.TrimSuffix(d.Name(), filepath.Ext(d.Name())),
-			Path: slashRel(projectPath, path),
-			Issues: []string{
-				"legacy_node_implementation_script",
-				"not_a_go_skill_validation_path",
-			},
-		})
-		return nil
-	})
-	sort.Slice(legacy.NodeScripts, func(i, j int) bool {
-		return legacy.NodeScripts[i].Path < legacy.NodeScripts[j].Path
-	})
-	return legacy
 }
 
 func finishHighCodeDomain(domain *highCodeDomain) {

@@ -1,6 +1,6 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.2.117-msapi",
+  "version": "2.2.118-msapi",
   "releaseDate": "2026-11-04",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
@@ -2723,6 +2723,16 @@
     "indentSpaces": 4,
     "runtime": "builtin-go",
     "publishBlocking": false
+  },
+  "projectLayout": {
+    "schemaVersion": "cloudcc-project-layout/v2",
+    "registryPath": "docs/project-layout.json",
+    "clientScriptsPath": "frontend/scripts",
+    "doctorReadOnly": true,
+    "commands": [
+      "init project-layout",
+      "doctor project-layout"
+    ]
   },
   "projectOutputs": {
     "schemaVersion": "cloudcc-project-outputs/v1",

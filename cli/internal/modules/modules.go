@@ -15,6 +15,7 @@ import (
 	"cloudcc-customization-expert-go/internal/httpclient"
 	"cloudcc-customization-expert-go/internal/jsonx"
 	"cloudcc-customization-expert-go/internal/msapi"
+	"cloudcc-customization-expert-go/internal/projectlayout"
 	projecttemplates "cloudcc-customization-expert-go/internal/templates"
 )
 
@@ -2654,53 +2655,80 @@ func recursiveStringValue(value any, key string) string {
 }
 
 func handleScript(action string, args []string, stdout io.Writer, stderr io.Writer, cwd string) error {
-	switch action {
-	case "create":
-		if len(args) < 1 {
-			return fmt.Errorf("cloudcc create script <object/name>")
+	if action != "create" && action != "publish" {
+		switch action {
+		case "get", "pull", "pullList", "detail", "delete":
+			return callDevConsoleScript(action, args, stdout, cwd)
+		default:
+			return fmt.Errorf("unsupported script action: %s", action)
 		}
-		name := filepath.Base(args[0])
-		target := filepath.Join(cwd, "script", args[0])
-		if err := os.MkdirAll(target, 0755); err != nil {
+	}
+	if len(args) < 1 || len(args) > 2 {
+		return fmt.Errorf("cloudcc %s script <object/name> [projectPath]", action)
+	}
+	project := cwd
+	if len(args) == 2 {
+		project = args[1]
+		if !filepath.IsAbs(project) {
+			project = filepath.Join(cwd, project)
+		}
+	}
+	dir, err := projectlayout.ScriptPath(project, args[0])
+	if err != nil {
+		return err
+	}
+	name := filepath.Base(dir)
+	sourcePath := filepath.Join(dir, name+".js")
+	if action == "create" {
+		if _, err := os.Lstat(dir); err == nil {
+			return fmt.Errorf("script already exists; create never overwrites an existing resource")
+		} else if !os.IsNotExist(err) {
+			return err
+		}
+		if err := os.MkdirAll(filepath.Dir(dir), 0755); err != nil {
+			return err
+		}
+		if err := os.Mkdir(dir, 0755); err != nil {
 			return err
 		}
 		body := "function main($CCDK, obj) {\n    // TODO: implement client script\n}\n"
-		if err := os.WriteFile(filepath.Join(target, name+".js"), []byte(body), 0644); err != nil {
+		if err := os.WriteFile(sourcePath, []byte(body), 0644); err != nil {
 			return err
 		}
-		return jsonx.WriteObjectFile(filepath.Join(target, "config.json"), map[string]any{"name": name})
-	case "publish":
-		if len(args) < 1 {
-			return fmt.Errorf("cloudcc publish script <object/name>")
-		}
-		name := filepath.Base(args[0])
-		srcDir := filepath.Join(cwd, "script", args[0])
-		content, err := os.ReadFile(filepath.Join(srcDir, name+".js"))
-		if err != nil {
-			return err
-		}
-		bodyText, err := extractMainBody(string(content))
-		if err != nil {
-			return err
-		}
-		local, _ := jsonx.ReadObjectFile(filepath.Join(srcDir, "config.json"))
-		local["scriptContent"] = strings.TrimSpace(bodyText)
-		cfg, err := config.Load(cwd)
-		if err != nil {
-			return err
-		}
-		var res map[string]any
-		if err := postDevconsoleEnvelopeResponse(cwd, cfg, "/script/saveClientScript", local, func(next config.Config) map[string]any {
-			return map[string]any(next)
-		}, &res); err != nil {
-			return err
-		}
-		return printJSON(stdout, res)
-	case "get", "pull", "pullList", "detail", "delete":
-		return callDevConsoleScript(action, args, stdout, cwd)
-	default:
-		return fmt.Errorf("unsupported script action: %s", action)
+		return jsonx.WriteObjectFile(filepath.Join(dir, "config.json"), map[string]any{"name": name})
 	}
+	// Validate leaf symlinks before reading source/config or loading authentication.
+	root, err := projectlayout.ScriptRoot(project)
+	if err != nil {
+		return err
+	}
+	for _, leaf := range []string{name + ".js", "config.json"} {
+		if _, err := projectlayout.SafePath(project, root+"/"+args[0]+"/"+leaf); err != nil {
+			return err
+		}
+	}
+	content, err := os.ReadFile(sourcePath)
+	if err != nil {
+		return err
+	}
+	bodyText, err := extractMainBody(string(content))
+	if err != nil {
+		return err
+	}
+	local, err := jsonx.ReadObjectFile(filepath.Join(dir, "config.json"))
+	if err != nil {
+		return err
+	}
+	local["scriptContent"] = strings.TrimSpace(bodyText)
+	cfg, err := config.Load(project)
+	if err != nil {
+		return err
+	}
+	var res map[string]any
+	if err := postDevconsoleEnvelopeResponse(project, cfg, "/script/saveClientScript", local, func(next config.Config) map[string]any { return map[string]any(next) }, &res); err != nil {
+		return err
+	}
+	return printJSON(stdout, res)
 }
 
 func callDevConsoleScript(action string, args []string, stdout io.Writer, cwd string) error {

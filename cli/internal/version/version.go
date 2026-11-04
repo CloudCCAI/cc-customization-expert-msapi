@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.117"
+const Version = "2.2.118"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,6 +48,8 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- Project layout guidance now includes the complete annotated tree, directory responsibilities, required/stage/on-demand/local creation rules, source ownership boundaries, and the actual scope of initialization and directory checks. Run cloudcc doc projectLayout devguide.")
+		fmt.Fprintln(stderr, "- Project layout registry and offline doctor cover root ownership, Git tracking/staging, local-only files, delivery indexes, duplicate dependencies and output registration. Client scripts use frontend/scripts/<object>/<name> consistently for creation, publishing and scanning. Registry schema v2 has no source-path selector. Creation rejects overwrite and path escape; explicit project paths select both source and connection configuration.")
 		fmt.Fprintln(stderr, "- Mobile settings are now a first-class mobileSetting/mobile-settings domain covering parameters, homepage, offline cache, recommended modules, scan modules, homepage shortcuts, and first page. MSAPI is plan-first with drift checks, readback and rollback; Lightning uses setup-service with readback; horizontal UIAPI fails closed. Run cloudcc doc mobileSetting devguide. Requires MetadataService 1.1.99.")
 		fmt.Fprintln(stderr, "- Public groups are now a first-class publicGroup/public-groups domain: unique selectors, four typed member classes, candidates, create/update, add/remove/replace assignment, strict cycle and drift checks, guarded deletion, Lightning UIAPI replace adaptation, fail-closed horizontal UIAPI, readback and rollback. Run cloudcc doc publicGroup devguide. Requires MetadataService 1.1.98.")
 		fmt.Fprintln(stderr, "- Roles now provide a canonical self-contained lifecycle: capabilities, parent candidates, unique selectors, server-derived hierarchy creation, explicit subtree move, add/remove/replace user assignment, no-op protection, guarded deletion, readback and rollback. Run cloudcc doc role devguide. Requires MetadataService 1.1.97.")
@@ -185,7 +187,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		fmt.Fprintln(stderr, "- MetadataService field slot safety: field plans reserve existing tp_sys_schemetable mappings, allocate the first free object-local physical slot, reject explicit duplicates, and revalidate stale plans transactionally during apply.")
 		fmt.Fprintln(stderr, "- Generic skill package cleanup: project-specific validation-rule write-window, production-readiness, field-map alias, legacy-script replacement commands, tests, fixtures, and reports are removed from the distributable skill.")
 		fmt.Fprintln(stderr, "- MetadataService API integration: msapi capabilities/scan/resolve/validate/plan/apply/operation/changes/rollback/draft commands.")
-		fmt.Fprintln(stderr, "- Go-only local scanner: scan msapi <projectPath> highcode reports classes/triggers/timer/script/html/staticResource/pagecomponent/sidecar and legacy Node scripts.")
+		fmt.Fprintln(stderr, "- Go-only local scanner: scan msapi <projectPath> highcode reports classes/triggers/timer/script/html/staticResource/pagecomponent/sidecar.")
 		fmt.Fprintln(stderr, "- Go-only online scanner: scan msapi <projectPath> online-highcode reads classes/triggers/timer/script/staticResource/pagecomponent/html/customPage deployment list state without writes.")
 		fmt.Fprintln(stderr, "- High-code write boundary guard: MetadataService plan/validate/mutate/draft-create rejects classes/triggers/timer/script/html/staticResource/pagecomponent/customPage domains; use the original CloudCC resource/API commands for those writes.")
 		fmt.Fprintln(stderr, "- MetadataService scanner compare supports composite expected records, including object-scoped field API validation by object and field API name.")
@@ -375,6 +377,8 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc domains [--category <name>] [--format json|table]")
 	fmt.Fprintln(stdout, "  cloudcc domain <group-or-resource> [--format json|table]")
 	fmt.Fprintln(stdout, "  cloudcc doctor platform [projectPath]")
+	fmt.Fprintln(stdout, "  cloudcc init project-layout [projectPath]")
+	fmt.Fprintln(stdout, "  cloudcc doctor project-layout [projectPath]")
 	fmt.Fprintln(stdout, "  cloudcc doctor project-governance [projectPath]")
 	fmt.Fprintln(stdout, "  cloudcc init project-outputs <projectPath> <projectCode>")
 	fmt.Fprintln(stdout, "  cloudcc doctor project-outputs [projectPath]")
