@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.123"
+const Version = "2.2.124"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,6 +48,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- Workflow automation actions are now first-class MSAPI Domains: workflowTask, workflowEmailAlert, and workflowFieldUpdate provide native MetadataService CRUD, candidates, references, guarded deletion, and complete offline docs. workflows now owns immediate/time/recurring bindings and trigger lifecycle with activation graph checks. Requires MetadataService 1.1.105.")
 		fmt.Fprintln(stderr, "- Custom-setting and dashboard deletion now use one target-bound platform-standard operation: setupSvc /api/customsetting/deleteobj and apiSvc /api/dashboard/deleteDashboard. CLI forwards both targets per request; MetadataService stores neither address, never retries uncertain deletes, and reports them as non-reversible. Query/create/update remain native. Requires MetadataService 1.1.104.")
 		fmt.Fprintln(stderr, "- MSAPI now prefers MetadataService native relational persistence for every Domain; only Mongo/compound platform-authoritative Domains use setup-service, whose request target comes from the active CLI project. Email templates are native metadata-db resources. Requires MetadataService 1.1.103.")
 		fmt.Fprintln(stderr, "- Queue is now a first-class queue/queues record-owner domain. MSAPI provides candidates, delete impact, plan/apply drift checks, standard queueSetup execution, readback and rollback; Lightning uses the same standard service with readback; horizontal UIAPI fails closed. Run cloudcc doc queue devguide. Requires MetadataService 1.1.101.")
@@ -549,6 +550,16 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc update detailPageReport <projectPath> <assignmentId> <encodedSpecJson|@file>  # plan only")
 	fmt.Fprintln(stdout, "  cloudcc delete detailPageReport <projectPath> <assignmentId>  # plan only")
 	fmt.Fprintln(stdout, "  cloudcc doc detailPageReport devguide  # complete user guide")
+	fmt.Fprintln(stdout, "  cloudcc <capabilities|get|detail|candidates|impact> workflowTask <projectPath> [selector-or-filter]")
+	fmt.Fprintln(stdout, "  cloudcc <create|update|delete> workflowTask <projectPath> <@spec.json|selector [@patch.json]>  # MSAPI: plan only")
+	fmt.Fprintln(stdout, "  cloudcc <capabilities|get|detail|candidates|impact> workflowEmailAlert <projectPath> [selector-or-filter]")
+	fmt.Fprintln(stdout, "  cloudcc <create|update|delete> workflowEmailAlert <projectPath> <@spec.json|selector [@patch.json]>  # MSAPI: plan only")
+	fmt.Fprintln(stdout, "  cloudcc <capabilities|get|detail|candidates|impact> workflowFieldUpdate <projectPath> [selector-or-filter]")
+	fmt.Fprintln(stdout, "  cloudcc <create|update|delete> workflowFieldUpdate <projectPath> <@spec.json|selector [@patch.json]>  # MSAPI: plan only")
+	fmt.Fprintln(stdout, "  cloudcc <bindAction|createAction|unbindAction> workflow <projectPath> <@spec.json>  # MSAPI: plan only")
+	fmt.Fprintln(stdout, "  cloudcc <createTimeTrigger|updateTimeTrigger|deleteTimeTrigger> workflow <projectPath> <@spec.json>")
+	fmt.Fprintln(stdout, "  cloudcc <createRecurringTrigger|updateRecurringTrigger|deleteRecurringTrigger> workflow <projectPath> <@spec.json>")
+	fmt.Fprintln(stdout, "  cloudcc doc platform/workflowTask|workflowEmailAlert|workflowFieldUpdate|workflow devguide")
 	fmt.Fprintln(stdout, "  cloudcc create trigger <objectApi/TriggerName> [projectPath]  # recommended; flat TriggerName remains compatible")
 	fmt.Fprintln(stdout, "  cloudcc publish trigger <objectApi/TriggerName|TriggerName> [projectPath]")
 	fmt.Fprintln(stdout, "  cloudcc doctor classes [projectPath] [--java-home <path>] [--compiler-home <path>]")

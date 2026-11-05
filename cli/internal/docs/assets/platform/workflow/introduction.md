@@ -1,29 +1,45 @@
-# Workflow
+# 工作流 Domain
 
-Workflow covers the setup-web menu path **自动化 > 工作流**. In MSAPI mode it is a low-code metadata domain named `workflows`; the CLI resource aliases are `workflow` and `workflowRule`.
+`workflow`（别名 `workflowRule`）是工作流规则的一级 CLI Domain，MetadataService 规范名为 `workflows`，对应 setup-web `/#/settings/workflowRule/workflow-rule`。它管理规则条件、启停状态、即时动作关系、时间触发器、周期触发器及其动作关系。
 
-The first supported scope is workflow rule CRUD, activation state, and criteria/formula condition metadata. Immediate actions, time-dependent triggers, recurring triggers, and inline action creation are read back in detail output but are not created by the phase-1 workflow writer.
+## 适用场景
 
-## Setup-Web Mapping
+- 按对象字段条件或公式定义自动化规则；
+- 创建、修改、启用、停用和删除工作流；
+- 把任务、电子邮件通知、字段更新绑定到即时作用域；
+- 创建时间/周期触发器，并为触发器创建动作；
+- 审计一条规则拥有的条件、触发器和动作图。
 
-| Setup-web action | Setup-service endpoint | CLI/MSAPI mapping |
-| --- | --- | --- |
-| 列表查询 | `/api/workFlowSetup/listworkflows` | `cloudcc get workflow <projectPath>` |
-| 详情查询 | `/api/workFlowSetup/detailWorkflow` | `cloudcc detail workflow <projectPath> <workflowId>` |
-| 打开新建页 | `/api/workFlowSetup/newWorkflow` | Use object/field scan before authoring the spec |
-| 打开编辑页 | `/api/workFlowSetup/newWorkflow` | `cloudcc detail workflow` for readback context |
-| 新建保存 | `/api/workFlowSetup/saveNewButton` | `cloudcc create workflow <projectPath> @workflow.json` |
-| 编辑保存 | `/api/workFlowSetup/saveWorkflow` | `cloudcc update workflow <projectPath> @workflow.json` |
-| 删除 | `/api/workFlowSetup/deleteWorkflow` | `cloudcc delete workflow <projectPath> <workflowId>` |
-| 启用/停用 | `/api/workFlowSetup/activeWorkflow` | `cloudcc enable workflow ...` / `cloudcc disable workflow ...` |
+## 四个 Domain 的职责
 
-## Metadata Tables
+- `workflowTask`：任务动作定义；
+- `workflowEmailAlert`：邮件通知动作定义；
+- `workflowFieldUpdate`：字段更新动作定义；
+- `workflow`：规则、触发器和 `tp_sys_actions_relation` 绑定关系。
 
-Phase-1 workflow plans touch:
+动作定义与关系严格分离。删除工作流或解绑动作不会删除可复用动作定义；删除动作前必须通过对应动作 Domain 的 `impact` 确认引用为零。
 
-- `tp_sys_workflow`
-- `tp_sys_condition`
-- delete cleanup also removes root rows from `tp_sys_actions_relation`, `tp_sys_workflowdepend`, and `tp_sys_schedular`
+## 能力与边界
 
-Detail readback exposes the workflow row, criteria rows, action relation rows, time-dependent trigger rows, and recurring scheduler rows so operators can see whether a rule has child automation that should be handled separately.
+MSAPI 工作流完整能力要求 MetadataService `1.1.105+`。所有读写由 MetadataService 直接访问关系库，不调用 setup-service；写命令只生成计划。
 
+已有动作只能绑定即时作用域。时间和周期作用域只允许创建并绑定新任务/邮件动作；时间作用域也允许新字段更新，周期作用域禁止字段更新。启用前会校验已知动作存在且目标对象一致。
+
+工作流删除会按依赖顺序清理触发器动作关系、条件、即时关系和触发器，再删除规则根记录。动作根记录保留。
+
+## 建议工作流
+
+```bash
+cloudcc create workflow . @workflow.json
+cloudcc apply msapi . <planId>
+cloudcc detail workflow . <workflowId>
+cloudcc bindAction workflow . @bind.json
+cloudcc createTimeTrigger workflow . @time-trigger.json
+cloudcc enable workflow . <workflowId>
+```
+
+规则字段、条件替换、绑定/解绑、时间与周期调度字段、启停校验、删除顺序和错误码见：
+
+```bash
+cloudcc doc workflow devguide
+```

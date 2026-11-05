@@ -1,7 +1,7 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.2.123-msapi",
-  "releaseDate": "2026-11-04",
+  "version": "2.2.124-msapi",
+  "releaseDate": "2026-11-05",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
   "domainCatalog": {
@@ -99,6 +99,9 @@
           "fiscal-years",
           "areas",
           "currencies",
+          "workflow-tasks",
+          "workflow-email-alerts",
+          "workflow-field-updates",
           "workflows"
         ],
         "routes": [
@@ -2246,6 +2249,204 @@
         }
       },
       {
+        "name": "workflow-tasks",
+        "label": "Workflow task actions",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "workflowTask",
+          "workflow-task"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "unavailable",
+          "universal": "requires-msapi"
+        },
+        "minimumBackendVersion": "1.1.105",
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "platform": "lightning",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "unavailable",
+            "reason": "Workflow action Domains require MetadataService direct database plans."
+          },
+          {
+            "provider": "uiapi",
+            "platform": "horizontal",
+            "backend": "main-app",
+            "transport": "uiapi",
+            "availability": "unavailable",
+            "reason": "Workflow action Domains require MetadataService direct database plans."
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "capabilities",
+          "candidates",
+          "impact",
+          "create",
+          "update",
+          "delete"
+        ],
+        "commands": [
+          "cloudcc capabilities workflowTask <projectPath>",
+          "cloudcc get workflowTask <projectPath> [filter]",
+          "cloudcc detail workflowTask <projectPath> <selector>",
+          "cloudcc candidates workflowTask <projectPath> [object]",
+          "cloudcc impact workflowTask <projectPath> <selector>",
+          "cloudcc create workflowTask <projectPath> @spec.json",
+          "cloudcc update workflowTask <projectPath> <selector> @patch.json",
+          "cloudcc delete workflowTask <projectPath> <selector>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/workflowTask introduction",
+          "devguide": "cloudcc doc platform/workflowTask devguide"
+        }
+      },
+      {
+        "name": "workflow-email-alerts",
+        "label": "Workflow email alert actions",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "workflowEmailAlert",
+          "workflow-email-alert"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "unavailable",
+          "universal": "requires-msapi"
+        },
+        "minimumBackendVersion": "1.1.105",
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "platform": "lightning",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "unavailable",
+            "reason": "Workflow action Domains require MetadataService direct database plans."
+          },
+          {
+            "provider": "uiapi",
+            "platform": "horizontal",
+            "backend": "main-app",
+            "transport": "uiapi",
+            "availability": "unavailable",
+            "reason": "Workflow action Domains require MetadataService direct database plans."
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "capabilities",
+          "candidates",
+          "impact",
+          "create",
+          "update",
+          "delete"
+        ],
+        "commands": [
+          "cloudcc capabilities workflowEmailAlert <projectPath>",
+          "cloudcc get workflowEmailAlert <projectPath> [filter]",
+          "cloudcc detail workflowEmailAlert <projectPath> <selector>",
+          "cloudcc candidates workflowEmailAlert <projectPath> [object]",
+          "cloudcc impact workflowEmailAlert <projectPath> <selector>",
+          "cloudcc create workflowEmailAlert <projectPath> @spec.json",
+          "cloudcc update workflowEmailAlert <projectPath> <selector> @patch.json",
+          "cloudcc delete workflowEmailAlert <projectPath> <selector>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/workflowEmailAlert introduction",
+          "devguide": "cloudcc doc platform/workflowEmailAlert devguide"
+        }
+      },
+      {
+        "name": "workflow-field-updates",
+        "label": "Workflow field update actions",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "workflowFieldUpdate",
+          "workflow-field-update"
+        ],
+        "packageAvailability": "enabled",
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "unavailable",
+          "universal": "requires-msapi"
+        },
+        "minimumBackendVersion": "1.1.105",
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled"
+          },
+          {
+            "provider": "uiapi",
+            "platform": "lightning",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "unavailable",
+            "reason": "Workflow action Domains require MetadataService direct database plans."
+          },
+          {
+            "provider": "uiapi",
+            "platform": "horizontal",
+            "backend": "main-app",
+            "transport": "uiapi",
+            "availability": "unavailable",
+            "reason": "Workflow action Domains require MetadataService direct database plans."
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "capabilities",
+          "candidates",
+          "impact",
+          "create",
+          "update",
+          "delete"
+        ],
+        "commands": [
+          "cloudcc capabilities workflowFieldUpdate <projectPath>",
+          "cloudcc get workflowFieldUpdate <projectPath> [filter]",
+          "cloudcc detail workflowFieldUpdate <projectPath> <selector>",
+          "cloudcc candidates workflowFieldUpdate <projectPath> [object]",
+          "cloudcc impact workflowFieldUpdate <projectPath> <selector>",
+          "cloudcc create workflowFieldUpdate <projectPath> @spec.json",
+          "cloudcc update workflowFieldUpdate <projectPath> <selector> @patch.json",
+          "cloudcc delete workflowFieldUpdate <projectPath> <selector>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/workflowFieldUpdate introduction",
+          "devguide": "cloudcc doc platform/workflowFieldUpdate devguide"
+        }
+      },
+      {
         "name": "workflows",
         "label": "Workflow rules",
         "kind": "resource",
@@ -2261,7 +2462,7 @@
           "uiapi": "provider-adapter",
           "universal": "provider-selected"
         },
-        "minimumBackendVersion": null,
+        "minimumBackendVersion": "1.1.105",
         "routes": [
           {
             "provider": "msapi",
@@ -2283,11 +2484,21 @@
           "update",
           "delete",
           "activate",
-          "deactivate"
+          "deactivate",
+          "bindAction",
+          "createAction",
+          "unbindAction",
+          "createTimeTrigger",
+          "updateTimeTrigger",
+          "deleteTimeTrigger",
+          "createRecurringTrigger",
+          "updateRecurringTrigger",
+          "deleteRecurringTrigger"
         ],
         "commands": [
           "cloudcc get workflow <projectPath> [selector]",
-          "cloudcc create workflow <projectPath> <spec>"
+          "cloudcc create workflow <projectPath> <spec>",
+          "cloudcc createAction workflow <projectPath> @spec.json"
         ],
         "documentation": {
           "introduction": "cloudcc doc platform/workflow introduction",
@@ -2927,6 +3138,32 @@
     "sourceOfTruth": "cc-customization-expert-go/config.json",
     "policy": "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
     "minimumByCapability": [
+      {
+        "capability": "msapi.workflowActions.canonicalLifecycle",
+        "label": "Workflow task, email alert, field update, binding, and trigger lifecycle",
+        "introducedInSkillVersion": "2.2.124-msapi",
+        "minimumMetadataServiceVersion": "1.1.105",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.105",
+        "domains": [
+          "workflow-tasks",
+          "workflow-email-alerts",
+          "workflow-field-updates",
+          "workflows"
+        ],
+        "operations": [
+          "create",
+          "update",
+          "delete",
+          "query",
+          "references",
+          "bind-existing-action",
+          "create-and-bind-action",
+          "unbind-action",
+          "time-trigger-lifecycle",
+          "recurring-trigger-lifecycle"
+        ],
+        "reason": "Requires direct MetadataService database compilers and readback for reusable action roots, reference-guarded deletion, workflow-owned action relations, and time/recurring trigger lifecycle without setup-service calls."
+      },
       {
         "capability": "msapi.platformStandardDeleteRouting",
         "label": "Platform-standard custom-setting and dashboard deletion",

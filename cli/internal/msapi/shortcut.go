@@ -108,6 +108,12 @@ var lowCodeShortcutDomains = map[string]string{
 	"view":                   "object-views",
 	"workflow":               "workflows",
 	"workflowRule":           "workflows",
+	"workflowTask":           "workflow-tasks",
+	"workflow-task":          "workflow-tasks",
+	"workflowEmailAlert":     "workflow-email-alerts",
+	"workflow-email-alert":   "workflow-email-alerts",
+	"workflowFieldUpdate":    "workflow-field-updates",
+	"workflow-field-update":  "workflow-field-updates",
 }
 
 var lowCodeShortcutActions = map[string]bool{
@@ -179,6 +185,18 @@ var lowCodeShortcutActions = map[string]bool{
 	"applyGlobalDependency":  true,
 	"apply-global":           true,
 	"clear":                  true,
+	"bindAction":             true,
+	"bind-action":            true,
+	"createAction":           true,
+	"create-action":          true,
+	"unbindAction":           true,
+	"unbind-action":          true,
+	"createTimeTrigger":      true,
+	"updateTimeTrigger":      true,
+	"deleteTimeTrigger":      true,
+	"createRecurringTrigger": true,
+	"updateRecurringTrigger": true,
+	"deleteRecurringTrigger": true,
 }
 
 // IsLowCodeShortcut returns true for legacy low-code metadata CLI shortcuts that
@@ -186,7 +204,7 @@ var lowCodeShortcutActions = map[string]bool{
 func IsLowCodeShortcut(action string, resource string) bool {
 	domain, ok := lowCodeShortcutDomains[strings.TrimSpace(resource)]
 	if strings.TrimSpace(action) == "capabilities" {
-		return ok && (domain == "search-layouts" || domain == "roles" || domain == "public-groups" || domain == "mobile-settings" || domain == "queues" || domain == "email-templates")
+		return ok && (domain == "search-layouts" || domain == "roles" || domain == "public-groups" || domain == "mobile-settings" || domain == "queues" || domain == "email-templates" || isWorkflowActionDomain(domain))
 	}
 	if !lowCodeShortcutActions[strings.TrimSpace(action)] {
 		return false
@@ -243,6 +261,9 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 	}
 	if domain == "email-templates" && (isShortcutRead(action) || strings.TrimSpace(action) == "capabilities" || strings.TrimSpace(action) == "impact") {
 		return handleEmailTemplateReadShortcut(action, resource, projectPath, rest, stdout, cwd)
+	}
+	if isWorkflowActionDomain(domain) && (isShortcutRead(action) || strings.TrimSpace(action) == "capabilities" || strings.TrimSpace(action) == "candidates" || strings.TrimSpace(action) == "impact") {
+		return handleWorkflowActionReadShortcut(action, resource, domain, projectPath, rest, stdout, cwd)
 	}
 	if resource == "sharingRule" && isShortcutRead(action) {
 		return handleSharingRuleReadShortcut(action, projectPath, rest, stdout, cwd)
@@ -2598,6 +2619,28 @@ func shortcutProjectPath(args []string, cwd string) (string, []string) {
 
 func shortcutPlanSpec(action string, resource string, args []string) (map[string]any, string, error) {
 	operation := shortcutOperation(action, resource)
+	if isWorkflowActionDomain(lowCodeShortcutDomains[strings.TrimSpace(resource)]) {
+		switch strings.TrimSpace(action) {
+		case "update", "save":
+			if len(args) != 2 || strings.TrimSpace(args[0]) == "" || !looksLikeJSONArg(args[1]) {
+				return nil, "", fmt.Errorf("cloudcc %s %s <projectPath> <selector> <@spec.json>", action, resource)
+			}
+			body, err := parseObject(args[1], "cloudcc "+action+" "+resource)
+			if err != nil {
+				return nil, "", err
+			}
+			body["selector"] = strings.TrimSpace(args[0])
+			return body, "update", nil
+		case "delete", "remove":
+			if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
+				return nil, "", fmt.Errorf("cloudcc delete %s <projectPath> <selector>", resource)
+			}
+			return map[string]any{"selector": strings.TrimSpace(args[0])}, "delete", nil
+		default:
+			body, _, err := shortcutBodySpec(action, resource, args)
+			return body, operation, err
+		}
+	}
 	if lowCodeShortcutDomains[strings.TrimSpace(resource)] == "email-templates" {
 		folder := strings.TrimSpace(resource) == "emailTemplateFolder"
 		action = strings.TrimSpace(action)
@@ -3502,6 +3545,59 @@ func currencyShortcutSpec(action string, args []string) (map[string]any, string,
 	}
 }
 
+func isWorkflowActionDomain(domain string) bool {
+	switch strings.TrimSpace(domain) {
+	case "workflow-tasks", "workflow-email-alerts", "workflow-field-updates":
+		return true
+	default:
+		return false
+	}
+}
+
+func handleWorkflowActionReadShortcut(action string, resource string, domain string, projectPath string, args []string, stdout io.Writer, cwd string) error {
+	action = strings.TrimSpace(action)
+	c, _, err := newClient([]string{projectPath}, cwd)
+	if err != nil {
+		return err
+	}
+	base := "/metadata/v1/" + domain
+	switch action {
+	case "capabilities":
+		if len(args) != 0 {
+			return fmt.Errorf("cloudcc capabilities %s <projectPath>", resource)
+		}
+		return c.getJSON(stdout, base+"/capabilities")
+	case "candidates":
+		if len(args) > 1 {
+			return fmt.Errorf("cloudcc candidates %s <projectPath> [object-selector]", resource)
+		}
+		path := base + "/candidates"
+		if len(args) == 1 && strings.TrimSpace(args[0]) != "" {
+			path += "?object=" + url.QueryEscape(strings.TrimSpace(args[0]))
+		}
+		return c.getJSON(stdout, path)
+	case "impact":
+		if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
+			return fmt.Errorf("cloudcc impact %s <projectPath> <id-or-apiName>", resource)
+		}
+		return c.getJSON(stdout, base+"/"+url.PathEscape(strings.TrimSpace(args[0]))+"/references")
+	case "detail", "editInfo", "validDelete":
+		if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
+			return fmt.Errorf("cloudcc %s %s <projectPath> <id-or-apiName>", action, resource)
+		}
+		return c.getJSON(stdout, base+"/"+url.PathEscape(strings.TrimSpace(args[0])))
+	default:
+		if len(args) > 1 {
+			return fmt.Errorf("cloudcc %s %s <projectPath> [filter]", action, resource)
+		}
+		path := base
+		if len(args) == 1 && strings.TrimSpace(args[0]) != "" {
+			path += "?filter=" + url.QueryEscape(strings.TrimSpace(args[0]))
+		}
+		return c.getJSON(stdout, path)
+	}
+}
+
 func handleWorkflowReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
 	action = strings.TrimSpace(action)
 	c, _, err := newClient([]string{projectPath}, cwd)
@@ -3528,6 +3624,20 @@ func handleWorkflowReadShortcut(action string, projectPath string, args []string
 
 func workflowShortcutSpec(action string, args []string) (map[string]any, string, error) {
 	operation := shortcutOperation(action, "workflow")
+	workflowOperations := map[string]string{
+		"bindAction": "bind-existing-action", "bind-action": "bind-existing-action",
+		"createAction": "create-and-bind-action", "create-action": "create-and-bind-action",
+		"unbindAction": "unbind-action", "unbind-action": "unbind-action",
+		"createTimeTrigger": "create-time-trigger", "updateTimeTrigger": "update-time-trigger", "deleteTimeTrigger": "delete-time-trigger",
+		"createRecurringTrigger": "create-recurring-trigger", "updateRecurringTrigger": "update-recurring-trigger", "deleteRecurringTrigger": "delete-recurring-trigger",
+	}
+	if mapped, ok := workflowOperations[strings.TrimSpace(action)]; ok {
+		if len(args) != 1 || !looksLikeJSONArg(args[0]) {
+			return nil, "", fmt.Errorf("cloudcc %s workflow <projectPath> <@spec.json>", action)
+		}
+		body, err := parseObject(args[0], "cloudcc "+action+" workflow")
+		return body, mapped, err
+	}
 	if len(args) > 0 && looksLikeJSONArg(args[0]) {
 		body, err := parseObject(args[0], "cloudcc "+action+" workflow")
 		return body, operation, err
