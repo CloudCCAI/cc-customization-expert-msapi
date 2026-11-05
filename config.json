@@ -1,6 +1,6 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.2.125-msapi",
+  "version": "2.3.0-msapi",
   "releaseDate": "2026-11-05",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
@@ -1032,7 +1032,7 @@
           "uiapi": "provider-adapter",
           "universal": "provider-selected"
         },
-        "minimumBackendVersion": null,
+        "minimumBackendVersion": "1.1.77",
         "routes": [
           {
             "provider": "msapi",
@@ -1044,19 +1044,41 @@
             "provider": "uiapi",
             "backend": "setup-svc",
             "transport": "uiapi",
-            "availability": "provider-adapter"
+            "availability": "provider-adapter",
+            "reason": "Contract 2 commands require an exact endpoint and semantic readback."
           }
         ],
         "actions": [
           "get",
           "detail",
+          "capabilities",
+          "settings",
+          "candidates",
           "create",
           "update",
-          "delete"
+          "delete",
+          "replace-applications",
+          "replace-tabs",
+          "replace-system-permissions",
+          "replace-object-permissions",
+          "replace-mobile-settings",
+          "replace-integrations",
+          "replace-field-security",
+          "replace-record-types",
+          "replace-login-times",
+          "create-login-ip",
+          "update-login-ip",
+          "delete-login-ip",
+          "replace-encrypted-field-visibility",
+          "update-password-policy"
         ],
         "commands": [
           "cloudcc get profile <projectPath> [selector]",
-          "cloudcc create profile <projectPath> <spec>"
+          "cloudcc detail profile <projectPath> <selector>",
+          "cloudcc capabilities profile <projectPath> <selector>",
+          "cloudcc settings profile <projectPath> <selector> <section> [object]",
+          "cloudcc candidates profile <projectPath> <selector> <section> [object]",
+          "cloudcc <contract-2-operation> profile <projectPath> @spec.json"
         ],
         "documentation": {
           "introduction": "cloudcc doc platform/profile introduction",
@@ -3145,6 +3167,35 @@
     "sourceOfTruth": "cc-customization-expert-go/config.json",
     "policy": "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
     "minimumByCapability": [
+      {
+        "capability": "msapi.profiles.contract2",
+        "label": "Profile Contract 2 page-parity lifecycle",
+        "introducedInSkillVersion": "2.3.0-msapi",
+        "minimumMetadataServiceVersion": "1.2.0",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.2.0",
+        "domains": [
+          "profiles"
+        ],
+        "operations": [
+          "capabilities",
+          "settings",
+          "candidates",
+          "guarded-create",
+          "replace-applications",
+          "replace-tabs",
+          "replace-system-permissions",
+          "replace-object-permissions",
+          "replace-mobile-settings",
+          "replace-integrations",
+          "replace-field-security",
+          "replace-record-types",
+          "replace-login-times",
+          "login-ip-crud",
+          "replace-encrypted-field-visibility",
+          "update-password-policy"
+        ],
+        "reason": "Requires explicit Profile Contract 2 discovery, existing-row ownership guards, setup-service authoritative create/password-policy effects, semantic readback, no-retry uncertain outcomes, and unchanged Contract 1 defaults."
+      },
       {
         "capability": "msapi.applications.footerTools",
         "label": "Application-owned footer tool lifecycle",

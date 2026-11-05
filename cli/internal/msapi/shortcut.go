@@ -117,86 +117,101 @@ var lowCodeShortcutDomains = map[string]string{
 }
 
 var lowCodeShortcutActions = map[string]bool{
-	"get":                    true,
-	"detail":                 true,
-	"getList":                true,
-	"newInfo":                true,
-	"editInfo":               true,
-	"validDelete":            true,
-	"create":                 true,
-	"createQuarter":          true,
-	"create-quarter":         true,
-	"createFiscalQuarter":    true,
-	"create-fiscal-quarter":  true,
-	"register":               true,
-	"update":                 true,
-	"replace":                true,
-	"upsert":                 true,
-	"updateQuarter":          true,
-	"update-quarter":         true,
-	"updateFiscalQuarter":    true,
-	"update-fiscal-quarter":  true,
-	"saveFiscalQuarter":      true,
-	"save-fiscal-quarter":    true,
-	"save":                   true,
-	"updateRate":             true,
-	"update-rate":            true,
-	"updateRates":            true,
-	"update-rates":           true,
-	"createDatedRate":        true,
-	"create-dated-rate":      true,
-	"updateDatedRate":        true,
-	"update-dated-rate":      true,
-	"deleteDatedRate":        true,
-	"delete-dated-rate":      true,
-	"enableAdvanced":         true,
-	"enable-advanced":        true,
-	"disableAdvanced":        true,
-	"disable-advanced":       true,
-	"changeCorporate":        true,
-	"change-corporate":       true,
-	"modify":                 true,
-	"editSave":               true,
-	"saveDependency":         true,
-	"save-dependency":        true,
-	"assignPicklistValues":   true,
-	"assign-picklist-values": true,
-	"assign":                 true,
-	"move":                   true,
-	"add":                    true,
-	"remove":                 true,
-	"delete":                 true,
-	"deleteQuarter":          true,
-	"delete-quarter":         true,
-	"deleteFiscalQuarter":    true,
-	"delete-fiscal-quarter":  true,
-	"delFiscalQuarter":       true,
-	"del-fiscal-quarter":     true,
-	"enable":                 true,
-	"disable":                true,
-	"activate":               true,
-	"deactivate":             true,
-	"purge":                  true,
-	"runtime":                true,
-	"audit":                  true,
-	"repair":                 true,
-	"candidates":             true,
-	"impact":                 true,
-	"applyGlobalDependency":  true,
-	"apply-global":           true,
-	"clear":                  true,
-	"bindAction":             true,
-	"bind-action":            true,
-	"createAction":           true,
-	"create-action":          true,
-	"unbindAction":           true,
-	"unbind-action":          true,
-	"createTimeTrigger":      true,
-	"updateTimeTrigger":      true,
-	"deleteTimeTrigger":      true,
-	"createRecurringTrigger": true,
-	"updateRecurringTrigger": true,
-	"deleteRecurringTrigger": true,
+	"get":                                true,
+	"detail":                             true,
+	"getList":                            true,
+	"newInfo":                            true,
+	"editInfo":                           true,
+	"validDelete":                        true,
+	"create":                             true,
+	"createQuarter":                      true,
+	"create-quarter":                     true,
+	"createFiscalQuarter":                true,
+	"create-fiscal-quarter":              true,
+	"register":                           true,
+	"update":                             true,
+	"replace":                            true,
+	"upsert":                             true,
+	"updateQuarter":                      true,
+	"update-quarter":                     true,
+	"updateFiscalQuarter":                true,
+	"update-fiscal-quarter":              true,
+	"saveFiscalQuarter":                  true,
+	"save-fiscal-quarter":                true,
+	"save":                               true,
+	"updateRate":                         true,
+	"update-rate":                        true,
+	"updateRates":                        true,
+	"update-rates":                       true,
+	"createDatedRate":                    true,
+	"create-dated-rate":                  true,
+	"updateDatedRate":                    true,
+	"update-dated-rate":                  true,
+	"deleteDatedRate":                    true,
+	"delete-dated-rate":                  true,
+	"enableAdvanced":                     true,
+	"enable-advanced":                    true,
+	"disableAdvanced":                    true,
+	"disable-advanced":                   true,
+	"changeCorporate":                    true,
+	"change-corporate":                   true,
+	"modify":                             true,
+	"editSave":                           true,
+	"saveDependency":                     true,
+	"save-dependency":                    true,
+	"assignPicklistValues":               true,
+	"assign-picklist-values":             true,
+	"assign":                             true,
+	"move":                               true,
+	"add":                                true,
+	"remove":                             true,
+	"delete":                             true,
+	"deleteQuarter":                      true,
+	"delete-quarter":                     true,
+	"deleteFiscalQuarter":                true,
+	"delete-fiscal-quarter":              true,
+	"delFiscalQuarter":                   true,
+	"del-fiscal-quarter":                 true,
+	"enable":                             true,
+	"disable":                            true,
+	"activate":                           true,
+	"deactivate":                         true,
+	"purge":                              true,
+	"runtime":                            true,
+	"audit":                              true,
+	"repair":                             true,
+	"candidates":                         true,
+	"settings":                           true,
+	"replace-applications":               true,
+	"replace-tabs":                       true,
+	"replace-system-permissions":         true,
+	"replace-object-permissions":         true,
+	"replace-mobile-settings":            true,
+	"replace-integrations":               true,
+	"replace-field-security":             true,
+	"replace-record-types":               true,
+	"replace-login-times":                true,
+	"create-login-ip":                    true,
+	"update-login-ip":                    true,
+	"delete-login-ip":                    true,
+	"replace-encrypted-field-visibility": true,
+	"update-password-policy":             true,
+	"impact":                             true,
+	"applyGlobalDependency":              true,
+	"apply-global":                       true,
+	"clear":                              true,
+	"bindAction":                         true,
+	"bind-action":                        true,
+	"createAction":                       true,
+	"create-action":                      true,
+	"unbindAction":                       true,
+	"unbind-action":                      true,
+	"createTimeTrigger":                  true,
+	"updateTimeTrigger":                  true,
+	"deleteTimeTrigger":                  true,
+	"createRecurringTrigger":             true,
+	"updateRecurringTrigger":             true,
+	"deleteRecurringTrigger":             true,
 }
 
 // IsLowCodeShortcut returns true for legacy low-code metadata CLI shortcuts that
@@ -204,7 +219,7 @@ var lowCodeShortcutActions = map[string]bool{
 func IsLowCodeShortcut(action string, resource string) bool {
 	domain, ok := lowCodeShortcutDomains[strings.TrimSpace(resource)]
 	if strings.TrimSpace(action) == "capabilities" {
-		return ok && (domain == "search-layouts" || domain == "roles" || domain == "public-groups" || domain == "mobile-settings" || domain == "queues" || domain == "email-templates" || isWorkflowActionDomain(domain))
+		return ok && (domain == "profiles" || domain == "search-layouts" || domain == "roles" || domain == "public-groups" || domain == "mobile-settings" || domain == "queues" || domain == "email-templates" || isWorkflowActionDomain(domain))
 	}
 	if !lowCodeShortcutActions[strings.TrimSpace(action)] {
 		return false
@@ -1214,6 +1229,31 @@ func handleProfileShortcut(action string, projectPath string, args []string, std
 			return err
 		}
 		return c.getJSON(stdout, "/metadata/v1/profiles/"+url.PathEscape(strings.TrimSpace(fmt.Sprint(profile["id"]))))
+	case "capabilities":
+		selector, err := profileShortcutValue(args, true)
+		if err != nil {
+			return err
+		}
+		profile, err := c.resolveUniqueProfile(selector)
+		if err != nil {
+			return err
+		}
+		return c.getJSON(stdout, "/metadata/v1/profiles/"+url.PathEscape(strings.TrimSpace(fmt.Sprint(profile["id"])))+"/capabilities")
+	case "settings", "candidates":
+		if len(args) < 2 || strings.TrimSpace(args[1]) == "" {
+			return fmt.Errorf("cloudcc %s profile <projectPath> <id-or-name-or-apiName> <section> [object]", action)
+		}
+		profile, err := c.resolveUniqueProfile(strings.TrimSpace(args[0]))
+		if err != nil {
+			return err
+		}
+		values := url.Values{}
+		values.Set("section", strings.TrimSpace(args[1]))
+		if len(args) > 2 && strings.TrimSpace(args[2]) != "" {
+			values.Set("object", strings.TrimSpace(args[2]))
+		}
+		path := "/metadata/v1/profiles/" + url.PathEscape(strings.TrimSpace(fmt.Sprint(profile["id"]))) + "/" + action + "?" + values.Encode()
+		return c.getJSON(stdout, path)
 	case "delete", "remove":
 		selector, err := profileShortcutValue(args, true)
 		if err != nil {
@@ -1235,9 +1275,26 @@ func handleProfileShortcut(action string, projectPath string, args []string, std
 		}
 		return c.writeJSON(stdout, http.MethodPost, "/metadata/v1/plans", body)
 	default:
-		spec, operation, err := shortcutPlanSpec(action, "profile", args)
+		var spec map[string]any
+		operation := strings.TrimSpace(action)
+		if profileExtendedOperation(operation) {
+			if len(args) != 1 {
+				return fmt.Errorf("cloudcc %s profile <projectPath> <specJson|@file>", operation)
+			}
+			spec, err = parseObject(args[0], "cloudcc "+operation+" profile")
+		} else {
+			spec, operation, err = shortcutPlanSpec(action, "profile", args)
+		}
 		if err != nil {
 			return err
+		}
+		extended := profileExtendedOperation(operation)
+		available, capabilityErr := c.profileContract2Available()
+		if extended && (capabilityErr != nil || !available) {
+			return fmt.Errorf("profile operation %s requires MetadataService 1.2.0 with profiles contract 2", operation)
+		}
+		if available && (extended || operation == "create") {
+			spec["profileContractVersion"] = 2
 		}
 		body := map[string]any{
 			"domain":    "profiles",
@@ -1248,6 +1305,34 @@ func handleProfileShortcut(action string, projectPath string, args []string, std
 		}
 		return c.writeJSON(stdout, http.MethodPost, "/metadata/v1/plans", body)
 	}
+}
+
+func profileExtendedOperation(operation string) bool {
+	switch strings.TrimSpace(operation) {
+	case "replace-applications", "replace-tabs", "replace-system-permissions", "replace-object-permissions",
+		"replace-mobile-settings", "replace-integrations", "replace-field-security", "replace-record-types",
+		"replace-login-times", "create-login-ip", "update-login-ip", "delete-login-ip",
+		"replace-encrypted-field-visibility", "update-password-policy":
+		return true
+	default:
+		return false
+	}
+}
+
+func (c *client) profileContract2Available() (bool, error) {
+	response, err := c.requestJSONMap(http.MethodGet, "/metadata/v1/capabilities", nil)
+	if err != nil {
+		return false, err
+	}
+	details, _ := response["domainDetails"].(map[string]any)
+	profiles, _ := details["profiles"].(map[string]any)
+	versions, _ := profiles["contractVersions"].([]any)
+	for _, version := range versions {
+		if fmt.Sprint(version) == "2" {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func handlePermissionSetReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {

@@ -1,12 +1,12 @@
 ---
 name: cc-customization-expert-msapi
-version: 2.2.125-msapi
+version: 2.3.0-msapi
 description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService."
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.2.125-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.3.0-msapi
 
-当前技能版本：`2.2.125-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.3.0-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
 

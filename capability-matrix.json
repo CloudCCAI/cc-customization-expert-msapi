@@ -1,9 +1,9 @@
 {
   "schemaVersion": "cloudcc-dual-provider-capability-matrix/v1",
-  "releaseBaseline": "2.2.125",
+  "releaseBaseline": "2.3.0",
   "msapiBaseline": {
     "domains": 33,
-    "operations": 166,
+    "operations": 183,
     "source": "MetadataService capability catalog; live replay evidence coverage remains independently audited"
   },
   "semantics": {
@@ -45,7 +45,7 @@
     {"id":"global-select-lists","uiapiResource":"globalSelectList","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
     {"id":"record-types","uiapiResource":"recordType","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
     {"id":"layouts","uiapiResource":"pagelayout","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
-    {"id":"profiles","uiapiResource":"profile","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested"}},
+    {"id":"profiles","uiapiResource":"profile","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","query":"contract_tested","contract2-settings":"unsupported_requires_exact_adapter","contract2-relational-children":"unsupported_requires_exact_adapter","contract2-password-policy":"mapped","contract2-guarded-create":"mapped"}},
     {"id":"permissions","uiapiResource":"permission","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","assign":"contract_tested","remove":"contract_tested","query":"contract_tested"}},
     {"id":"roles","uiapiResource":"role","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","assign":"contract_tested","query":"contract_tested"}},
     {"id":"public-groups","uiapiResource":"publicGroup","uiapiState":"contract_tested","uiapiOperations":{"create":"contract_tested","update":"contract_tested","delete":"contract_tested","assign-replace":"contract_tested","query":"contract_tested","candidates":"contract_tested"}},

@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.125"
+const Version = "2.3.0"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,6 +48,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- Profile Contract 2 adds typed settings/candidates, explicit owned child operations, setup-service guarded create, password-policy uncertainty handling, and strict compatibility discovery. Extended operations require MetadataService 1.2.0; legacy operations remain compatible.")
 		fmt.Fprintln(stderr, "- Application Domain self-audit now returns typed footerTools readback, reports unresolved historical components without crashing candidates, orders VARCHAR seq numerically, rejects malformed/fractional panels, clears stale pageApi on kind changes, and ships a complete user guide. MetadataService remains 1.1.106.")
 		fmt.Fprintln(stderr, "- Application create/update now supports application-owned footerTools through MSAPI, including candidates, friendly ccchat/callcenter/customPage descriptors, explicit preserve/clear/replace semantics, minimal-diff plans, readback, drift protection, rollback, and legacy request compatibility. Requires MetadataService 1.1.106.")
 		fmt.Fprintln(stderr, "- Workflow automation actions are now first-class MSAPI Domains: workflowTask, workflowEmailAlert, and workflowFieldUpdate provide native MetadataService CRUD, candidates, references, guarded deletion, and complete offline docs. workflows now owns immediate/time/recurring bindings and trigger lifecycle with activation graph checks. Requires MetadataService 1.1.105.")
@@ -453,6 +454,10 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc delete trigger <projectPath> <id|name|apiName>")
 	fmt.Fprintln(stdout, "  cloudcc get profile <projectPath> [filter]")
 	fmt.Fprintln(stdout, "  cloudcc detail profile <projectPath> <id|name|apiName>")
+	fmt.Fprintln(stdout, "  cloudcc capabilities profile <projectPath> <id|name|apiName>")
+	fmt.Fprintln(stdout, "  cloudcc settings profile <projectPath> <id|name|apiName> <section> [object]")
+	fmt.Fprintln(stdout, "  cloudcc candidates profile <projectPath> <id|name|apiName> <section> [object]")
+	fmt.Fprintln(stdout, "  cloudcc <replace-*|login-ip|update-password-policy> profile <projectPath> @spec.json  # Contract 2, MetadataService 1.2.0+")
 	fmt.Fprintln(stdout, "  cloudcc delete profile <projectPath> <id|name|apiName>  # resolves uniquely and creates a guarded MetadataService plan")
 	fmt.Fprintln(stdout, "  cloudcc create pagelayout <projectPath> <object> <layoutName> [sourceLayoutId] [isCloneDynamic] [--assign] [--profile <profileId>]... [--record-type <recordTypeId>]... [--include-main-record-type]")
 	fmt.Fprintln(stdout, "  cloudcc assign pagelayout <projectPath> <object> <layoutId> --profile <profileId>... [--record-type <recordTypeId>]... [--include-main-record-type]")

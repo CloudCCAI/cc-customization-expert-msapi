@@ -8,6 +8,9 @@
 GET /metadata/v1/profiles?filter=<text>
 GET /metadata/v1/profiles?selector=<id-or-name-or-apiName>
 GET /metadata/v1/profiles/{id}
+GET /metadata/v1/profiles/{id}/capabilities
+GET /metadata/v1/profiles/{id}/settings?section=<section>&object=<selector>
+GET /metadata/v1/profiles/{id}/candidates?section=<section>&object=<selector>
 ```
 
 - `filter` 对 ID、名称、API 名称和描述做不区分大小写的包含匹配。
@@ -28,6 +31,9 @@ GET /metadata/v1/profiles/{id}
 ```bash
 cloudcc get profile <projectPath> [filter]
 cloudcc detail profile <projectPath> <id|name|apiName>
+cloudcc capabilities profile <projectPath> <id|name|apiName>
+cloudcc settings profile <projectPath> <id|name|apiName> <section> [object]
+cloudcc candidates profile <projectPath> <id|name|apiName> <section> [object]
 cloudcc create profile <projectPath> <specJson|@file>
 cloudcc update profile <projectPath> <specJson|@file>
 cloudcc delete profile <projectPath> <id|name|apiName>
@@ -65,6 +71,20 @@ cloudcc apply msapi <projectPath> <planId>
 没有 `copyFromId` 且没有 `blank: true`，或同时提供两者，计划阶段即失败。
 
 ## 更新契约
+
+### Contract 2 扩展操作（MetadataService 1.2.0+）
+
+扩展操作为 `replace-applications`、`replace-tabs`、`replace-system-permissions`、`replace-object-permissions`、`replace-mobile-settings`、`replace-integrations`、`replace-field-security`、`replace-record-types`、`replace-login-times`、`create-login-ip`、`update-login-ip`、`delete-login-ip`、`replace-encrypted-field-visibility` 和 `update-password-policy`。调用格式：
+
+```bash
+cloudcc replace-field-security profile . @profile-field-security.json
+cloudcc replace-login-times profile . @profile-login-times.json
+cloudcc update-password-policy profile . @profile-password-policy.json
+```
+
+CLI 2.3.0 先检查服务端 `profiles.contractVersions`。扩展操作只在包含 `2` 时发送，并自动写入 `profileContractVersion: 2`；否则在创建 plan 前失败。CLI 2.2.125 不发送该字段，因此连接 MetadataService 1.2.0 时仍保持 Contract 1。默认列表、详情 JSON 和旧 create/update/delete 语义不变。
+
+Contract 2 创建通过 `/api/profile/newProfile` 执行配额和平台副作用；密码策略通过 `/api/passwordpolicy/query|save` 完整替换并回读。两者提交超时均为 `APPLY_UNCERTAIN`，禁止盲重试。密码策略回滚分类为 `COMPENSATING_PARTIAL`，不能精确逆转用户 `latest_psw_date` 初始化与缓存时序。
 
 `profiles.update` 是 existing-row-only 操作：每个 `infosetUpdates`、`objectPermissions`、`tabPermissions`、`systemPermissions` 或 `loginRestrictions` 元素必须携带已有 `id`/`profileInfosetId`。服务端校验该行确实属于目标 profile，然后只生成 `UPDATE`。
 

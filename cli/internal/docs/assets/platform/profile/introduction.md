@@ -8,6 +8,8 @@
 |------|------|------|
 | 列表 | `cloudcc get profile <projectPath> [filter]` | 只读查询 `tp_sys_profile`，可按 ID、名称、API 名称或描述过滤 |
 | 详情 | `cloudcc detail profile <projectPath> <id\|name\|apiName>` | 先唯一解析选择器，再按 ID 读取详情和引用计数 |
+| 能力 | `cloudcc capabilities profile <projectPath> <selector>` | 读取 Contract 版本、分区、操作及 provider 要求 |
+| 设置/候选 | `cloudcc settings\|candidates profile <projectPath> <selector> <section> [object]` | 读取 Contract 2 类型化状态、候选与 scope fingerprint |
 | 创建/更新 | `cloudcc create\|update profile <projectPath> <specJson\|@file>` | 校验来源或既有权限关系后，只创建 MetadataService plan |
 | 删除 | `cloudcc delete profile <projectPath> <id\|name\|apiName>` | 唯一解析后创建受保护的 delete plan |
 | 执行 | `cloudcc apply msapi <projectPath> <planId>` | 显式执行计划并记录 changes/rollback 证据 |
@@ -58,6 +60,10 @@ cloudcc create profile . @profile-create.json
 空白创建不会自动生成应用、菜单、对象、字段或布局权限，执行前应重点检查计划步骤。
 
 ## 更新简档权限
+
+MetadataService `1.2.0` / CLI `2.3.0` 新增显式 Contract 2。扩展写操作使用独立命令并自动注入 `profileContractVersion: 2`，不会扩大下述旧 `profiles.update` 的含义。支持：应用、页签、系统/对象权限、移动设置、集成、字段安全、记录类型、登录时间、登录 IP、加密字段可见性和密码策略。CLI 会先读取 `/metadata/v1/capabilities`；旧服务上的扩展命令会在 plan 前返回 `requires MetadataService 1.2.0`。
+
+替换操作的 `items` 必须显式给出；省略与空数组含义不同。关系型替换只更新目标简档已有且归属正确的行，不创建缺失关系，不清理无法解析的历史行。密码策略和 Contract 2 创建通过活动项目的 setup-service 执行，超时后不自动重试。
 
 更新只允许修改目标简档下已经存在的信息集。先用 `detail profile` 取得 `relations.infosets` 中的现有 `id`，再按 ID 提交状态变化：
 
@@ -116,4 +122,4 @@ cloudcc apply msapi . <planId>
 
 简档能力与 classes/triggers/timer 的 Java 源码发布相互独立。当前版本继续保留 URLDecoder 兼容编码：Java 中的 `+`、`++`、`+=` 会编码为 `%2B`，不会被服务端误解为空格。
 
-*文档版本：2.2.66 | 最后更新：2026-09-15*
+*文档版本：2.3.0 | 最后更新：2026-11-05*
