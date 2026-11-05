@@ -1,9 +1,13 @@
 package command
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"cloudcc-customization-expert-go/internal/docs"
 	"cloudcc-customization-expert-go/internal/governance"
@@ -115,10 +119,37 @@ func handleLowCodeShortcut(action string, resource string, args []string, stdout
 	if selection.SelectedMode == provider.ModeMSAPI {
 		return msapi.HandleLowCodeShortcut(action, resource, args, stdout, cwd)
 	}
+	if resource == "application" && (action == "create" || action == "update") && applicationFooterToolsRequested(args, cwd) {
+		return fmt.Errorf("application_footer_tools_require_msapi: footerTools is supported only by the MetadataService provider; existing UIAPI application commands remain available when footerTools is omitted")
+	}
 	if selection.PlatformMode == "horizontal" {
 		return horizontalui.HandleLowCode(action, resource, args, stdout, cwd)
 	}
 	return modules.Handle(action, resource, args, stdout, stderr, cwd)
+}
+
+func applicationFooterToolsRequested(args []string, cwd string) bool {
+	for _, arg := range args {
+		raw := strings.TrimSpace(arg)
+		if strings.HasPrefix(raw, "@") && len(raw) > 1 {
+			path := strings.TrimSpace(strings.TrimPrefix(raw, "@"))
+			if !filepath.IsAbs(path) {
+				path = filepath.Join(cwd, path)
+			}
+			if content, err := os.ReadFile(path); err == nil {
+				raw = string(content)
+			}
+		} else if decoded, err := url.QueryUnescape(raw); err == nil {
+			raw = decoded
+		}
+		var value map[string]any
+		if json.Unmarshal([]byte(raw), &value) == nil {
+			if _, ok := value["footerTools"]; ok {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func firstOr(values []string, fallback string) string {

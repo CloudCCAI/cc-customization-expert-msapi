@@ -1,81 +1,42 @@
-# CloudCC 应用模块介绍
+# CloudCC 应用（Application）
 
-## 1. 模块定位
+`application` 是完整的应用程序 Domain，不只是页脚工具入口。它统一管理应用主体、显示名称、导航页签、简档可见性、默认应用关系，以及应用拥有的 `footerTools`。页脚工具属于应用生命周期的一部分，不是独立一级 Domain。
 
-`application` 模块用于在 CloudCC 中创建和管理应用程序（Application）。
+## 适用场景
 
-应用是菜单与功能入口的承载容器。对象菜单、页面菜单、脚本菜单通常需要归属于某个应用，业务用户才会在对应导航中看到完整功能集合。
+- 查询应用列表，按 ID、名称或 API 名定位应用；
+- 创建或更新应用主体及本地化显示名称；
+- 绑定已有菜单页签，或在创建应用时一并创建自定义页签；
+- 配置哪些简档可见、哪些简档将其作为默认应用；
+- 发现并配置群策、呼叫中心或自定义页面页脚工具；
+- 生成计划、人工核对、应用、查看变更和回滚；
+- 删除非默认应用及其应用自有关系。
 
----
+## 能力与边界
 
-## 2. 应用能做什么
+MetadataService `1.1.106+` 提供完整的 MSAPI plan/apply 生命周期。所有写命令只生成计划，不会直接修改目标环境；必须另行执行 `cloudcc apply msapi`。详情回读会同时报告页签和页脚工具是否完整解析。
 
-通过 `application` 模块，你可以：
+| 能力 | MSAPI | Lightning UIAPI | Horizontal UIAPI |
+|---|---|---|---|
+| 应用旧版查询/创建/更新/删除 | 支持 | 保留既有适配器 | 按平台适配器能力，未适配时失败关闭 |
+| plan/apply/changes/rollback | 支持 | 不提供 MSAPI 计划 | 不提供 MSAPI 计划 |
+| `footerTools` 候选和生命周期 | 支持 | 不支持；联网前失败关闭 | 不支持；失败关闭 |
 
-- 创建新应用并设置应用名称、代码
-- 绑定菜单集合（支持多菜单 ID）
-- 获取当前组织内应用列表
-- 删除指定应用
+兼容规则：更新省略 `footerTools` 会保留现有页脚工具；传 `[]` 明确清空；传非空数组按提交顺序完整对账。既有不含该字段的 UIAPI 请求不受影响。二进制或上传图标不在本能力范围内。
 
----
-
-## 3. 应用在平台中的作用
-
-应用解决的是“功能编排与入口组织”问题：
-
-- 将零散菜单按业务域组织为统一导航体验
-- 给不同业务线提供独立的应用入口
-- 配合简档权限，控制不同角色可见的应用能力
-
----
-
-## 4. 典型使用流程
-
-在 CloudCC 中，应用相关流程通常如下：
-
-1. 准备对象、页面、脚本等能力
-2. 创建或确认对应菜单入口
-3. 创建应用并绑定菜单
-4. 验证应用在目标角色下的可见性与可用性
-
-`cloudcc-cli` 主要覆盖第 3 步（应用创建/查询/删除），建议结合菜单与权限配置一同验收。
-
----
-
-## 5. 适用场景
-
-以下场景建议使用 `application` 模块：
-
-- 新项目上线，需要快速搭建业务导航应用
-- 多业务线并行，需要拆分不同应用入口
-- 现有菜单较多，需要按业务域重新归类到应用
-- 自动化脚本中需要批量创建和清理测试应用
-
----
-
-## 6. 与其他模块的关系
-
-`application` 常与以下模块协同：
-
-- `menu`：应用通过菜单承载具体入口
-- `object`：对象能力常通过对象菜单进入应用
-- `customPage`：页面能力可通过页面菜单加入应用
-- `script`：脚本能力可通过脚本菜单加入应用
-
----
-
-## 7. 建议实践
-
-- 应用命名与编码遵循统一规范（如业务域前缀）
-- 创建前先梳理菜单清单，避免重复或遗漏入口
-- 先在测试环境验证应用可见性，再推广到生产环境
-- 变更应用菜单后，回归验证关键业务流程是否可达
-
----
-
-## 8. 相关文档与命令
+## 快速开始
 
 ```bash
-cloudcc doc platform/application introduction
+cloudcc get application <projectPath> [filter]
+cloudcc detail application <projectPath> <appId>
+cloudcc candidates application <projectPath> footerTools
+cloudcc create application <projectPath> @application.json
+cloudcc apply msapi <projectPath> <planId>
+cloudcc detail application <projectPath> <appId>
+```
+
+完整字段、集合语义、更新注意事项、删除保护和排障方法见：
+
+```bash
 cloudcc doc platform/application devguide
 ```

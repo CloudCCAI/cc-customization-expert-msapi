@@ -227,6 +227,9 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 	if domain == "mobile-settings" {
 		return handleMobileSettingsShortcut(action, projectPath, rest, stdout, cwd)
 	}
+	if domain == "applications" && strings.TrimSpace(action) == "candidates" {
+		return handleApplicationCandidatesShortcut(projectPath, rest, stdout, cwd)
+	}
 	if domain == "fields" && strings.TrimSpace(action) == "audit" {
 		return handleFieldIdAuditShortcut(projectPath, rest, stdout, cwd)
 	}
@@ -361,6 +364,17 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 		return err
 	}
 	return Handle("plan", "msapi", []string{projectPath, domain, string(body), operation}, stdout, cwd)
+}
+
+func handleApplicationCandidatesShortcut(projectPath string, args []string, stdout io.Writer, cwd string) error {
+	if len(args) != 1 || strings.TrimSpace(args[0]) != "footerTools" {
+		return fmt.Errorf("cloudcc candidates application <projectPath> footerTools")
+	}
+	c, _, err := newClient([]string{projectPath}, cwd)
+	if err != nil {
+		return err
+	}
+	return c.getJSON(stdout, "/metadata/v1/applications/footer-tools:candidates")
 }
 
 var mobileSettingsResources = map[string]string{

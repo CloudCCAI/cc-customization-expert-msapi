@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.2.124"
+const Version = "2.2.125"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,6 +48,8 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- Application Domain self-audit now returns typed footerTools readback, reports unresolved historical components without crashing candidates, orders VARCHAR seq numerically, rejects malformed/fractional panels, clears stale pageApi on kind changes, and ships a complete user guide. MetadataService remains 1.1.106.")
+		fmt.Fprintln(stderr, "- Application create/update now supports application-owned footerTools through MSAPI, including candidates, friendly ccchat/callcenter/customPage descriptors, explicit preserve/clear/replace semantics, minimal-diff plans, readback, drift protection, rollback, and legacy request compatibility. Requires MetadataService 1.1.106.")
 		fmt.Fprintln(stderr, "- Workflow automation actions are now first-class MSAPI Domains: workflowTask, workflowEmailAlert, and workflowFieldUpdate provide native MetadataService CRUD, candidates, references, guarded deletion, and complete offline docs. workflows now owns immediate/time/recurring bindings and trigger lifecycle with activation graph checks. Requires MetadataService 1.1.105.")
 		fmt.Fprintln(stderr, "- Custom-setting and dashboard deletion now use one target-bound platform-standard operation: setupSvc /api/customsetting/deleteobj and apiSvc /api/dashboard/deleteDashboard. CLI forwards both targets per request; MetadataService stores neither address, never retries uncertain deletes, and reports them as non-reversible. Query/create/update remain native. Requires MetadataService 1.1.104.")
 		fmt.Fprintln(stderr, "- MSAPI now prefers MetadataService native relational persistence for every Domain; only Mongo/compound platform-authoritative Domains use setup-service, whose request target comes from the active CLI project. Email templates are native metadata-db resources. Requires MetadataService 1.1.103.")

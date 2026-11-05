@@ -1,6 +1,6 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.2.124-msapi",
+  "version": "2.2.125-msapi",
   "releaseDate": "2026-11-05",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
@@ -1221,7 +1221,7 @@
           "uiapi": "provider-adapter",
           "universal": "provider-selected"
         },
-        "minimumBackendVersion": null,
+        "minimumBackendVersion": "1.1.106",
         "routes": [
           {
             "provider": "msapi",
@@ -1233,19 +1233,26 @@
             "provider": "uiapi",
             "backend": "setup-svc",
             "transport": "uiapi",
-            "availability": "provider-adapter"
+            "availability": "provider-adapter",
+            "reason": "Legacy application commands are supported; footerTools requires MSAPI."
           }
         ],
         "actions": [
           "get",
           "detail",
+          "candidates",
           "create",
           "update",
           "delete"
         ],
         "commands": [
           "cloudcc get application <projectPath> [selector]",
-          "cloudcc create application <projectPath> <spec>"
+          "cloudcc detail application <projectPath> <appId>",
+          "cloudcc candidates application <projectPath> footerTools",
+          "cloudcc create application <projectPath> @spec.json",
+          "cloudcc update application <projectPath> @spec.json",
+          "cloudcc update application <projectPath> <appId> @spec.json",
+          "cloudcc delete application <projectPath> <appId>"
         ],
         "documentation": {
           "introduction": "cloudcc doc platform/application introduction",
@@ -3138,6 +3145,26 @@
     "sourceOfTruth": "cc-customization-expert-go/config.json",
     "policy": "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
     "minimumByCapability": [
+      {
+        "capability": "msapi.applications.footerTools",
+        "label": "Application-owned footer tool lifecycle",
+        "introducedInSkillVersion": "2.2.125-msapi",
+        "minimumMetadataServiceVersion": "1.1.106",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.106",
+        "domains": [
+          "applications"
+        ],
+        "operations": [
+          "candidates",
+          "create",
+          "update",
+          "clear",
+          "query",
+          "delete",
+          "rollback"
+        ],
+        "reason": "Requires friendly footerTools normalization, typed and numerically ordered detail readback, unknown historical component protection, strict panel validation, minimal-diff relational plans, apply-time drift protection, and omission-compatible update semantics."
+      },
       {
         "capability": "msapi.workflowActions.canonicalLifecycle",
         "label": "Workflow task, email alert, field update, binding, and trigger lifecycle",
