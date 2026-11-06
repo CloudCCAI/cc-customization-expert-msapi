@@ -101,13 +101,15 @@ cloudcc detail workflow ./project <workflowId>
 
 工作流更新采用条件集合三态语义：完全省略条件相关字段时保留现有条件；显式提交空 `conditions` / `condition.items` 时清空条件行；提交非空集合时先删除旧条件再插入完整新集合。切换公式/条件模式时应显式提交 `condtionOption` 及对应 `functionCode` 或条件集合。名称、说明等普通 patch 不会再隐式清空条件或把公式模式改回 `R`。
 
+公式条件中的字段令牌使用 CLI 为目标环境识别的动态后缀。本节示例假设目标后缀为 `__f`；工作流对象和字段 metadata selector 本身不加后缀。完整规则见 `cloudcc doc expressionSyntax devguide`。
+
 公式条件示例：
 
 ```json
 {
   "id":"acd-account-status",
   "condtionOption":"F",
-  "functionCode":"status__c = 'ACTIVE'"
+  "functionCode":"status__f = 'ACTIVE'"
 }
 ```
 

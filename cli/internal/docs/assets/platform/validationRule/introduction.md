@@ -63,10 +63,10 @@ $User.<schemefieldName>
 cloudcc get fields <projectPath> ccuser
 ```
 
-从结果中复制字段的 `schemefieldName`，保持大小写完全一致；不要填写中文标签或字段 ID。例如查询结果中存在 `schemefieldName=userid__c` 时，可以写：
+从结果中复制字段的 `schemefieldName`，保持大小写完全一致；不要填写中文标签或字段 ID。表达式字段后缀从目标环境发现，不要假设始终为 `__c`。例如目标返回 `__f`，用户字段 metadata 名为 `userid` 时，可以写：
 
 ```text
-$User.userid__c >= 0
+$User.userid__f >= 0
 ```
 
 CLI 会按该用户字段的真实类型校验比较、日期或布尔表达式。字段不存在、名称大小写不一致或类型运算不成立时，校验失败且不会生成计划。

@@ -20,6 +20,7 @@ import (
 
 	"cloudcc-customization-expert-go/internal/config"
 	"cloudcc-customization-expert-go/internal/console"
+	"cloudcc-customization-expert-go/internal/expressionsyntax"
 	"cloudcc-customization-expert-go/internal/horizontal"
 	"cloudcc-customization-expert-go/internal/jsonx"
 )
@@ -38,6 +39,7 @@ type client struct {
 	projectPath      string
 	platformMode     string
 	horizontalAuth   bool
+	expressionSyntax expressionsyntax.Syntax
 	http             *http.Client
 }
 
@@ -71,6 +73,12 @@ func Handle(action string, resource string, args []string, stdout io.Writer, cwd
 		}
 		if err := validateFormulaFieldPlan(body); err != nil {
 			return err
+		}
+		if expressionsyntax.RequiresPlanBody(body) {
+			c.expressionSyntax, err = c.resolveExpressionSyntax()
+			if err != nil {
+				return err
+			}
 		}
 		var formulaValidation *validationRuleFormulaResult
 		if action != "normalize" {
@@ -180,6 +188,12 @@ func Handle(action string, resource string, args []string, stdout io.Writer, cwd
 		body, err := mutationRequest(resource, remaining)
 		if err != nil {
 			return err
+		}
+		if expressionsyntax.RequiresPlanBody(body) {
+			c.expressionSyntax, err = c.resolveExpressionSyntax()
+			if err != nil {
+				return err
+			}
 		}
 		domain, _ := body["domain"].(string)
 		delete(body, "domain")
@@ -2271,6 +2285,15 @@ func (c *client) writeJSON(stdout io.Writer, method string, path string, body an
 				return err
 			}
 		}
+		if c.shouldRefreshExpressionSyntax(method, path, statusCode, resBody) {
+			if err = c.refreshExpressionSyntax(); err != nil {
+				return err
+			}
+			resBody, statusCode, err = c.doJSON(method, path, payload)
+			if err != nil {
+				return err
+			}
+		}
 		if statusCode < 200 || statusCode >= 300 {
 			c.clearCacheIfInvalidToken(statusCode, resBody)
 			return fmt.Errorf("metadata service http %d: %s", statusCode, string(resBody))
@@ -2298,6 +2321,35 @@ func (c *client) requestJSONMap(method string, path string, body any) (map[strin
 		return out, nil
 	}
 	return nil, fmt.Errorf("metadata service response is not a JSON object")
+}
+
+func (c *client) resolveExpressionSyntax() (expressionsyntax.Syntax, error) {
+	return expressionsyntax.ResolveMSAPI(c.projectPath, func() (expressionsyntax.Syntax, error) {
+		response, err := c.requestJSONMap(http.MethodGet, "/metadata/v1/expression-syntax", nil)
+		if err != nil {
+			return expressionsyntax.Syntax{}, err
+		}
+		return expressionsyntax.ParseRemote(response)
+	})
+}
+
+func (c *client) shouldRefreshExpressionSyntax(method string, path string, statusCode int, body []byte) bool {
+	if statusCode != http.StatusConflict || !strings.Contains(string(body), "expression_field_suffix_stale") {
+		return false
+	}
+	return method == http.MethodGet || path == "/metadata/v1/plans" ||
+		path == "/metadata/v1/intents:normalize" || path == "/metadata/v1/intents:validate"
+}
+
+func (c *client) refreshExpressionSyntax() error {
+	expressionsyntax.Invalidate(c.projectPath)
+	c.expressionSyntax = expressionsyntax.Syntax{}
+	resolved, err := c.resolveExpressionSyntax()
+	if err != nil {
+		return err
+	}
+	c.expressionSyntax = resolved
+	return nil
 }
 
 func (c *client) requestFileJSONMap(method string, path string, filePath string, contentType string) (map[string]any, error) {
@@ -2348,6 +2400,15 @@ func (c *client) requestJSONValue(method string, path string, body any) (any, er
 				return nil, err
 			}
 		}
+		if c.shouldRefreshExpressionSyntax(method, path, statusCode, resBody) {
+			if err = c.refreshExpressionSyntax(); err != nil {
+				return nil, err
+			}
+			resBody, statusCode, err = c.doJSON(method, path, payload)
+			if err != nil {
+				return nil, err
+			}
+		}
 		if statusCode < 200 || statusCode >= 300 {
 			c.clearCacheIfInvalidToken(statusCode, resBody)
 			return nil, fmt.Errorf("metadata service http %d: %s", statusCode, string(resBody))
@@ -2391,6 +2452,9 @@ func (c *client) doJSON(method string, path string, payload []byte) ([]byte, int
 	}
 	if c.setupServiceURL != "" {
 		req.Header.Set("X-CloudCC-Setup-Service-Base-URL", c.setupServiceURL)
+	}
+	if c.expressionSyntax.FieldSuffix != "" {
+		req.Header.Set(expressionsyntax.RequestHeader, c.expressionSyntax.FieldSuffix)
 	}
 	if c.apiServiceURL != "" {
 		req.Header.Set("X-CloudCC-API-Service-Base-URL", c.apiServiceURL)
@@ -2440,6 +2504,9 @@ func (c *client) doReader(method string, path string, reader io.Reader, contentT
 	}
 	if c.setupServiceURL != "" {
 		req.Header.Set("X-CloudCC-Setup-Service-Base-URL", c.setupServiceURL)
+	}
+	if c.expressionSyntax.FieldSuffix != "" {
+		req.Header.Set(expressionsyntax.RequestHeader, c.expressionSyntax.FieldSuffix)
 	}
 	if c.apiServiceURL != "" {
 		req.Header.Set("X-CloudCC-API-Service-Base-URL", c.apiServiceURL)

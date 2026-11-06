@@ -1,7 +1,7 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.3.0-msapi",
-  "releaseDate": "2026-11-05",
+  "version": "2.3.1-msapi",
+  "releaseDate": "2026-11-06",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
   "domainCatalog": {
@@ -3167,6 +3167,25 @@
     "sourceOfTruth": "cc-customization-expert-go/config.json",
     "policy": "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
     "minimumByCapability": [
+      {
+        "capability": "msapi.expressionSyntax.targetSuffix",
+        "label": "Target-aware formula, validation-rule, and workflow-condition suffix",
+        "introducedInSkillVersion": "2.3.1-msapi",
+        "minimumMetadataServiceVersion": "1.2.1",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.2.1",
+        "domains": [
+          "fields",
+          "validation-rules",
+          "workflows"
+        ],
+        "operations": [
+          "plan",
+          "validate",
+          "normalize",
+          "field-delete-impact"
+        ],
+        "reason": "Requires tenant-scoped target resolution, request-scoped expression compilation, and configurable formula-reference deletion guards."
+      },
       {
         "capability": "msapi.profiles.contract2",
         "label": "Profile Contract 2 page-parity lifecycle",

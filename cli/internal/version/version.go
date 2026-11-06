@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.3.0"
+const Version = "2.3.1"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,6 +48,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- Formula fields, validation rules, and workflow formula conditions now use lazy target-aware field suffix recognition with user-level caching; object and field metadata API names remain suffix-free, and relationship paths keep __r. Run cloudcc doc expressionSyntax devguide. Requires MetadataService 1.2.1 for MSAPI formula compilation.")
 		fmt.Fprintln(stderr, "- Profile Contract 2 adds typed settings/candidates, explicit owned child operations, setup-service guarded create, password-policy uncertainty handling, and strict compatibility discovery. Extended operations require MetadataService 1.2.0; legacy operations remain compatible.")
 		fmt.Fprintln(stderr, "- Application Domain self-audit now returns typed footerTools readback, reports unresolved historical components without crashing candidates, orders VARCHAR seq numerically, rejects malformed/fractional panels, clears stale pageApi on kind changes, and ships a complete user guide. MetadataService remains 1.1.106.")
 		fmt.Fprintln(stderr, "- Application create/update now supports application-owned footerTools through MSAPI, including candidates, friendly ccchat/callcenter/customPage descriptors, explicit preserve/clear/replace semantics, minimal-diff plans, readback, drift protection, rollback, and legacy request compatibility. Requires MetadataService 1.1.106.")

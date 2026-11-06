@@ -267,7 +267,7 @@ MetadataService 支持平台开放的全部字段编码。编码区分大小写�
   "label": "净额",
   "type": "Z",
   "formulaType": "N",
-  "formulaText": "amount__c-discount__c",
+  "formulaText": "amount__f-discount__f",
   "formulaReferences": [
     {"relationId":"<amountFieldId>","relationType":"field"},
     {"relationId":"<discountFieldId>","relationType":"field"}
@@ -281,7 +281,7 @@ MetadataService 支持平台开放的全部字段编码。编码区分大小写�
 
 字段创建时三个公式相关字段要分工明确：
 
-- `formulaText`：用户级公式表达式，使用字段 API 名或公式编辑器插入的字段引用，例如 `amount__c-discount__c`。
+- `formulaText`：用户级公式表达式，使用 CLI 为目标环境识别的字段令牌。本节示例假设目标后缀为 `__f`，例如 metadata API 名 `amount`、`discount` 在公式中写成 `amount__f-discount__f`；不要把后缀写入字段 `apiName`。
 - `formulaType`：公式字段返回类型，只支持文本 `S`、币种 `c`、日期 `D`、日期时间 `F`、数字 `N`、百分比 `P`、URL `U`、选项列表 `L`。
 - `executeExpression`：平台内部执行表达式。CLI 新建或修改公式字段时禁止传入；MetadataService 会根据 `formulaText`、`formulaType` 和目标对象字段元数据自动生成。历史字段仅查询或执行不修改公式定义的更新时，服务会保留已有内部表达式。
 - `formulaReferences`：普通字段引用关系，写入 `tp_sys_field_reference`；不要把它当成跨对象公式依赖。
@@ -289,8 +289,8 @@ MetadataService 支持平台开放的全部字段编码。编码区分大小写�
 
 字段引用写法：
 
-- 同对象字段使用 API 名，例如 `amount__c`。
-- 关联对象字段使用关系 API 名加目标字段 API 名，例如 `account__r.amount__c`。
+- 同对象字段的 metadata API 名保持 `amount`，表达式令牌为 `amount__f`。
+- 关联对象字段使用固定关系后缀和目标字段后缀，例如 `account__r.amount__f`。
 - 当前用户字段可使用 `$User.<field>`；如果目标环境没有对应用户字段，plan 会返回 `formula_user_field_not_found`。
 
 #### 公式字段可引用类型与跨对象路径
@@ -321,11 +321,11 @@ cloudcc candidates fields <projectPath> <object> --current-field-id <fieldId> --
 
 返回结果中的 `selectable=true` 表示可作为公式末端操作数，`traversable=true` 表示可继续进入关系对象；`supported=false` 的记录会给出 `reason`。默认不返回不支持项，只有 `--include-unsupported` 才返回。
 
-跨对象公式只能沿已经存在的查找关系或主详关系遍历。中间关系字段把 `__c` 写成 `__r`，最后一段保留目标字段 API 名。例如：
+跨对象公式只能沿已经存在的查找关系或主详关系遍历。中间关系字段固定使用 `__r`，最后一段使用目标环境字段后缀。本节假设后缀为 `__f`：
 
 ```text
-account__r.annual_revenue__c
-account__r.region__r.region_code__c
+account__r.annual_revenue__f
+account__r.region__r.region_code__f
 ```
 
 关系路径的每一段必须是 `Y` 或 `M`，最后一段必须属于末端操作数类型。目标公式字段 `Z` 和累计汇总字段 `C` 即使可以在字段查询中看到，也不能插入新公式。不要手写 `executeExpression`、物理表名、物理列名或 `dataFieldRef` 来绕过类型校验。
@@ -390,7 +390,7 @@ account__r.region__r.region_code__c
 | 字符串 | `CONCAT(...)`、`CHAR_LENGTH(text)`、`LEFT(text, n)`、`RIGHT(text, n)`、`TRIM(text)`、`LOCATE(substr, text)` |
 | 数值 | `ABS(x)`、`CEILING(x)`、`FLOOR(x)`、`MOD(x, y)`、`ROUND(x, n)`、`SQRT(x)`、`POWER(x, y)`、`LOG(x)`、`LN(x)`、`EXP(x)`、`LEAST(...)`、`GREATEST(...)` |
 | 类型转换/格式化 | `CAST(value AS DECIMAL(...))`、`CAST(value AS CHAR)`、`FORMAT(number, decimals)` |
-| 布尔/空值 | `AND`、`OR`、`NOT`、`IS NULL`、`IS NOT NULL`；选项值比较直接使用 `field__c = 'value'` |
+| 布尔/空值 | `AND`、`OR`、`NOT`、`IS NULL`、`IS NOT NULL`；选项值比较使用目标后缀，例如 `field__f = 'value'` |
 
 MySQL 目标明确不接受 `decode(...)`，请改为 `CASE WHEN ... END`。数值格式化不要使用 Oracle 风格的 `to_char(number, '999...')`，请使用 `FORMAT(...)` 或显式 `CAST(...)`。
 
@@ -527,7 +527,7 @@ cloudcc operation msapi <projectPath> <applyId>
   "summarizedObj": "<detailObjectId>:<detailObjectApiName>:<masterRelationFieldApiName>",
   "aggregateField": "<amountFieldId>:N:<amountFieldApiName>",
   "isAggfilter": true,
-  "aggCondition": "status__c='Active'",
+  "aggCondition": "status__f='Active'",
   "conditionVals": {
     "filter": "1",
     "data": [{"fieldId":"<statusFieldId>","op":"e","val":"Active","seq":1}]

@@ -125,6 +125,12 @@ func (c *client) validateValidationRuleRequest(body map[string]any) (*validation
 	if err != nil || len(targets) == 0 {
 		return nil, err
 	}
+	if c.expressionSyntax.FieldSuffix == "" {
+		c.expressionSyntax, err = c.resolveExpressionSyntax()
+		if err != nil {
+			return nil, err
+		}
+	}
 	bundle, err := discoverValidationCompilerBundle(c.projectPath)
 	if err != nil {
 		return nil, err
@@ -155,7 +161,7 @@ func (c *client) validateValidationRuleRequest(body map[string]any) (*validation
 				return nil, fmt.Errorf("validation rule user field metadata: %w", err)
 			}
 		}
-		expression, err := normalizeValidationRuleFormula(target.Formula, fields, userFields)
+		expression, err := normalizeValidationRuleFormula(target.Formula, fields, userFields, c.expressionSyntax.FieldSuffix)
 		if err != nil {
 			return nil, fmt.Errorf("validation rule %d formula is invalid: %w", target.Index, err)
 		}
@@ -246,7 +252,7 @@ func (c *client) validationRuleFields(objectSelector string) (map[string]validat
 				ID: firstMapString(item, "id", "fieldId", "field_id"), APIName: apiName, SchemeName: schemeName, Type: fieldType,
 				LookupObject: firstMapString(item, "lookupObj", "lookup_obj", "referenceTo", "reference_to"),
 			}
-			for _, alias := range append(validationRuleFieldAliases(apiName), validationRuleFieldAliases(schemeName)...) {
+			for _, alias := range append(validationRuleFieldAliases(apiName, c.expressionSyntax.FieldSuffix), validationRuleFieldAliases(schemeName, c.expressionSyntax.FieldSuffix)...) {
 				fields[strings.ToLower(alias)] = field
 			}
 		}
@@ -299,10 +305,14 @@ func (c *client) validationRuleRelationshipFields(formula string, rootFields map
 	return result, nil
 }
 
-func validationRuleFieldAliases(apiName string) []string {
+func validationRuleFieldAliases(apiName string, suffixes ...string) []string {
 	trimmed := strings.TrimSpace(apiName)
-	base := strings.TrimSuffix(trimmed, "__c")
-	return []string{trimmed, base, base + "__c"}
+	suffix := "__c"
+	if len(suffixes) > 0 && strings.TrimSpace(suffixes[0]) != "" {
+		suffix = strings.TrimSpace(suffixes[0])
+	}
+	base := strings.TrimSuffix(trimmed, suffix)
+	return []string{trimmed, base, base + suffix}
 }
 
 func validationRuleUsesDynamicUserVariable(formula string) bool {
@@ -318,7 +328,11 @@ func validationRuleUsesDynamicUserVariable(formula string) bool {
 	return dynamic
 }
 
-func normalizeValidationRuleFormula(formula string, fields map[string]validationRuleField, userFields map[string]validationRuleField) (string, error) {
+func normalizeValidationRuleFormula(formula string, fields map[string]validationRuleField, userFields map[string]validationRuleField, suffixes ...string) (string, error) {
+	suffix := "__c"
+	if len(suffixes) > 0 && strings.TrimSpace(suffixes[0]) != "" {
+		suffix = strings.TrimSpace(suffixes[0])
+	}
 	expression := strings.TrimSpace(formula)
 	if expression == "" {
 		return "", fmt.Errorf("formula is empty")
@@ -345,7 +359,7 @@ func normalizeValidationRuleFormula(formula string, fields map[string]validation
 	expression = rewriteValidationRuleCode(expression, func(code string) string {
 		return validationRuleFieldArgumentPattern.ReplaceAllStringFunc(code, func(match string) string {
 			parts := validationRuleFieldArgumentPattern.FindStringSubmatch(match)
-			field, ok := validationRuleLookupField(fields, parts[2])
+			field, ok := validationRuleLookupField(fields, parts[2], suffix)
 			if !ok {
 				fieldError = fmt.Errorf("field %s does not exist on the target object", parts[2])
 				return match
@@ -357,7 +371,7 @@ func normalizeValidationRuleFormula(formula string, fields map[string]validation
 		return "", fieldError
 	}
 	expression = rewriteValidationRuleCode(expression, func(code string) string {
-		return replaceValidationRuleIdentifiers(code, fields, &fieldError)
+		return replaceValidationRuleIdentifiers(code, fields, &fieldError, suffix)
 	})
 	if fieldError != nil {
 		return "", fieldError
@@ -365,15 +379,23 @@ func normalizeValidationRuleFormula(formula string, fields map[string]validation
 	return expression, nil
 }
 
-func validationRuleLookupField(fields map[string]validationRuleField, token string) (validationRuleField, bool) {
+func validationRuleLookupField(fields map[string]validationRuleField, token string, suffixes ...string) (validationRuleField, bool) {
+	suffix := "__c"
+	if len(suffixes) > 0 && strings.TrimSpace(suffixes[0]) != "" {
+		suffix = strings.TrimSpace(suffixes[0])
+	}
 	field, ok := fields[strings.ToLower(token)]
 	if !ok {
-		field, ok = fields[strings.ToLower(strings.TrimSuffix(token, "__c"))]
+		field, ok = fields[strings.ToLower(strings.TrimSuffix(token, suffix))]
 	}
 	return field, ok
 }
 
-func replaceValidationRuleIdentifiers(code string, fields map[string]validationRuleField, fieldError *error) string {
+func replaceValidationRuleIdentifiers(code string, fields map[string]validationRuleField, fieldError *error, suffixes ...string) string {
+	suffix := "__c"
+	if len(suffixes) > 0 && strings.TrimSpace(suffixes[0]) != "" {
+		suffix = strings.TrimSpace(suffixes[0])
+	}
 	matches := validationRuleIdentifierPattern.FindAllStringIndex(code, -1)
 	if len(matches) == 0 {
 		return code
@@ -383,11 +405,11 @@ func replaceValidationRuleIdentifiers(code string, fields map[string]validationR
 	for _, match := range matches {
 		out.WriteString(code[start:match[0]])
 		token := code[match[0]:match[1]]
-		field, ok := validationRuleLookupField(fields, token)
+		field, ok := validationRuleLookupField(fields, token, suffix)
 		if ok && !validationRuleIdentifierIsFunction(code, match[1]) {
 			out.WriteString(validationRuleRepresentativeValue(field))
 		} else {
-			if !ok && strings.HasSuffix(strings.ToLower(token), "__c") && *fieldError == nil {
+			if !ok && strings.HasSuffix(strings.ToLower(token), strings.ToLower(suffix)) && *fieldError == nil {
 				*fieldError = fmt.Errorf("field %s does not exist on the target object", token)
 			}
 			out.WriteString(token)

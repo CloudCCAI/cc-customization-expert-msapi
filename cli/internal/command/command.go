@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"cloudcc-customization-expert-go/internal/docs"
+	"cloudcc-customization-expert-go/internal/expressionsyntax"
 	"cloudcc-customization-expert-go/internal/governance"
 	"cloudcc-customization-expert-go/internal/horizontalui"
 	"cloudcc-customization-expert-go/internal/modules"
@@ -118,6 +119,11 @@ func handleLowCodeShortcut(action string, resource string, args []string, stdout
 	fmt.Fprintf(stderr, "cloudcc low-code provider: %s (%s; safety=%s)\n", selection.SelectedMode, selection.Reason, selection.SafetyLevel)
 	if selection.SelectedMode == provider.ModeMSAPI {
 		return msapi.HandleLowCodeShortcut(action, resource, args, stdout, cwd)
+	}
+	if expressionsyntax.RequiresTargetSyntax(action, resource, args, cwd) {
+		if _, err := expressionsyntax.ResolveUIAPI(expressionsyntax.ProjectPath(args, cwd)); err != nil {
+			return err
+		}
 	}
 	if resource == "application" && (action == "create" || action == "update") && applicationFooterToolsRequested(args, cwd) {
 		return fmt.Errorf("application_footer_tools_require_msapi: footerTools is supported only by the MetadataService provider; existing UIAPI application commands remain available when footerTools is omitted")

@@ -124,15 +124,15 @@ CLI 在创建计划前完成以下检查：
 普通字段使用 `cloudcc get fields` 返回的字段 API 名：
 
 ```text
-zys < 0
-End_Date__c < Start_Date__c
-ISCHANGED(Stage__c)
+zys__f < 0
+End_Date__f < Start_Date__f
+ISCHANGED(Stage__f)
 ```
 
-关联对象字段使用查找字段的 `__r.` 路径：
+本节示例假设目标后缀为 `__f`。关联对象字段的中间段固定使用 `__r.`，末端字段使用目标后缀：
 
 ```text
-Account__r.annualRevenue > 0
+Account__r.annualRevenue__f > 0
 ```
 
 CLI 会逐段确认关系字段和末端字段都存在，并按末端字段类型编译；关系路径拼错或中间字段不是查找关系时，不会生成计划。
@@ -210,8 +210,8 @@ cloudcc get fields <projectPath> ccuser
 从输出中复制精确的 `schemefieldName`，不要使用字段标签或字段 ID，并保持大小写一致。例如：
 
 ```text
-$User.userid__c >= 0 && zys < 0
-$User.center__c == "North"
+$User.userid__f >= 0 && zys__f < 0
+$User.center__f == "North"
 ```
 
 动态字段按真实字段类型参与编译：数值字段可做大小比较，布尔字段可直接作为条件，日期字段可与日期值比较，文本或选项字段可与字符串比较。
@@ -223,7 +223,7 @@ $User.center__c == "North"
 ```json
 {
   "id": "val000000000000000001",
-  "formula": "$User.center__c == \"North\" || zys < 0",
+  "formula": "$User.center__f == \"North\" || zys__f < 0",
   "errorMessage": "员工数必须大于等于零",
   "active": true
 }
