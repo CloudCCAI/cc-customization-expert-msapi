@@ -1,8 +1,8 @@
 # CloudCC 队列 CLI
 
 `queue` 是业务记录所有人队列，对应设置页 `/#/settings/usermanage/queue`，不是消息队列、审批队列、
-Bulk job 或公海池。CLI 复用平台 `/api/queueSetup/*` 标准能力，不修改 setup-web、setup-service，也不裸写
-队列表来模拟标准行为；因此创建、修改对象范围和删除时，平台生成队列视图的副作用仍由标准服务负责。
+Bulk job 或公海池。MSAPI 由 MetadataService 在目标租户关系库中事务性维护队列根记录、对象/成员关系和
+生成视图；队列不依赖租户 MongoDB。Lightning UIAPI 仍复用平台 `/api/queueSetup/*` 标准能力。
 
 常用读取命令：
 
@@ -28,6 +28,7 @@ cloudcc changes msapi . <operationId>
 cloudcc rollback-plan msapi . <operationId>
 ```
 
+现有 CLI 命令和参数保持兼容。MSAPI `update` 还可选传 `supportedObjects` 做完整替换；省略时保持当前对象。
 Lightning UIAPI 直接调用标准服务并回读；其 `assign` 仅支持 `replace`。Horizontal UIAPI 没有已验证合同，
 会返回 `queue_horizontal_uiapi_unsupported`。完整输入、分配、删除保护、错误码和排障见：
 

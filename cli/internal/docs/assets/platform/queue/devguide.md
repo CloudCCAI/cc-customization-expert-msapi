@@ -2,12 +2,12 @@
 
 ## 1. 范围、版本与平台标准
 
-本指南适用于 MetadataService `1.1.101+`、技能 `2.2.120+`。CLI 资源为 `queue`，服务端 Domain 为
+本指南适用于 MetadataService `1.2.3+`、技能 `2.3.3+`。CLI 资源为 `queue`，服务端 Domain 为
 `queues`。它管理可作为业务记录 owner 的普通队列，不管理 MQ、审批队列、Bulk job、公海池或记录转移。
 
-实现以平台标准功能为准：候选、详情、保存、删除预检和删除调用 `/api/queueSetup/*`。标准服务负责写
-`tp_sys_queue*`、创建或重建对象队列视图、删除关系和视图。CLI 与 MetadataService 不修改 setup-web、
-setup-service，不绕开标准服务写表。列表读取不调用可能初始化默认视图的页面列表逻辑。
+MSAPI 的队列数据全部位于目标租户关系库。MetadataService 在单一事务中维护 `tp_sys_queue`、
+`tp_sys_queue_tab`、`tp_sys_queue_member`、生成的 `tp_sys_view` 和 `tp_sys_view_field`，并在 apply 前后执行
+聚合漂移、owner 引用和完整回读校验。Lightning UIAPI 仍调用 `/api/queueSetup/*`；两条 Provider 路径不混用。
 
 ## 2. Provider 能力边界
 
@@ -39,7 +39,7 @@ cloudcc detail queue <projectPath> <queueId|apiName>
   "email": "service@example.invalid",
   "sendEmailToMembers": true,
   "description": "服务请求统一入口",
-  "supportedObjects": [{"id":"obj-case","apiName":"Case","label":"服务请求"}],
+  "supportedObjects": [{"id":"account","apiName":"account","label":"客户","prefix":"001"}],
   "members": [{"type":"roleAndSubordinates","id":"role-service","label":"服务经理"}]
 }
 ```
@@ -103,9 +103,9 @@ MetadataService 在计划中预留平台格式的稳定 queue ID，使写后回�
 cloudcc update queue . ServiceCaseQueue @queue-update.json
 ```
 
-只允许 `apiName`、`label`、`email`、`sendEmailToMembers`、`description`。省略表示保留；只有 email 和
-description 可用空字符串清空；`null` 被拒绝。对象或成员必须使用 `assign`，相同状态返回
-`queue_no_changes`，不会生成空计划。
+允许 `apiName`、`label`、`email`、`sendEmailToMembers`、`description` 和可选 `supportedObjects`。省略表示
+保留；显式传入 `supportedObjects` 表示完整替换，并仍要求至少一个对象。只有 email 和 description 可用
+空字符串清空；`null` 被拒绝。成员增量继续使用 `assign`。相同状态返回 `queue_no_changes`，不会生成空计划。
 
 ## 7. 分配对象和成员
 
@@ -126,12 +126,14 @@ cloudcc assign queue . ServiceCaseQueue @queue-assign.json
 ```
 
 `objects`、`members` 可单独出现；mode 只能是 `add/remove/replace`。服务端先读取完整当前聚合，再合并为
-完整 desired state 并调用标准 `save(option=edit)`，防止遗漏字段。最终对象或成员集合为空会分别返回
+完整 desired state 并编译最小关系差异，防止遗漏字段。最终对象或成员集合为空会分别返回
 `queue_empty_objects`、`queue_empty_members`。MSAPI 支持三种 mode；Lightning UIAPI 仅允许 replace。
 也就是说，Lightning 自动化必须显式使用 `mode=replace`，增量模式应切换到 MSAPI。
 
-对象范围变化会让 setup-service 重建标准队列视图；视图 ID 可能变化，不应写入自动化断言。应验证业务
-语义：每个目标对象存在相应队列视图，已移除对象不再保留该队列生成视图。
+对象范围变化时，MetadataService 保留未变化的关系和视图 ID，只为新增对象创建关系、视图和默认字段，
+并完整删除已移除对象的生成视图子图。自动化仍应验证业务语义，不依赖新增资源的物理 ID。
+如果被移除对象仍有 `ownerid=queueId` 的业务记录，计划或 apply 返回
+`queue_object_remove_owner_reference`；应先通过 OpenAPI 明确转移 owner，再重新规划。
 
 ## 8. 删除与 owner 阻断
 
@@ -141,12 +143,12 @@ cloudcc delete queue . ServiceCaseQueue
 cloudcc apply msapi . <planId>
 ```
 
-删除计划和 apply 都执行平台 `checkBeforeDeleting` 等价保护。只要任一支持对象仍有 `ownerid=queueId` 的
+删除计划和 apply 都在租户关系库执行 `checkBeforeDeleting` 等价保护。只要任一支持对象仍有 `ownerid=queueId` 的
 业务记录，就返回 `queue_delete_owner_reference`；不会隐式转移、删除或级联修改业务记录。请先通过标准
 业务数据/OpenAPI 明确转移 owner，再重新运行 impact 和创建新计划。旧计划不得在转移后直接复用。
 
-标准删除会删除队列关系及生成视图。MSAPI 删除为 destructive risk，必须显式允许破坏性 apply。若删除
-后的回读不一致，操作标记为不确定并保留补偿信息，不会宣告成功。
+MSAPI 删除会在同一事务中删除生成视图子表、视图、对象/成员关系和队列根。删除为 destructive risk，
+必须显式允许破坏性 apply；任何步骤或回读不一致都会回滚事务，不会留下部分删除。
 
 ## 9. 计划、漂移、回读与回滚
 
@@ -161,13 +163,12 @@ cloudcc rollback-plan msapi . <operationId>
 cloudcc rollback msapi . <operationId>
 ```
 
-apply 前重新计算状态 hash。队列属性、对象或成员在 plan 后变化会返回 `queue_plan_state_drifted`，应重新
-detail、重新合并意图并生成计划。setup-service 的 HTTP 2xx 或 `result=true` 仅表示请求被接受；
-MetadataService 必须 query 回读并与规范化 desired state 一致。失败后仅在确认状态仍为 before 时自动重试
-一次；部分变化或无法回读时停止，记录不确定状态和补偿载荷。
+apply 前重新计算状态 hash。队列属性、对象或成员在 plan 后变化会返回 `queue_state_changed`，应重新
+detail、重新合并意图并生成计划。所有 SQL 步骤与写后语义回读位于同一事务；回读还校验每个对象恰有一个
+生成视图、访问成员集合以及默认字段顺序。任何不一致返回 `queue_readback_mismatch` 并回滚。
 
-回滚同样受 expected hash 保护。创建回滚删除队列；更新/分配回滚用标准 edit 恢复；删除回滚用同一 queue
-ID 重建聚合。关系行和生成视图 ID 可以重建，不保证原物理 ID，但业务语义必须一致。
+回滚继续由 MetadataService change ledger 管理，并受目标状态保护；创建、更新、分配和删除的每一条关系库
+变化都有对应快照。旧版本生成的 setup-service Queue 计划必须重新规划，返回 `queue_plan_backend_obsolete`。
 
 ## 10. 错误码与处理
 
@@ -183,17 +184,18 @@ ID 重建聚合。关系行和生成视图 ID 可以重建，不保证原物理 
 | `queue_empty_objects` | 最终对象为空 | 至少保留一个对象 |
 | `queue_empty_members` | 最终成员为空 | 至少保留一个成员 |
 | `queue_no_changes` | 规范化后无差异 | 无需 apply |
-| `queue_plan_state_drifted` | plan 后状态变化 | 重新读取并规划 |
+| `queue_state_changed` | plan 后状态变化 | 重新读取并规划 |
 | `queue_delete_owner_reference` | 队列仍拥有记录 | 先显式转移 owner |
-| `queue_setup_service_unavailable` | 标准依赖不可用 | 检查 setup-svc URL、token 和 capability |
-| `queue_remote_rejected` | 标准服务拒绝 | 查看脱敏错误，修正后重建计划 |
+| `queue_object_remove_owner_reference` | 待移除对象仍有队列 owner 记录 | 先显式转移该对象记录 owner |
 | `queue_readback_mismatch` | 写后状态未收敛 | 不要盲重试；检查 changes/当前详情 |
+| `queue_object_relation_invalid` | 历史对象关系缺少 ID/前缀 | 审计并显式修复，不按名称猜测 |
+| `queue_plan_backend_obsolete` | 旧远程 Queue 计划 | 用当前服务重新生成计划 |
 | `queue_horizontal_uiapi_unsupported` | horizontal 无维护合同 | 使用 MSAPI |
 
 ## 11. 排障清单
 
 1. `cloudcc doctor target .`，确认 provider/platform 与 token。
-2. `cloudcc capabilities queue .`，确认 MetadataService `1.1.101+` 且 dependencyState=ready。
+2. `cloudcc capabilities queue .`，确认 MetadataService `1.2.3+` 且 `executionBackend=tenant-relational-db`。
 3. 重新运行 get/detail/candidates，禁止复用旧候选或旧 plan。
 4. 检查 JSON boolean、空字符串与 null，确认未提交 ID、关系行、视图或审计字段。
 5. 删除失败先运行 impact；不要通过数据库手工改 owner 或直接删队列表。

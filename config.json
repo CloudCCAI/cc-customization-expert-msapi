@@ -1,6 +1,6 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.3.1-msapi",
+  "version": "2.3.3-msapi",
   "releaseDate": "2026-11-06",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
@@ -1519,7 +1519,7 @@
           "uiapi": "provider-adapter",
           "universal": "provider-selected"
         },
-        "minimumBackendVersion": "1.1.101",
+        "minimumBackendVersion": "1.2.3",
         "routes": [
           {
             "provider": "msapi",
@@ -3311,9 +3311,9 @@
       {
         "capability": "msapi.queues.canonicalLifecycle",
         "label": "Platform-standard queue lifecycle",
-        "introducedInSkillVersion": "2.2.120-msapi",
-        "minimumMetadataServiceVersion": "1.1.101",
-        "metadataServiceReleaseTag": "cc-metadata-service-v1.1.101",
+        "introducedInSkillVersion": "2.3.3-msapi",
+        "minimumMetadataServiceVersion": "1.2.3",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.2.3",
         "domains": [
           "queues"
         ],
@@ -3333,7 +3333,7 @@
           "rollback",
           "readback"
         ],
-        "reason": "Requires platform queueSetup delegation, typed object/member candidates, owner-reference deletion protection, drift checks, readback and compensation."
+        "reason": "Requires complete tenant-relational queue aggregate persistence, resolved object-ID relations and prefix-derived generated views, owner-reference protection, apply-time drift checks, transactional readback and rollback."
       },
       {
         "capability": "msapi.roles.migrationIdentity",
