@@ -90,11 +90,21 @@ var genericEndpoints = map[string]map[string]endpoint{
 		"modify": {"setup", "/api/customsetting/modify"},
 	},
 	"dupeCatcher": {
-		"get":    {"setup", "/api/duplication/getList"},
-		"detail": {"setup", "/api/duplication/detailfilter"},
-		"create": {"setup", "/api/duplication/saveFilter"},
-		"update": {"setup", "/api/duplication/saveFilter"},
-		"delete": {"setup", "/api/duplication/deletefilter"},
+		"get":          {"setup", "/api/duplication/getList"},
+		"detail":       {"setup", "/api/duplication/detailfilter"},
+		"capabilities": {"setup", "/api/duplication/insetNewfilter"},
+		"candidates":   {"setup", "/api/duplication/insetNewfilter"},
+		"detail-rule":  {"setup", "/api/duplication/updateNewrule"},
+		"detailRule":   {"setup", "/api/duplication/updateNewrule"},
+		"create-rule":  {"setup", "/api/duplication/nsaverule"},
+		"createRule":   {"setup", "/api/duplication/nsaverule"},
+		"update-rule":  {"setup", "/api/duplication/nsaverule"},
+		"updateRule":   {"setup", "/api/duplication/nsaverule"},
+		"delete-rule":  {"setup", "/api/duplication/deleterule"},
+		"deleteRule":   {"setup", "/api/duplication/deleterule"},
+		"create":       {"setup", "/api/duplication/saveFilter"},
+		"update":       {"setup", "/api/duplication/saveFilter"},
+		"delete":       {"setup", "/api/duplication/deletefilter"},
 	},
 	"dashboard": {
 		"get":     {"api", "/api/dashboard/getDashboardList"},
@@ -462,6 +472,8 @@ func Handle(action string, resource string, args []string, stdout io.Writer, std
 		return handlePublicGroup(action, args, stdout, cwd)
 	case "queue":
 		return handleQueue(action, args, stdout, cwd)
+	case "dupeCatcher":
+		return handleDupeCatcher(action, args, stdout, cwd)
 	case "emailTemplate", "emailTemplateFolder":
 		return handleEmailTemplate(action, resource, args, stdout, cwd)
 	case "jsp", "site", "skill":

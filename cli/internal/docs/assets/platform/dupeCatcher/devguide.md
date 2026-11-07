@@ -1,124 +1,142 @@
-# CloudCC 查重过滤器（Dupe Catcher）CLI 命令说明
+# CloudCC 查重过滤器 CLI 开发指南
 
-> 对应 one-setup-web 的接口前缀：`{setupSvc}/api/duplication/*`
+适用版本：技能/CLI `2.3.6+`，MetadataService `1.2.6+`。
 
-## 1. 功能范围
+## 1. 概念与边界
 
-- 过滤器（Filter）：列表、详情、保存（新建/编辑）、删除
-- 规则（Rule）：回显详情、保存（新建/编辑）、删除
-- 辅助查询：可选对象、可选字段、条件面板字段列表
+条件和规则不能互换：`conditions`/`conditionVals` 写入 `tp_sys_condition`，限定参与查重的记录范围；
+`rules` 写入 `tp_sys_dupecatcherule`，定义怎样算重复。多条规则按 AND 组合。过滤器主体控制新增和更新
+命中后的提示、允许保存或阻止保存策略。
 
-## 2. 命令总览
+`dupeCatcher` 是唯一一级 Domain。规则是过滤器拥有的子资源，所有规则命令都必须同时提供 `filterId`
+和需要时的 `ruleId`，以验证父子归属。
 
-```bash
-# 过滤器列表
-cloudcc get dupeCatcher [projectPath]
-
-# 过滤器详情（含规则列表）
-cloudcc detail dupeCatcher <projectPath> <filterid>
-
-# 保存过滤器（新建/编辑）
-cloudcc create dupeCatcher <projectPath> filter <encodedBodyJson>
-
-# 删除过滤器
-cloudcc delete dupeCatcher <projectPath> filter <filterid>
-
-# 规则详情（回显）
-cloudcc detail dupeCatcher <projectPath> rule <ruleid>
-
-# 保存规则（新建/编辑）
-cloudcc create dupeCatcher <projectPath> rule <encodedBodyJson>
-
-# 删除规则
-cloudcc delete dupeCatcher <projectPath> rule <ruleid>
-
-# 新建过滤器前：查询可选对象
-cloudcc get dupeCatcher objects [projectPath]
-
-# 新建规则前：查询可选字段
-cloudcc get dupeCatcher <projectPath> fields <filterid>
-
-# 条件面板字段列表（复用工作流接口）
-cloudcc get dupeCatcher <projectPath> workflowFields <targetobjectid>
-```
-
-## 3. 参数说明
-
-### 3.1 projectPath
-
-- **可选**，项目根目录（默认当前目录）。
-
-### 3.2 encodedBodyJson
-
-- **必须**：`encodeURI(JSON.stringify(body))`
-
-### 3.3 命令参数一览
-
-| 命令 | 参数 |
-| :--- | :--- |
-| `cloudcc get dupeCatcher [projectPath]` | `projectPath` 可选 |
-| `cloudcc detail dupeCatcher <projectPath> <filterid>` | `projectPath` 可选（默认当前目录），`filterid` 必填 |
-| `cloudcc create dupeCatcher <projectPath> filter <encodedBodyJson>` | `projectPath` 可选（默认当前目录），`encodedBodyJson` 必填 |
-| `cloudcc delete dupeCatcher <projectPath> filter <filterid>` | `projectPath` 可选（默认当前目录），`filterid` 必填 |
-| `cloudcc detail dupeCatcher <projectPath> rule <ruleid>` | `projectPath` 可选（默认当前目录），`ruleid` 必填 |
-| `cloudcc create dupeCatcher <projectPath> rule <encodedBodyJson>` | `projectPath` 可选（默认当前目录），`encodedBodyJson` 必填 |
-| `cloudcc delete dupeCatcher <projectPath> rule <ruleid>` | `projectPath` 可选（默认当前目录），`ruleid` 必填 |
-| `cloudcc get dupeCatcher objects [projectPath]` | `projectPath` 可选 |
-| `cloudcc get dupeCatcher <projectPath> fields <filterid>` | `projectPath` 可选（默认当前目录），`filterid` 必填 |
-| `cloudcc get dupeCatcher <projectPath> workflowFields <targetobjectid>` | `projectPath` 可选（默认当前目录），`targetobjectid` 必填 |
-
-### 3.4 `create dupeCatcher filter` 的 body 字段
-
-| 字段 | 类型 | 是否必须 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `id` | string | 否 | 编辑时传；新建可不传 |
-| `name` | string | 是 | 过滤器名称 |
-| `objid` | string | 是 | 目标对象 id |
-| `errormessage` | string | 否 | 错误提示文案 |
-| `insertoperation` | string | 是 | 新增策略：`check` / `nothing` |
-| `insertIsSave` | string/null | 条件必填 | `insertoperation=check` 时建议传 `"1"`/`"0"`，否则传 `null` |
-| `insertIsTips` | string/null | 条件必填 | `insertoperation=check` 时建议传 `"1"`/`"0"`，否则传 `null` |
-| `updateoperation` | string | 是 | 更新策略：`check` / `nothing` |
-| `updateIsSave` | string/null | 条件必填 | `updateoperation=check` 时建议传 `"1"`/`"0"`，否则传 `null` |
-| `updateIsTips` | string/null | 条件必填 | `updateoperation=check` 时建议传 `"1"`/`"0"`，否则传 `null` |
-| `isprofile` | boolean | 否 | 是否简档 |
-| `isactive` | boolean | 否 | 是否启用 |
-| `conditionVals` | string | 是 | 条件面板产出的 JSON 字符串 |
-
-### 3.5 `create dupeCatcher rule` 的 body 字段
-
-| 字段 | 类型 | 是否必须 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `id` | string | 否 | 编辑时传；新建可不传 |
-| `filterid` | string | 是 | 所属过滤器 id |
-| `fieldid` | string | 是 | 匹配字段 id |
-| `matchoption` | string | 是 | `exact` / `contains` / `firstNletters` / `lastNletters` |
-| `firstletters` | string | 条件必填 | `matchoption` 为 `firstNletters/lastNletters` 时传字母数 |
-| `isblank` | number | 否 | 空值是否参与匹配，常用 `1/0` |
-
-## 4. 示例
-
-### 4.1 查询过滤器列表
+## 2. 发现与读取
 
 ```bash
-cloudcc get dupeCatcher .
+cloudcc capabilities dupeCatcher <projectPath>
+cloudcc get dupeCatcher <projectPath> [filter]
+cloudcc detail dupeCatcher <projectPath> <filterId>
+cloudcc detail-rule dupeCatcher <projectPath> <filterId> <ruleId>
+
+cloudcc candidates dupeCatcher <projectPath> objects [keyword]
+cloudcc candidates dupeCatcher <projectPath> rule-fields <filterId> [keyword]
+cloudcc candidates dupeCatcher <projectPath> condition-fields <objectId|apiName> [keyword]
 ```
 
-### 4.2 保存过滤器（新建）
+Contract 2 详情返回 `filter`、`conditions`、`rules` 和 `fingerprint`。兼容键 `dupeCatcher`、`relations`
+仍然保留，但新客户端不应依赖数据库列名。
 
-> 关键字段（与页面一致）：`name`、`objid`、`insertoperation`、`updateoperation`、`conditionVals` 等。
+## 3. 过滤器生命周期
+
+推荐使用 `@file`，不需要 `encodeURI(JSON.stringify(...))`。
 
 ```bash
-cloudcc create dupeCatcher . filter '{"name":"测试过滤器","objid":"<objid>","errormessage":"","insertoperation":"check","insertIsSave":"1","insertIsTips":"1","updateoperation":"check","updateIsSave":"1","updateIsTips":"1","isprofile":false,"isactive":true,"conditionVals":"{}"}'
+cloudcc create dupeCatcher <projectPath> @filter.json
+cloudcc update dupeCatcher <projectPath> <filterId> @patch.json
+cloudcc delete dupeCatcher <projectPath> <filterId>
 ```
 
-### 4.3 保存规则（新建）
+示例 `filter.json`：
+
+```json
+{
+  "name": "客户查重",
+  "objectId": "Account",
+  "active": false,
+  "profileScoped": false,
+  "errorMessage": "发现重复客户",
+  "insertOperation": "check",
+  "insertIsSave": false,
+  "insertIsTips": true,
+  "updateOperation": "check",
+  "updateIsSave": false,
+  "updateIsTips": true,
+  "conditions": [
+    {"fieldId":"status","operator":"=","value":"active","sequence":1,"logic":"1"}
+  ]
+}
+```
+
+更新采用 patch 语义：省略条件表示保留。清空条件必须显式提交空集合，不能用缺失字段表达删除。
+
+## 4. 详情页规则生命周期
 
 ```bash
-cloudcc create dupeCatcher . rule '{"filterid":"<filterid>","fieldid":"<fieldid>","matchoption":"exact","firstletters":"","isblank":0}'
+cloudcc create-rule dupeCatcher <projectPath> <filterId> @rule.json
+cloudcc update-rule dupeCatcher <projectPath> <filterId> <ruleId> @patch.json
+cloudcc delete-rule dupeCatcher <projectPath> <filterId> <ruleId>
 ```
 
-## 5. 注意事项
+完全匹配：
 
-- `filterid` / `ruleid` / `objid` / `fieldid` 都来自平台返回数据，请先通过列表/详情接口获取。
-- `conditionVals` 是页面条件面板产出的 **json 字符串**（不是对象），请按接口要求传入字符串。
+```json
+{
+  "fieldId": "field_account_name",
+  "matchOption": "exact",
+  "blankMatches": false
+}
+```
+
+后 N 位匹配：
+
+```json
+{
+  "fieldId": "field_account_phone",
+  "matchOption": "lastNletters",
+  "matchLength": 8,
+  "blankMatches": false
+}
+```
+
+匹配方式：
+
+| matchOption | matchLength | 含义 |
+|---|---:|---|
+| `exact` | 禁止 | 完全相等 |
+| `contains` | 禁止 | 包含匹配 |
+| `firstNletters` | 正整数、必填 | 前 N 位匹配 |
+| `lastNletters` | 正整数、必填 | 后 N 位匹配 |
+
+兼容输入 `firstletters`/`firstLetters` 会归一化到 `matchLength`。字段必须属于过滤器目标对象；汇总、
+公式、附件、长文本、富文本、记录类型、币种、文件、地址及系统身份字段不能作为重复规则字段。
+
+## 5. MSAPI 计划、回读与回滚
+
+友好写命令只创建计划。检查输出中的 `planId` 后显式执行：
+
+```bash
+cloudcc apply msapi <projectPath> <planId>
+cloudcc changes msapi <projectPath> <operationId>
+cloudcc rollback msapi <projectPath> <operationId>
+```
+
+规则计划保证：
+
+- `create-rule` 只插入规则行，不更新过滤器主体；
+- `update-rule` 和 `delete-rule` 同时绑定 `ruleId` 与 `filterId`；
+- 父子不匹配、字段不合格、匹配方式或长度非法时在规划阶段失败；
+- apply 后必须通过详情/规则详情做语义回读，不能仅凭 HTTP 200 判定成功。
+
+## 6. Provider 行为
+
+- MSAPI：MetadataService 直接执行租户关系型元数据计划，支持审计和回滚。
+- Lightning UIAPI：对象、规则字段、条件字段分别调用 `insetNewfilter`、`insetNewrule`、
+  `workFlowSetup/newWorkflow`；规则写入调用 `nsaverule/deleterule` 并回读详情。
+- Horizontal UIAPI：无已验证持久化合同，返回 `dupe_catcher_horizontal_uiapi_unsupported`。
+- Universal：根据项目 provider 选择上述链路，不允许跨 provider 静默回退。
+
+## 7. 常见错误
+
+| 错误码 | 处理 |
+|---|---|
+| `dupe_catcher_not_found` | 重新查询过滤器 ID |
+| `dupe_rule_not_found` | 重新读取详情中的规则 ID |
+| `dupe_rule_parent_mismatch` | 使用规则真实所属的 filterId |
+| `dupe_rule_field_ineligible` | 从 `rule-fields` 候选项重新选择 |
+| `dupe_rule_match_option_invalid` | 使用四种受支持匹配方式 |
+| `dupe_rule_match_length_invalid` | 为前/后 N 位提供正整数 matchLength |
+| `dupe_catcher_horizontal_uiapi_unsupported` | 切换到 MSAPI 或 Lightning UIAPI |
+
+旧位置式命令，例如 `create dupeCatcher . rule <json>`，不再作为规范合同。迁移到 `create-rule` 等
+明确 action，避免 `rule` 被通用解析器当作 selector 或 JSON。

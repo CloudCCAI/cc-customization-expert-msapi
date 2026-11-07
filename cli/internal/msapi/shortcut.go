@@ -212,6 +212,14 @@ var lowCodeShortcutActions = map[string]bool{
 	"createRecurringTrigger":             true,
 	"updateRecurringTrigger":             true,
 	"deleteRecurringTrigger":             true,
+	"detail-rule":                        true,
+	"detailRule":                         true,
+	"create-rule":                        true,
+	"createRule":                         true,
+	"update-rule":                        true,
+	"updateRule":                         true,
+	"delete-rule":                        true,
+	"deleteRule":                         true,
 }
 
 // IsLowCodeShortcut returns true for legacy low-code metadata CLI shortcuts that
@@ -219,7 +227,7 @@ var lowCodeShortcutActions = map[string]bool{
 func IsLowCodeShortcut(action string, resource string) bool {
 	domain, ok := lowCodeShortcutDomains[strings.TrimSpace(resource)]
 	if strings.TrimSpace(action) == "capabilities" {
-		return ok && (domain == "profiles" || domain == "search-layouts" || domain == "roles" || domain == "public-groups" || domain == "mobile-settings" || domain == "queues" || domain == "email-templates" || isWorkflowActionDomain(domain))
+		return ok && (domain == "profiles" || domain == "search-layouts" || domain == "roles" || domain == "public-groups" || domain == "mobile-settings" || domain == "queues" || domain == "email-templates" || domain == "dupe-catchers" || isWorkflowActionDomain(domain))
 	}
 	if !lowCodeShortcutActions[strings.TrimSpace(action)] {
 		return false
@@ -279,6 +287,10 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 	}
 	if domain == "email-templates" && (isShortcutRead(action) || strings.TrimSpace(action) == "capabilities" || strings.TrimSpace(action) == "impact") {
 		return handleEmailTemplateReadShortcut(action, resource, projectPath, rest, stdout, cwd)
+	}
+	if domain == "dupe-catchers" && (isShortcutRead(action) || strings.TrimSpace(action) == "capabilities" ||
+		strings.TrimSpace(action) == "candidates" || strings.TrimSpace(action) == "detail-rule" || strings.TrimSpace(action) == "detailRule") {
+		return handleDupeCatcherReadShortcut(action, projectPath, rest, stdout, cwd)
 	}
 	if isWorkflowActionDomain(domain) && (isShortcutRead(action) || strings.TrimSpace(action) == "capabilities" || strings.TrimSpace(action) == "candidates" || strings.TrimSpace(action) == "impact") {
 		return handleWorkflowActionReadShortcut(action, resource, domain, projectPath, rest, stdout, cwd)
@@ -726,6 +738,76 @@ func decodeShortcutFilter(value string) string {
 		return decoded
 	}
 	return value
+}
+
+func handleDupeCatcherReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
+	c, _, err := newClient([]string{projectPath}, cwd)
+	if err != nil {
+		return err
+	}
+	action = strings.TrimSpace(action)
+	switch action {
+	case "capabilities":
+		if len(args) != 0 {
+			return fmt.Errorf("cloudcc capabilities dupeCatcher <projectPath>")
+		}
+		return c.getJSON(stdout, "/metadata/v1/dupe-catchers/capabilities")
+	case "candidates":
+		if len(args) < 1 || len(args) > 3 {
+			return fmt.Errorf("cloudcc candidates dupeCatcher <projectPath> <objects|rule-fields|condition-fields> [filterId|object] [keyword]")
+		}
+		kind := strings.TrimSpace(args[0])
+		values := url.Values{}
+		values.Set("kind", kind)
+		switch kind {
+		case "objects":
+			if len(args) > 2 {
+				return fmt.Errorf("objects candidates accept at most one keyword")
+			}
+			if len(args) == 2 {
+				values.Set("filter", strings.TrimSpace(args[1]))
+			}
+		case "rule-fields":
+			if len(args) < 2 {
+				return fmt.Errorf("rule-fields candidates require filterId")
+			}
+			values.Set("filterId", strings.TrimSpace(args[1]))
+			if len(args) == 3 {
+				values.Set("filter", strings.TrimSpace(args[2]))
+			}
+		case "condition-fields":
+			if len(args) < 2 {
+				return fmt.Errorf("condition-fields candidates require object selector")
+			}
+			values.Set("object", strings.TrimSpace(args[1]))
+			if len(args) == 3 {
+				values.Set("filter", strings.TrimSpace(args[2]))
+			}
+		default:
+			return fmt.Errorf("dupeCatcher candidate kind must be objects, rule-fields, or condition-fields")
+		}
+		return c.getJSON(stdout, "/metadata/v1/dupe-catchers/candidates?"+values.Encode())
+	case "detail-rule", "detailRule":
+		if len(args) != 2 || strings.TrimSpace(args[0]) == "" || strings.TrimSpace(args[1]) == "" {
+			return fmt.Errorf("cloudcc detail-rule dupeCatcher <projectPath> <filterId> <ruleId>")
+		}
+		return c.getJSON(stdout, "/metadata/v1/dupe-catchers/"+url.PathEscape(strings.TrimSpace(args[0]))+
+			"/rules/"+url.PathEscape(strings.TrimSpace(args[1])))
+	case "detail", "editInfo":
+		if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
+			return fmt.Errorf("cloudcc detail dupeCatcher <projectPath> <filterId>")
+		}
+		return c.getJSON(stdout, "/metadata/v1/dupe-catchers/"+url.PathEscape(strings.TrimSpace(args[0])))
+	default:
+		if len(args) > 1 {
+			return fmt.Errorf("cloudcc get dupeCatcher <projectPath> [filter]")
+		}
+		path := "/metadata/v1/dupe-catchers"
+		if len(args) == 1 && strings.TrimSpace(args[0]) != "" {
+			path += "?filter=" + url.QueryEscape(decodeShortcutFilter(args[0]))
+		}
+		return c.getJSON(stdout, path)
+	}
 }
 
 func handleObjectViewReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
@@ -2724,6 +2806,34 @@ func shortcutProjectPath(args []string, cwd string) (string, []string) {
 
 func shortcutPlanSpec(action string, resource string, args []string) (map[string]any, string, error) {
 	operation := shortcutOperation(action, resource)
+	if lowCodeShortcutDomains[strings.TrimSpace(resource)] == "dupe-catchers" {
+		switch strings.TrimSpace(action) {
+		case "create-rule", "createRule":
+			if len(args) != 2 || strings.TrimSpace(args[0]) == "" || !looksLikeJSONArg(args[1]) {
+				return nil, "", fmt.Errorf("cloudcc create-rule dupeCatcher <projectPath> <filterId> <@rule.json>")
+			}
+			rule, err := parseObject(args[1], "cloudcc create-rule dupeCatcher")
+			if err != nil {
+				return nil, "", err
+			}
+			return map[string]any{"filterId": strings.TrimSpace(args[0]), "rule": rule}, "create-rule", nil
+		case "update-rule", "updateRule":
+			if len(args) != 3 || strings.TrimSpace(args[0]) == "" || strings.TrimSpace(args[1]) == "" || !looksLikeJSONArg(args[2]) {
+				return nil, "", fmt.Errorf("cloudcc update-rule dupeCatcher <projectPath> <filterId> <ruleId> <@patch.json>")
+			}
+			rule, err := parseObject(args[2], "cloudcc update-rule dupeCatcher")
+			if err != nil {
+				return nil, "", err
+			}
+			rule["ruleId"] = strings.TrimSpace(args[1])
+			return map[string]any{"filterId": strings.TrimSpace(args[0]), "rule": rule}, "update-rule", nil
+		case "delete-rule", "deleteRule":
+			if len(args) != 2 || strings.TrimSpace(args[0]) == "" || strings.TrimSpace(args[1]) == "" {
+				return nil, "", fmt.Errorf("cloudcc delete-rule dupeCatcher <projectPath> <filterId> <ruleId>")
+			}
+			return map[string]any{"filterId": strings.TrimSpace(args[0]), "ruleId": strings.TrimSpace(args[1])}, "delete-rule", nil
+		}
+	}
 	if isWorkflowActionDomain(lowCodeShortcutDomains[strings.TrimSpace(resource)]) {
 		switch strings.TrimSpace(action) {
 		case "update", "save":

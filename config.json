@@ -1,6 +1,6 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.3.5-msapi",
+  "version": "2.3.6-msapi",
   "releaseDate": "2026-11-07",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
@@ -1699,7 +1699,8 @@
         "parent": "metadata",
         "category": "metadata",
         "aliases": [
-          "dupeCatcher"
+          "dupeCatcher",
+          "dupe-catcher"
         ],
         "packageAvailability": "enabled",
         "availability": {
@@ -1707,7 +1708,7 @@
           "uiapi": "provider-adapter",
           "universal": "provider-selected"
         },
-        "minimumBackendVersion": null,
+        "minimumBackendVersion": "1.2.6",
         "routes": [
           {
             "provider": "msapi",
@@ -1717,21 +1718,46 @@
           },
           {
             "provider": "uiapi",
+            "platform": "lightning",
             "backend": "setup-svc",
             "transport": "uiapi",
             "availability": "provider-adapter"
+          },
+          {
+            "provider": "uiapi",
+            "platform": "horizontal",
+            "backend": "main-app",
+            "transport": "uiapi",
+            "availability": "unavailable",
+            "reason": "No verified horizontal duplicate-catcher persistence contract."
           }
         ],
         "actions": [
           "get",
           "detail",
+          "capabilities",
+          "candidates",
+          "detail-rule",
           "create",
           "update",
-          "delete"
+          "delete",
+          "create-rule",
+          "update-rule",
+          "delete-rule",
+          "plan",
+          "apply",
+          "changes",
+          "rollback"
         ],
         "commands": [
-          "cloudcc get dupeCatcher <projectPath> [selector]",
-          "cloudcc create dupeCatcher <projectPath> <spec>"
+          "cloudcc capabilities dupeCatcher <projectPath>",
+          "cloudcc get dupeCatcher <projectPath> [filter]",
+          "cloudcc detail dupeCatcher <projectPath> <filterId>",
+          "cloudcc candidates dupeCatcher <projectPath> <objects|rule-fields|condition-fields> [selector] [keyword]",
+          "cloudcc detail-rule dupeCatcher <projectPath> <filterId> <ruleId>",
+          "cloudcc create-rule dupeCatcher <projectPath> <filterId> <@rule.json>",
+          "cloudcc update-rule dupeCatcher <projectPath> <filterId> <ruleId> <@patch.json>",
+          "cloudcc delete-rule dupeCatcher <projectPath> <filterId> <ruleId>"
         ],
         "documentation": {
           "introduction": "cloudcc doc platform/dupeCatcher introduction",
@@ -3170,6 +3196,30 @@
     "sourceOfTruth": "cc-customization-expert-go/config.json",
     "policy": "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
     "minimumByCapability": [
+      {
+        "capability": "msapi.dupeCatchers.contract2",
+        "label": "Duplicate-catcher aggregate and owned rule lifecycle",
+        "introducedInSkillVersion": "2.3.6-msapi",
+        "minimumMetadataServiceVersion": "1.2.6",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.2.6",
+        "domains": [
+          "dupe-catchers"
+        ],
+        "operations": [
+          "detail",
+          "capabilities",
+          "candidates",
+          "detail-rule",
+          "create-rule",
+          "update-rule",
+          "delete-rule",
+          "plan",
+          "apply",
+          "readback",
+          "rollback"
+        ],
+        "reason": "Requires canonical filter/condition/rule readback, typed candidates, explicit owned child plans, parent and field validation, and provider-safe rule routing."
+      },
       {
         "capability": "msapi.fields.optionLifecycle",
         "label": "Existing local field option lifecycle",

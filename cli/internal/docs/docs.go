@@ -145,6 +145,10 @@ func normalizeModule(module string) (string, error) {
 	if strings.EqualFold(module, "queue") || strings.EqualFold(module, "queues") {
 		return "platform/queue", nil
 	}
+	if strings.EqualFold(module, "dupeCatcher") || strings.EqualFold(module, "dupe-catcher") ||
+		strings.EqualFold(module, "dupe-catchers") {
+		return "platform/dupeCatcher", nil
+	}
 	if strings.EqualFold(module, "detailPageReport") || strings.EqualFold(module, "detailPageChart") ||
 		strings.EqualFold(module, "detail-page-report") || strings.EqualFold(module, "detail-page-reports") {
 		return "platform/detailPageReport", nil
