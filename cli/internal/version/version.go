@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.3.3"
+const Version = "2.3.5"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,6 +48,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- Existing local L/Q field option lifecycle self-audit now enforces unique client keys, explicit no-default confirmation, strict dependency policies, correct record-type counts, locale-consistent detail labels, and verified rollback. detail fields forwards the project language. Requires MetadataService 1.2.5.")
 		fmt.Fprintln(stderr, "- Queue relational persistence self-audit adds supported-object removal owner guards, apply-time natural-key rechecks, complete generated-view child orphan readback, and accurate tenant-relational capabilities. Existing commands and arguments remain compatible. Requires MetadataService 1.2.3.")
 		fmt.Fprintln(stderr, "- Formula fields, validation rules, and workflow formula conditions now use lazy target-aware field suffix recognition with user-level caching; object and field metadata API names remain suffix-free, and relationship paths keep __r. Run cloudcc doc expressionSyntax devguide. Requires MetadataService 1.2.1 for MSAPI formula compilation.")
 		fmt.Fprintln(stderr, "- Profile Contract 2 adds typed settings/candidates, explicit owned child operations, setup-service guarded create, password-policy uncertainty handling, and strict compatibility discovery. Extended operations require MetadataService 1.2.0; legacy operations remain compatible.")

@@ -1,7 +1,7 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.3.3-msapi",
-  "releaseDate": "2026-11-06",
+  "version": "2.3.5-msapi",
+  "releaseDate": "2026-11-07",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
   "domainCatalog": {
@@ -482,12 +482,15 @@
           "candidates",
           "create",
           "update",
+          "patch-options",
           "delete",
           "audit",
           "repair"
         ],
         "commands": [
-          "cloudcc get fields <projectPath> [object]",
+          "cloudcc get fields <projectPath> <object>",
+          "cloudcc detail fields <projectPath> <fieldId>",
+          "cloudcc plan msapi <projectPath> fields @field-options.json patch-options",
           "cloudcc candidates fields <projectPath> <object> [relationship-path] [--current-field-id <id>] [--include-unsupported]",
           "cloudcc create fields <projectPath> <spec>",
           "cloudcc audit fields <projectPath> [options]",
@@ -3167,6 +3170,24 @@
     "sourceOfTruth": "cc-customization-expert-go/config.json",
     "policy": "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
     "minimumByCapability": [
+      {
+        "capability": "msapi.fields.optionLifecycle",
+        "label": "Existing local field option lifecycle",
+        "introducedInSkillVersion": "2.3.5-msapi",
+        "minimumMetadataServiceVersion": "1.2.5",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.2.5",
+        "domains": [
+          "fields"
+        ],
+        "operations": [
+          "option-detail",
+          "patch-options",
+          "plan",
+          "apply",
+          "readback"
+        ],
+        "reason": "Requires normalized local option readback, optimistic option revisions, guarded add/update/delete/order/default plans, dependency protection, global-list and special-field boundaries, and transactional readback without field-master mutation."
+      },
       {
         "capability": "msapi.expressionSyntax.targetSuffix",
         "label": "Target-aware formula, validation-rule, and workflow-condition suffix",

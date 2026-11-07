@@ -991,11 +991,17 @@ func handleObjectReadShortcut(action string, projectPath string, args []string, 
 
 func handleFieldsReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
 	if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
-		return fmt.Errorf("cloudcc %s fields <projectPath> <object-id-apiName-or-prefix>", action)
+		return fmt.Errorf("cloudcc %s fields <projectPath> <%s>", action, map[bool]string{
+			true: "fieldId", false: "object-id-apiName-or-prefix",
+		}[action == "detail" || action == "editInfo"])
 	}
 	c, _, err := newClient([]string{projectPath}, cwd)
 	if err != nil {
 		return err
+	}
+	if action == "detail" || action == "editInfo" {
+		values := url.Values{"language": []string{c.language}}
+		return c.getJSON(stdout, "/metadata/v1/fields/"+url.PathEscape(strings.TrimSpace(args[0]))+"/options?"+values.Encode())
 	}
 	return c.getJSON(stdout, "/metadata/v1/fields?object="+url.QueryEscape(strings.TrimSpace(args[0])))
 }

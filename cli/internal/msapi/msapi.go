@@ -39,6 +39,7 @@ type client struct {
 	projectPath      string
 	platformMode     string
 	horizontalAuth   bool
+	language         string
 	expressionSyntax expressionsyntax.Syntax
 	http             *http.Client
 }
@@ -1282,9 +1283,13 @@ func newClient(args []string, cwd string) (*client, []string, error) {
 	}
 	setupServiceURL := ""
 	apiServiceURL := ""
+	language := "zh"
 	if cfg, cfgErr := config.Load(projectPath); cfgErr == nil {
 		setupServiceURL = config.SetupServiceRequestTarget(cfg)
 		apiServiceURL = config.APIServiceRequestTarget(cfg)
+		if configuredLanguage := strings.TrimSpace(config.String(cfg, "language")); configuredLanguage != "" {
+			language = configuredLanguage
+		}
 	}
 	horizontalAuth := false
 	if platformMode == config.PlatformHorizontal && (token == "" || userToken == "") {
@@ -1309,6 +1314,7 @@ func newClient(args []string, cwd string) (*client, []string, error) {
 		projectPath:      projectPath,
 		platformMode:     platformMode,
 		horizontalAuth:   horizontalAuth,
+		language:         language,
 		http:             &http.Client{Timeout: 180 * time.Second},
 	}, remaining, nil
 }

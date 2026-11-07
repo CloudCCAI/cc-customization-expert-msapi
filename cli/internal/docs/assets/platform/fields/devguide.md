@@ -17,9 +17,11 @@ cloudcc doc platform/fields devguide
 
 ```bash
 cloudcc get fields <projectPath> <object-id-apiName-or-prefix>
+cloudcc detail fields <projectPath> <fieldId>
 cloudcc plan msapi <projectPath> fields @field.json create
 cloudcc plan msapi <projectPath> fields @field.json update
 cloudcc plan msapi <projectPath> fields @field.json upsert
+cloudcc plan msapi <projectPath> fields @field-options.json patch-options
 cloudcc plan msapi <projectPath> fields @field.json delete
 cloudcc apply msapi <projectPath> <planId> ['{"async":true}']
 cloudcc operation msapi <projectPath> <operationId>
@@ -29,11 +31,65 @@ cloudcc operation msapi <projectPath> <operationId>
 
 - `projectPath`：本地项目路径，用于读取 `cloudcc-cli.config.json`。
 - `get fields`：按对象 ID、对象 API 名或对象前缀查询对象字段，返回标准字段和自定义字段。
+- `detail fields`：按字段 ID 读取选项稳定值、当前语言标签、顺序、默认值、引用统计和 `optionRevision`。
 - `plan msapi ... fields`：生成字段元数据计划，不直接写库；复核 plan 后再执行 `apply`。
 - `apply msapi`：执行已生成的计划。批量字段、包含布局/权限/相关列表等展开步骤的计划推荐使用 `{"async":true}`。
 - `operation msapi`：查询异步 apply 的执行状态和验证结果。
 
 MetadataService spec 是当前字段创建的主入口。调用方应在 JSON 中显式声明稳定的 `apiName`、`label`、`type` 和所属对象；不要依赖 CLI 自动生成字段 API 名。位置参数版 `cloudcc create fields ...` 属于兼容旧通道的基础字段快捷写法，见 [5. 兼容位置参数入口](#5-兼容位置参数入口)。
+
+### 已有字段选项维护
+
+MetadataService `1.2.5+` 使用 `fields patch-options` 独立维护已存在的普通本地 `L`/`Q` 字段选项。
+标准字段和自定义字段使用相同协议；该操作只修改 `tp_sys_code` 选项子图，不更新字段主记录、布局、
+简档权限或数据库视图。全局选项字段必须改用 `global-select-lists` Domain；业务机会阶段和服务状态等
+带附加属性的特殊字段会失败关闭。
+
+写入前先回读：
+
+```bash
+cloudcc detail fields . ffe2026079FD547mcK20
+```
+
+把回读的 `optionRevision` 放入计划 spec：
+
+```json
+{
+  "fieldId": "ffe2026079FD547mcK20",
+  "objectId": "account",
+  "expectedOptionRevision": "sha256:<readback-revision>",
+  "actions": [
+    {"op": "update", "optionId": "<existing-id>", "value": "客户已停业", "defaultValue": true},
+    {"op": "add", "clientKey": "new-contact-left", "value": "联系人离职"},
+    {"op": "delete", "optionId": "<obsolete-id>", "dependencyPolicy": "reject"}
+  ],
+  "order": [
+    {"optionId": "<existing-id>"},
+    {"clientKey": "new-contact-left"}
+  ],
+  "defaultOption": {"optionId": "<existing-id>"}
+}
+```
+
+```bash
+cloudcc plan msapi . fields @field-options.json patch-options
+cloudcc apply msapi . <planId>
+cloudcc detail fields . ffe2026079FD547mcK20
+```
+
+规则：
+
+- `actions` 按顺序执行，支持 `add`、`update`、`delete`；`add.clientKey` 只在本计划内引用新选项。
+- 添加已存在的自然键会复用真实选项；选项物理 ID 不由调用方生成。
+- `update.value` 修改默认行存储键；省略 `label` 时同步当前语言标签。只改显示标签时只传 `label`。
+- 修改存储键或删除选项不会迁移业务记录中的历史值，必须审阅计划警告。
+- 删除要求计划请求 `allowDestructive=true`。存在字段依赖时默认拒绝；审核后显式使用
+  `dependencyPolicy=remove` 才会同步删除对应依赖行。
+- `order` 是变更后的完整活动选项顺序，不允许缺失或重复；可以用 `clientKey` 引用本计划新增值。
+- 排序和默认值会同步到默认行及该选项的全部多语言行。
+- `defaultOption` 设置唯一默认值；清空默认值需传 `defaultOption:null` 和 `allowNoDefault:true`。
+- plan/apply 检查 `optionRevision`；计划生成后选项发生变化时 apply 失败，必须重新读取和计划。
+- apply 后必须再次回读，确认目标值、顺序、默认值、已有值和自然键均正确。
 
 ### 2.1 字段 ID 和选项 ID 规则
 
