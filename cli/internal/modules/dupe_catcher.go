@@ -32,7 +32,8 @@ func handleDupeCatcher(action string, args []string, stdout io.Writer, cwd strin
 		return json.NewEncoder(stdout).Encode(map[string]any{
 			"domain": "dupe-catchers", "contractVersion": 2, "provider": "lightning-uiapi",
 			"ruleComposition": "and", "matchOptions": []string{"exact", "contains", "firstNletters", "lastNletters"},
-			"operations": []string{"get", "detail", "candidates", "create", "update", "delete", "detail-rule", "create-rule", "update-rule", "delete-rule"},
+			"conditionContract": map[string]any{"shape": "conditions.logic+conditions.items", "storageShape": "conditionVals.data+conditionVals.filter", "replacement": true, "omissionPreserves": true},
+			"operations":        []string{"get", "detail", "candidates", "create", "update", "delete", "detail-rule", "create-rule", "update-rule", "delete-rule"},
 		})
 	case "candidates":
 		return dupeCatcherCandidates(projectPath, cfg, rest, stdout)
@@ -277,8 +278,114 @@ func dupeCatcherCandidates(projectPath string, cfg config.Config, args []string,
 		if len(args) < 2 || strings.TrimSpace(args[1]) == "" {
 			return fmt.Errorf("condition-fields candidates require object selector")
 		}
-		return postClass(stdout, projectPath, cfg, "setup", "/api/workFlowSetup/newWorkflow", map[string]any{"targetobjectid": strings.TrimSpace(args[1])})
+		var response map[string]any
+		if err := postClassResponse(projectPath, cfg, "setup", "/api/workFlowSetup/newWorkflow",
+			map[string]any{"targetobjectid": strings.TrimSpace(args[1])}, &response); err != nil {
+			return err
+		}
+		normalized, err := normalizeDupeConditionCandidates(response, optionalDupeCandidateKeyword(args))
+		if err != nil {
+			return err
+		}
+		return printJSON(stdout, normalized)
 	default:
 		return fmt.Errorf("dupeCatcher candidate kind must be objects, rule-fields, or condition-fields")
+	}
+}
+
+func optionalDupeCandidateKeyword(args []string) string {
+	if len(args) == 3 {
+		return strings.TrimSpace(args[2])
+	}
+	return ""
+}
+
+func normalizeDupeConditionCandidates(response map[string]any, keyword string) (map[string]any, error) {
+	data, ok := response["data"].(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("dupe_condition_candidate_response_invalid: setup-service data is missing")
+	}
+	rows, ok := data["objlist"].([]any)
+	if !ok {
+		return nil, fmt.Errorf("dupe_condition_candidate_response_invalid: setup-service data.objlist is missing")
+	}
+	needle := strings.ToLower(strings.TrimSpace(keyword))
+	candidates := make([]map[string]any, 0, len(rows))
+	for _, raw := range rows {
+		row, ok := raw.(map[string]any)
+		if !ok {
+			return nil, fmt.Errorf("dupe_condition_candidate_response_invalid: objlist contains a non-object row")
+		}
+		id := dupeCatcherText(row, "id")
+		apiName := dupeCatcherText(row, "apiName", "apiname", "schemefieldName", "schemefield_name")
+		label := dupeCatcherText(row, "schemefieldLabel", "schemefield_label", "fieldLabel", "label", "schemefieldName")
+		fieldType := dupeCatcherText(row, "schemefieldType", "schemefield_type", "fieldType", "type")
+		expressionType := dupeCatcherText(row, "expressionType", "expression_type")
+		if id == "" || apiName == "" || fieldType == "" {
+			return nil, fmt.Errorf("dupe_condition_candidate_response_invalid: field row lacks id, apiName, or type")
+		}
+		effective, operators, valueKind, reason := dupeConditionFieldContract(fieldType, expressionType)
+		candidate := map[string]any{
+			"id": id, "apiName": apiName, "label": label, "type": fieldType, "effectiveType": effective,
+			"eligible": len(operators) > 0, "supportedOperators": operators, "valueKind": valueKind,
+			"options": []any{}, "exclusionReason": reason,
+		}
+		search := strings.ToLower(id + " " + apiName + " " + label + " " + fieldType)
+		if needle == "" || strings.Contains(search, needle) {
+			candidates = append(candidates, candidate)
+		}
+	}
+	return map[string]any{
+		"domain": "dupe-catchers", "contractVersion": 2, "provider": "lightning-uiapi",
+		"kind": "condition-fields", "count": len(candidates), "candidates": candidates,
+		"providerResponse": response,
+	}, nil
+}
+
+func dupeConditionFieldContract(rawType string, expressionType string) (string, []string, string, any) {
+	typeCode := strings.ToUpper(strings.TrimSpace(rawType))
+	if rawType == "c" {
+		typeCode = "CURRENCY"
+	}
+	if typeCode == "Z" || typeCode == "C" {
+		resolved := strings.ToUpper(strings.TrimSpace(expressionType))
+		if expressionType == "c" {
+			resolved = "CURRENCY"
+		}
+		if resolved != "" {
+			typeCode = resolved
+		}
+	}
+	ordered := []string{"equals", "notEquals", "lessThan", "greaterThan", "lessOrEqual", "greaterOrEqual"}
+	textOps := []string{"equals", "notEquals", "lessThan", "greaterThan", "lessOrEqual", "greaterOrEqual", "contains", "notContains", "startsWith"}
+	textTypes := map[string]bool{"S": true, "X": true, "J": true, "A": true, "H": true, "E": true, "U": true, "ENC": true, "ENCD": true, "V": true, "CT": true, "AD": true, "R": true, "L": true, "Y": true, "M": true, "MR": true}
+	numberTypes := map[string]bool{"N": true, "P": true, "CURRENCY": true, "SCORE": true}
+	switch {
+	case textTypes[typeCode]:
+		kind := "text"
+		if typeCode == "L" {
+			kind = "select"
+		}
+		return typeCode, textOps, kind, nil
+	case numberTypes[typeCode]:
+		return typeCode, ordered, "number", nil
+	case typeCode == "D":
+		return typeCode, append(append([]string{}, ordered...), "between"), "date", nil
+	case typeCode == "F":
+		return typeCode, append(append([]string{}, ordered...), "between"), "dateTime", nil
+	case typeCode == "T":
+		return typeCode, append(append([]string{}, ordered...), "between"), "time", nil
+	case typeCode == "B":
+		return typeCode, []string{"equals", "notEquals"}, "boolean", nil
+	case typeCode == "Q":
+		return typeCode, []string{"equals", "notEquals", "includes", "excludes"}, "multiSelect", nil
+	case typeCode == "LT":
+		return typeCode, []string{"within"}, "location", nil
+	default:
+		reason := "field_type_has_no_verified_condition_contract"
+		if strings.EqualFold(rawType, "Z") && strings.TrimSpace(expressionType) == "" {
+			reason = "formula_result_type_unavailable"
+		}
+		return typeCode, []string{}, "unsupported", reason
 	}
 }

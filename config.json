@@ -1,6 +1,6 @@
 {
     "packageName":  "cc-customization-expert-msapi",
-    "version":  "2.3.7-msapi",
+    "version":  "2.3.8-msapi",
     "releaseDate":  "2026-11-08",
     "compatCloudccCliVersion":  "2.5.3",
     "runtime":  "go",
@@ -1708,7 +1708,7 @@
                                                                      "uiapi":  "provider-adapter",
                                                                      "universal":  "provider-selected"
                                                                  },
-                                                "minimumBackendVersion":  "1.2.6",
+                                                "minimumBackendVersion":  "1.2.8",
                                                 "routes":  [
                                                                {
                                                                    "provider":  "msapi",
@@ -3238,9 +3238,9 @@
                                                                      {
                                                                          "capability":  "msapi.dupeCatchers.contract2",
                                                                          "label":  "Duplicate-catcher aggregate and owned rule lifecycle",
-                                                                         "introducedInSkillVersion":  "2.3.6-msapi",
-                                                                         "minimumMetadataServiceVersion":  "1.2.6",
-                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.2.6",
+                                                                         "introducedInSkillVersion":  "2.3.8-msapi",
+                                                                         "minimumMetadataServiceVersion":  "1.2.8",
+                                                                         "metadataServiceReleaseTag":  "cc-metadata-service-v1.2.8",
                                                                          "domains":  [
                                                                                          "dupe-catchers"
                                                                                      ],
@@ -3257,7 +3257,7 @@
                                                                                             "readback",
                                                                                             "rollback"
                                                                                         ],
-                                                                         "reason":  "Requires canonical filter/condition/rule readback, typed candidates, explicit owned child plans, parent and field validation, and provider-safe rule routing."
+                                                                         "reason":  "Requires canonical filter/condition/rule readback, typed condition operators and value kinds, validated setup-envelope replacement, explicit owned rule plans, and provider-safe routing."
                                                                      },
                                                                      {
                                                                          "capability":  "msapi.fields.optionLifecycle",
