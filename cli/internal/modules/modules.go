@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 	"unicode/utf8"
@@ -353,11 +354,18 @@ var genericEndpoints = map[string]map[string]endpoint{
 		"delete": {"setup", "/api/validateRule/delete"},
 	},
 	"view": {
-		"get":    {"setup", "/api/view/list/getViewList"},
-		"detail": {"setup", "/api/view/getViewInfo"},
-		"create": {"setup", "/api/view/saveView"},
-		"update": {"setup", "/api/view/saveView"},
-		"delete": {"setup", "/api/view/deleteView"},
+		"get":               {"api", "/api/view/list/getViewList"},
+		"detail":            {"api", "/api/view/getViewInfo"},
+		"create":            {"api", "/api/view/saveView"},
+		"update":            {"api", "/api/view/saveView"},
+		"delete":            {"api", "/api/view/deleteView"},
+		"copy":              {"api", "/api/view/copyView"},
+		"set-default":       {"api", "/api/view/list/setViewDefault"},
+		"get-default":       {"api", "/api/view/list/getDefaultView"},
+		"get-order":         {"api", "/api/view/getSortView"},
+		"reorder":           {"api", "/api/view/saveSortView"},
+		"list-public-order": {"api", "/api/view/list/getObjectViewList"},
+		"reorder-public":    {"api", "/api/view/saveObjectSortView"},
 	},
 	"sharingRule": {
 		"get":    {"setup", "/api/sharingSettings/queryRule"},
@@ -476,6 +484,8 @@ func Handle(action string, resource string, args []string, stdout io.Writer, std
 		return handleDupeCatcher(action, args, stdout, cwd)
 	case "emailTemplate", "emailTemplateFolder":
 		return handleEmailTemplate(action, resource, args, stdout, cwd)
+	case "view":
+		return handleView(action, args, stdout, cwd)
 	case "jsp", "site", "skill":
 		return fmt.Errorf("%s %s is deferred to P4 or a later task in the Go rewrite", action, resource)
 	}
@@ -500,6 +510,563 @@ func Handle(action string, resource string, args []string, stdout io.Writer, std
 		}
 	}
 	return fmt.Errorf("unsupported command: cloudcc %s %s", action, resource)
+}
+
+func handleView(action string, args []string, stdout io.Writer, cwd string) error {
+	ep, ok := genericEndpoints["view"][action]
+	if !ok {
+		return fmt.Errorf("unsupported view action: %s", action)
+	}
+	projectPath := firstArg(args, cwd)
+	rest := []string{}
+	if len(args) > 0 {
+		rest = args[1:]
+	}
+	body, err := viewUIAPIBody(action, rest)
+	if err != nil {
+		return err
+	}
+	cfg, err := config.Load(projectPath)
+	if err != nil {
+		return err
+	}
+	if action == "delete" && viewText(body["objId"]) == "" {
+		var detail map[string]any
+		if err := postClassResponse(projectPath, cfg, "api", "/api/view/getViewInfo", body, &detail); err != nil {
+			return fmt.Errorf("view_delete_object_resolution_failed: %w", err)
+		}
+		if success, exists := detail["result"].(bool); exists && !success {
+			return fmt.Errorf("view_delete_object_resolution_failed: %v", firstAny(detail["returnInfo"], detail["message"], detail))
+		}
+		body["objId"] = viewResponseObjectID(detail)
+		if viewText(body["objId"]) == "" {
+			return fmt.Errorf("view_delete_object_resolution_failed: detail response did not contain objId")
+		}
+	}
+	requestedBody := copyStringAnyMap(body)
+	if action == "update" {
+		var before map[string]any
+		if err := postClassResponse(projectPath, cfg, "api", "/api/view/getViewInfo", body, &before); err != nil {
+			return fmt.Errorf("view_update_read_before_write_failed: %w", err)
+		}
+		if success, exists := before["result"].(bool); exists && !success {
+			return fmt.Errorf("view_update_read_before_write_failed: %v", firstAny(before["returnInfo"], before["message"], before))
+		}
+		if err := mergeViewUpdateBody(body, before); err != nil {
+			return err
+		}
+	}
+	var response map[string]any
+	if err := postClassResponse(projectPath, cfg, ep.base, ep.path, body, &response); err != nil {
+		return err
+	}
+	if success, exists := response["result"].(bool); exists && !success {
+		return fmt.Errorf("view_%s_failed: %v", action, firstAny(response["returnInfo"], response["message"], response))
+	}
+	if action == "create" || action == "update" || action == "copy" {
+		viewID := viewResponseID(response)
+		if viewID == "" {
+			return fmt.Errorf("view_remote_result_unknown: %s response did not contain the saved view id", action)
+		}
+		var detail map[string]any
+		if err := postClassResponse(projectPath, cfg, "api", "/api/view/getViewInfo",
+			map[string]any{"viewId": viewID, "id": viewID, "objId": body["objId"]}, &detail); err != nil {
+			return fmt.Errorf("view_remote_result_unknown: %s succeeded but detail readback failed: %w", action, err)
+		}
+		if success, exists := detail["result"].(bool); exists && !success {
+			return fmt.Errorf("view_remote_result_unknown: %s succeeded but detail readback was negative", action)
+		}
+		if err := verifyViewWriteReadback(action, requestedBody, detail); err != nil {
+			return err
+		}
+		return printJSON(stdout, detail)
+	}
+	if action == "delete" {
+		var readback map[string]any
+		if err := postClassResponse(projectPath, cfg, "api", "/api/view/list/getViewList",
+			map[string]any{"objId": body["objId"]}, &readback); err != nil {
+			return fmt.Errorf("view_remote_result_unknown: delete succeeded but list readback failed: %w", err)
+		}
+		if success, exists := readback["result"].(bool); exists && !success {
+			return fmt.Errorf("view_remote_result_unknown: delete succeeded but list readback was negative")
+		}
+		if responseContainsViewID(readback, viewText(body["viewId"])) {
+			return fmt.Errorf("view_remote_result_unknown: deleted view is still present in list readback")
+		}
+		return printJSON(stdout, readback)
+	}
+	if action == "set-default" {
+		return readbackViewDefault(stdout, projectPath, cfg, body)
+	}
+	if action == "reorder" || action == "reorder-public" {
+		return readbackViewOrder(stdout, projectPath, cfg, action, body)
+	}
+	return printJSON(stdout, response)
+}
+
+func mergeViewUpdateBody(body map[string]any, response map[string]any) error {
+	data, ok := response["data"].(map[string]any)
+	if !ok {
+		return fmt.Errorf("view_update_read_before_write_failed: detail response has no data")
+	}
+	info, ok := data["viewInfo"].(map[string]any)
+	if !ok {
+		return fmt.Errorf("view_update_read_before_write_failed: detail response has no viewInfo")
+	}
+	fill := func(target string, values ...any) {
+		if _, exists := body[target]; exists {
+			return
+		}
+		for _, value := range values {
+			if value != nil {
+				body[target] = value
+				return
+			}
+		}
+	}
+	fill("objId", info["objid"], info["objId"])
+	fill("label", info["label"])
+	fill("filter", info["filter"])
+	fill("accesstype", info["accesstype"])
+	fill("accessibleuserset", info["accessibleuserset"])
+	fill("isUsedForMobile", info["isusedformobile"], info["isUsedForMobile"])
+	fill("sortfield", info["sortfield"])
+	fill("sortorder", info["sortorder"])
+	if _, exists := body["selectedFieldIds"]; !exists {
+		body["selectedFieldIds"] = joinViewDetailIDs(data["viewSelectedFieldList"], "fieldId", "field_id", "id")
+	}
+	if _, exists := body["customButtons"]; !exists {
+		body["customButtons"] = joinViewDetailIDs(info["viewButtons"], "button_id", "buttonId", "id")
+	}
+	if _, exists := body["conditionVals"]; !exists {
+		items, _ := data["conditionSelectedFieldList"].([]any)
+		filter := ""
+		if len(items) > 0 {
+			if row, ok := items[0].(map[string]any); ok {
+				filter = viewText(firstAny(row["boolfilter"], row["boolFilter"]))
+			}
+		}
+		encoded, err := json.Marshal(map[string]any{"data": items, "filter": filter, "mainObjId": viewText(body["objId"])})
+		if err != nil {
+			return fmt.Errorf("view_update_read_before_write_failed: cannot preserve conditions: %w", err)
+		}
+		body["conditionVals"] = string(encoded)
+	}
+	if viewText(body["objId"]) == "" || viewText(body["selectedFieldIds"]) == "" || viewText(body["label"]) == "" {
+		return fmt.Errorf("view_update_read_before_write_failed: detail response is missing required full-form state")
+	}
+	return nil
+}
+
+func joinViewDetailIDs(raw any, keys ...string) string {
+	items, _ := raw.([]any)
+	ids := make([]string, 0, len(items))
+	for _, item := range items {
+		row, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		for _, key := range keys {
+			if id := viewText(row[key]); id != "" {
+				ids = append(ids, id)
+				break
+			}
+		}
+	}
+	return strings.Join(ids, ",")
+}
+
+func verifyViewWriteReadback(action string, requested map[string]any, response map[string]any) error {
+	data, ok := response["data"].(map[string]any)
+	if !ok {
+		return fmt.Errorf("view_remote_result_unknown: %s detail readback has no data", action)
+	}
+	info, ok := data["viewInfo"].(map[string]any)
+	if !ok {
+		return fmt.Errorf("view_remote_result_unknown: %s detail readback has no viewInfo", action)
+	}
+	checks := []struct {
+		requestKey string
+		actual     any
+	}{
+		{"label", info["label"]}, {"objId", firstAny(info["objid"], info["objId"])},
+		{"filter", info["filter"]}, {"accesstype", info["accesstype"]},
+		{"accessibleuserset", info["accessibleuserset"]},
+		{"isUsedForMobile", firstAny(info["isusedformobile"], info["isUsedForMobile"])},
+		{"sortfield", info["sortfield"]}, {"sortorder", info["sortorder"]},
+		{"selectedFieldIds", joinViewDetailIDs(data["viewSelectedFieldList"], "fieldId", "field_id", "id")},
+		{"customButtons", joinViewDetailIDs(info["viewButtons"], "button_id", "buttonId", "id")},
+	}
+	for _, check := range checks {
+		if expected, supplied := requested[check.requestKey]; supplied && viewText(expected) != viewText(check.actual) {
+			return fmt.Errorf("view_remote_result_unknown: %s detail readback mismatch for %s", action, check.requestKey)
+		}
+	}
+	if expected, supplied := requested["conditionVals"]; supplied {
+		actualItems, _ := data["conditionSelectedFieldList"].([]any)
+		actualFilter := ""
+		if len(actualItems) > 0 {
+			if row, ok := actualItems[0].(map[string]any); ok {
+				actualFilter = viewText(firstAny(row["boolfilter"], row["boolFilter"]))
+			}
+		}
+		if viewConditionSignature(expected) != viewConditionSignature(map[string]any{
+			"data": actualItems, "filter": actualFilter}) {
+			return fmt.Errorf("view_remote_result_unknown: %s detail readback mismatch for conditions", action)
+		}
+	}
+	return nil
+}
+
+func viewConditionSignature(raw any) string {
+	var payload map[string]any
+	switch value := raw.(type) {
+	case string:
+		if json.Unmarshal([]byte(value), &payload) != nil {
+			return "invalid"
+		}
+	case map[string]any:
+		payload = value
+	default:
+		return "invalid"
+	}
+	items, _ := payload["data"].([]any)
+	parts := make([]string, 0, len(items))
+	for _, value := range items {
+		row, ok := value.(map[string]any)
+		if !ok {
+			continue
+		}
+		parts = append(parts, strings.Join([]string{
+			viewText(firstAny(row["fieldId"], row["field_id"])),
+			viewText(firstAny(row["op"], row["operator"])),
+			viewText(firstAny(row["val"], row["value"])),
+			viewText(firstAny(row["endval"], row["endValue"])),
+		}, "\x1f"))
+	}
+	return viewText(payload["filter"]) + "\x1d" + strings.Join(parts, "\x1e")
+}
+
+func viewUIAPIBody(action string, args []string) (map[string]any, error) {
+	if len(args) == 1 && strings.TrimSpace(args[0]) != "" && (strings.HasPrefix(strings.TrimSpace(args[0]), "{") || strings.HasPrefix(strings.TrimSpace(args[0]), "@") || strings.Contains(args[0], "%7B")) {
+		body, err := jsonx.ParseEncodedObject(args[0], "cloudcc "+action+" view")
+		if err != nil {
+			return nil, err
+		}
+		normalized := normalizeViewUIAPIBody(body)
+		if err := validateViewUIAPIBody(action, body, normalized); err != nil {
+			return nil, err
+		}
+		return normalized, nil
+	}
+	switch action {
+	case "get":
+		if len(args) > 1 {
+			return nil, fmt.Errorf("cloudcc get view <projectPath> [object]")
+		}
+		body := map[string]any{}
+		if len(args) == 1 {
+			body["objId"] = strings.TrimSpace(args[0])
+		}
+		return body, nil
+	case "detail", "delete":
+		if len(args) < 1 || len(args) > 2 || strings.TrimSpace(args[0]) == "" {
+			return nil, fmt.Errorf("cloudcc %s view <projectPath> <viewId> [objectId]", action)
+		}
+		body := map[string]any{"viewId": strings.TrimSpace(args[0]), "id": strings.TrimSpace(args[0])}
+		if len(args) == 2 {
+			body["objId"] = strings.TrimSpace(args[1])
+		}
+		return body, nil
+	case "copy":
+		if len(args) != 3 {
+			return nil, fmt.Errorf("cloudcc copy view <projectPath> <viewId> <newLabel> <objectId>")
+		}
+		return map[string]any{"viewId": strings.TrimSpace(args[0]), "label": strings.TrimSpace(args[1]), "objId": strings.TrimSpace(args[2])}, nil
+	case "set-default":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("cloudcc set-default view <projectPath> <objectId> <viewId>")
+		}
+		return map[string]any{"objId": strings.TrimSpace(args[0]), "defaultViewId": strings.TrimSpace(args[1])}, nil
+	case "get-default", "get-order", "list-public-order":
+		if len(args) != 1 {
+			return nil, fmt.Errorf("cloudcc %s view <projectPath> <objectId>", action)
+		}
+		return map[string]any{"objId": strings.TrimSpace(args[0])}, nil
+	case "reorder", "reorder-public":
+		if len(args) != 2 {
+			return nil, fmt.Errorf("cloudcc %s view <projectPath> <objectId> <semicolon-viewIds>", action)
+		}
+		return map[string]any{"objId": strings.TrimSpace(args[0]), "viewIds": strings.TrimSpace(args[1])}, nil
+	case "create", "update":
+		return nil, fmt.Errorf("cloudcc %s view <projectPath> <encodedJson>", action)
+	default:
+		return nil, fmt.Errorf("unsupported view action: %s", action)
+	}
+}
+
+func validateViewUIAPIBody(action string, source map[string]any, normalized map[string]any) error {
+	if action == "create" {
+		if viewText(normalized["objId"]) == "" || viewText(normalized["label"]) == "" {
+			return fmt.Errorf("view_create_required_fields: objectId and label are required")
+		}
+		if viewText(normalized["selectedFieldIds"]) == "" {
+			return fmt.Errorf("view_fields_required: create requires at least one field ID")
+		}
+	}
+	if action == "update" {
+		if viewText(normalized["viewId"]) == "" {
+			return fmt.Errorf("view_update_selector_required: id or viewId is required")
+		}
+	}
+	if action == "create" || action == "update" {
+		if _, supplied := source["fields"]; supplied && viewText(normalized["selectedFieldIds"]) == "" {
+			return fmt.Errorf("view_fields_required: fields must contain at least one field ID")
+		}
+	}
+	if action == "update" {
+		if buttons, supplied := source["buttonIds"].([]any); supplied && len(buttons) == 0 {
+			return fmt.Errorf("view_uiapi_button_clear_unsupported: current main-api saveView does not clear an empty customButtons collection")
+		}
+	}
+	if visibility, ok := source["visibility"].(map[string]any); ok && viewText(visibility["type"]) == "members" {
+		members, ok := visibility["memberIds"].([]any)
+		if !ok || len(members) == 0 {
+			return fmt.Errorf("view_visibility_members_required: members visibility requires memberIds")
+		}
+		for _, member := range members {
+			if !validViewVisibilityMember(viewText(member)) {
+				return fmt.Errorf("view_visibility_member_invalid: %s", viewText(member))
+			}
+		}
+	}
+	return nil
+}
+
+func normalizeViewUIAPIBody(body map[string]any) map[string]any {
+	out := copyStringAnyMap(body)
+	copyAlias := func(target string, sources ...string) {
+		if viewText(out[target]) != "" {
+			return
+		}
+		for _, source := range sources {
+			if value, ok := out[source]; ok {
+				out[target] = value
+				return
+			}
+		}
+	}
+	copyAlias("objId", "objectId", "object")
+	copyAlias("viewId", "id", "sourceViewId")
+	copyAlias("isUsedForMobile", "mobileEnabled")
+	if raw, ok := out["fields"].([]any); ok {
+		ids := make([]string, 0, len(raw))
+		for _, item := range raw {
+			if row, ok := item.(map[string]any); ok {
+				ids = append(ids, viewText(firstAny(row["fieldId"], row["id"])))
+			} else {
+				ids = append(ids, viewText(item))
+			}
+		}
+		out["selectedFieldIds"] = strings.Join(nonBlankViewIDs(ids), ",")
+	}
+	if raw, ok := out["buttonIds"].([]any); ok {
+		ids := make([]string, 0, len(raw))
+		for _, item := range raw {
+			ids = append(ids, viewText(item))
+		}
+		out["customButtons"] = strings.Join(nonBlankViewIDs(ids), ",")
+	}
+	if scope, ok := out["filterScope"].(map[string]any); ok {
+		switch viewText(scope["type"]) {
+		case "mine":
+			out["filter"] = "1"
+		case "queue":
+			out["filter"] = scope["queueId"]
+		default:
+			out["filter"] = "0"
+		}
+	}
+	if visibility, ok := out["visibility"].(map[string]any); ok {
+		switch viewText(visibility["type"]) {
+		case "allUsers":
+			out["accesstype"] = "fshareall"
+		case "members":
+			out["accesstype"] = "fsharegroups"
+		default:
+			out["accesstype"] = "fsharenone"
+		}
+		if members, ok := visibility["memberIds"].([]any); ok {
+			ids := make([]string, 0, len(members))
+			for _, item := range members {
+				id := viewText(item)
+				if !validViewVisibilityMember(id) {
+					continue
+				}
+				ids = append(ids, id)
+			}
+			out["accessibleuserset"] = strings.Join(nonBlankViewIDs(ids), ",")
+		}
+	}
+	if conditions, ok := out["conditions"].(map[string]any); ok {
+		legacy := map[string]any{
+			"data":      normalizeViewConditions(conditions["items"]),
+			"filter":    viewText(conditions["expression"]),
+			"mainObjId": viewText(out["objId"]),
+		}
+		if encoded, err := json.Marshal(legacy); err == nil {
+			out["conditionVals"] = string(encoded)
+		}
+	}
+	if sort, ok := out["sort"].(map[string]any); ok {
+		out["sortfield"] = sort["fieldId"]
+		out["sortorder"] = sort["direction"]
+	}
+	return out
+}
+
+func normalizeViewConditions(raw any) []any {
+	items, _ := raw.([]any)
+	out := make([]any, 0, len(items))
+	for _, value := range items {
+		item, ok := value.(map[string]any)
+		if !ok {
+			continue
+		}
+		row := map[string]any{
+			"fieldId": viewText(firstAny(item["fieldId"], item["field"])),
+			"op":      viewLegacyOperator(viewText(firstAny(item["operator"], item["op"]))),
+		}
+		if typed, ok := item["value"].(map[string]any); ok {
+			row["val"] = typed["value"]
+			if end, exists := typed["endValue"]; exists {
+				row["endval"] = end
+			}
+		} else {
+			row["val"] = item["value"]
+		}
+		out = append(out, row)
+	}
+	return out
+}
+
+func viewLegacyOperator(value string) string {
+	if mapped, ok := map[string]string{
+		"eq": "e", "ne": "n", "lt": "l", "gt": "g", "lessOrEqual": "m",
+		"greaterOrEqual": "h", "contains": "c", "notContains": "k", "startsWith": "s", "inRange": "o",
+	}[value]; ok {
+		return mapped
+	}
+	return value
+}
+
+func validViewVisibilityMember(value string) bool {
+	parts := strings.SplitN(value, ":", 2)
+	if len(parts) != 2 || strings.TrimSpace(parts[1]) == "" {
+		return false
+	}
+	switch parts[0] {
+	case "User", "Role", "RoleAndSub", "Group":
+		return true
+	default:
+		return false
+	}
+}
+
+func readbackViewDefault(stdout io.Writer, projectPath string, cfg config.Config, body map[string]any) error {
+	var readback map[string]any
+	if err := postClassResponse(projectPath, cfg, "api", "/api/view/list/getDefaultView",
+		map[string]any{"objId": body["objId"]}, &readback); err != nil {
+		return fmt.Errorf("view_remote_result_unknown: set-default succeeded but readback failed: %w", err)
+	}
+	if success, exists := readback["result"].(bool); exists && !success {
+		return fmt.Errorf("view_remote_result_unknown: set-default succeeded but readback was negative")
+	}
+	if viewResponseID(readback) != viewText(body["defaultViewId"]) {
+		return fmt.Errorf("view_remote_result_unknown: default readback does not match requested view")
+	}
+	return printJSON(stdout, readback)
+}
+
+func readbackViewOrder(stdout io.Writer, projectPath string, cfg config.Config, action string, body map[string]any) error {
+	path := "/api/view/getSortView"
+	if action == "reorder-public" {
+		path = "/api/view/list/getObjectViewList"
+	}
+	var readback map[string]any
+	if err := postClassResponse(projectPath, cfg, "api", path, map[string]any{"objId": body["objId"]}, &readback); err != nil {
+		return fmt.Errorf("view_remote_result_unknown: %s succeeded but readback failed: %w", action, err)
+	}
+	if success, exists := readback["result"].(bool); exists && !success {
+		return fmt.Errorf("view_remote_result_unknown: %s succeeded but readback was negative", action)
+	}
+	want := splitViewOrder(viewText(body["viewIds"]))
+	got := responseViewIDs(readback)
+	if len(got) < len(want) || !reflect.DeepEqual(got[:len(want)], want) {
+		return fmt.Errorf("view_remote_result_unknown: %s readback order does not match requested prefix", action)
+	}
+	return printJSON(stdout, readback)
+}
+
+func splitViewOrder(value string) []string {
+	out := []string{}
+	for _, item := range strings.Split(value, ";") {
+		if item = strings.TrimSpace(item); item != "" {
+			out = append(out, item)
+		}
+	}
+	return out
+}
+
+func responseViewIDs(response map[string]any) []string {
+	data, _ := response["data"].([]any)
+	out := make([]string, 0, len(data))
+	for _, item := range data {
+		if row, ok := item.(map[string]any); ok {
+			if id := viewText(firstAny(row["id"], row["viewId"])); id != "" {
+				out = append(out, id)
+			}
+		}
+	}
+	return out
+}
+
+func responseContainsViewID(response map[string]any, id string) bool {
+	for _, candidate := range responseViewIDs(response) {
+		if candidate == id {
+			return true
+		}
+	}
+	return false
+}
+
+func nonBlankViewIDs(values []string) []string {
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			out = append(out, strings.TrimSpace(value))
+		}
+	}
+	return out
+}
+func viewText(value any) string {
+	if value == nil {
+		return ""
+	}
+	return strings.TrimSpace(fmt.Sprint(value))
+}
+func viewResponseID(response map[string]any) string {
+	if data, ok := response["data"].(map[string]any); ok {
+		return viewText(firstAny(data["id"], data["viewId"]))
+	}
+	return viewText(firstAny(response["id"], response["viewId"]))
+}
+
+func viewResponseObjectID(response map[string]any) string {
+	if data, ok := response["data"].(map[string]any); ok {
+		return viewText(firstAny(data["objId"], data["objectId"]))
+	}
+	return viewText(firstAny(response["objId"], response["objectId"]))
 }
 
 func isReportShortcutResource(resource string) bool {

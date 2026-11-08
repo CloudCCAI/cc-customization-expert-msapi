@@ -1,88 +1,77 @@
-# CloudCC 视图开发指南
+# CloudCC 对象列表视图开发指南
 
-## 1. 当前支持命令
+## 1. Contract 2 读取
+
+```bash
+cloudcc capabilities view <projectPath> [object]
+cloudcc list-v2 view <projectPath> <object>
+cloudcc detail-v2 view <projectPath> <viewId> <object>
+cloudcc candidates view <projectPath> <object> <fields|sortFields|conditionOperators|queues|visibilityMembers|buttons>
+```
+
+`object` 可使用对象 ID、API 名或前缀。Contract 2 返回 `contractVersion: 2`、`provider`、规范化 `object`、fingerprint/revision。虚拟视图详情的 `definition` 为 `null`，不会伪造字段或条件。
+
+旧命令保持 Contract 1：
 
 ```bash
 cloudcc get view <projectPath> [objectId|objectApiName|encodedJsonFilter]
 cloudcc detail view <projectPath> <viewId>
-cloudcc update view fieldSetupAllViews <projectPath> <objId> <fieldIds(逗号或JSON数组)> [allViewId]
-cloudcc doc platform/view introduction
-cloudcc doc platform/view devguide
 ```
 
-## 2. 参数说明
+## 2. Contract 2 写入
 
-- `projectPath`：项目路径（用于读取配置）
-- `objectId|objectApiName`：对象 ID、对象 API 名或对象前缀，用于查询该对象下的所有对象视图；大小写不敏感
-- `encodedJsonFilter`：可选 JSON 查询体，支持 `objectId`、`objId`、`object`、`objectApiName`、`apiName`、`keyword`、`name`、`label`、`page`、`pageSize`
-- `viewId`：视图 ID，仅用于 `cloudcc detail view ...`
-- `objId`：对象 ID，供 `fieldSetupAllViews` 更新全部视图字段时使用
-- `fieldIds`：字段 ID 列表，支持：
-  - 逗号分隔字符串（例如 `ffe2024D0B157CENv70t,ffe202593C0FF31GbnZM`）
-  - JSON 数组（可先 `encodeURI`）
-- `allViewId`：可选；不传时 CLI 会按对象查询视图列表，按 `label=全部` 自动解析视图 ID
-
-## 3. 使用示例
-
-```bash
-# 查询 account 对象下所有对象视图
-cloudcc get view . account
-
-# JSON 查询体写法；适合同时传分页或关键字
-cloudcc get view . '{"objectId":"account","pageSize":100}'
-
-# 查询某个视图详情
-cloudcc detail view . aec2026CC9BCAA1YbIgV
-
-# 不传 viewId：自动查 label=全部 的视图
-cloudcc update view fieldSetupAllViews . 2024CE595708124vAsZS "ffe2024D0B157CENv70t,ffe202593C0FF31GbnZM,ffe202543798E16dFu7g"
-
-# 显式传入 viewId：按指定视图更新
-cloudcc update view fieldSetupAllViews . 2024CE595708124vAsZS "%5B%22ffe2024D0B157CENv70t%22%2C%22ffe202593C0FF31GbnZM%22%5D" aec2026CC9BCAA1YbIgV
-```
-
-## 4. 语义约定
-
-- `get view` / `getList view` 是列表查询语义；带一个对象参数时查询该对象下所有对象视图，不会把该参数当作视图 ID。
-- `detail view` / `editInfo view` 是详情查询语义；必须传入视图 ID。
-- 查询对象下所有对象视图推荐写法：`cloudcc get view . account`；如果需要分页、关键字或显式 JSON 查询体，可写 `cloudcc get view . '{"objectId":"account"}'`。
-
-## 5. MSAPI 创建、更新和删除视图
-
-先运行 `cloudcc doctor provider <projectPath>`，再回读对象、字段和已有视图 ID。下面使用通用 Domain 命令，避免将旧的 `fieldSetupAllViews` 参数当作通用视图 JSON。
-
-创建示例 `view.json`：
+创建 spec 示例：
 
 ```json
 {
-  "objectId": "<实际对象ID>",
-  "name": "重点客户",
+  "viewContractVersion": 2,
+  "objectId": "<对象ID>",
   "label": "重点客户",
   "apiName": "priority_accounts",
-  "fields": [{"fieldId": "<实际字段ID>", "seq": 1}],
-  "conditions": []
+  "filterScope": {"type": "all"},
+  "visibility": {"type": "private", "memberIds": []},
+  "fields": ["<字段ID>"],
+  "conditions": {"expression": "", "items": []},
+  "sort": {"fieldId": "<字段ID>", "direction": "desc"},
+  "buttonIds": []
 }
 ```
 
 ```bash
 cloudcc plan msapi <projectPath> object-views @view.json create
-# 审阅计划后显式执行，再按返回的 ID 读取详情：
-cloudcc apply msapi <projectPath> <planId>
-cloudcc detail view <projectPath> <viewId>
-
-# 更新 JSON 包含实际 viewId；删除 JSON 包含 id 和 objectId：
 cloudcc plan msapi <projectPath> object-views @view-update.json update
+cloudcc plan msapi <projectPath> object-views @view-copy.json copy
 cloudcc plan msapi <projectPath> object-views @view-delete.json delete
+cloudcc set-default view <projectPath> <objectId> <viewId>
+cloudcc reorder view <projectPath> <objectId> "<viewId1>;<viewId2>;0;1;2"
+cloudcc reorder-public view <projectPath> <objectId> "<viewId1>;<viewId2>;0;1;2"
+cloudcc apply msapi <projectPath> <planId>
 ```
 
-常用字段：`id`（更新/删除）、`objectId`、`name`、`label`、`apiName`、`fields`、`conditions`、`sortField`、`sortOrder`。`fields` 的非空列表在 update 中替换已有展示列；不要假设空数组会清空展示列。更新时显式传入 `conditions` 会替换旧条件，空数组表示清空条件。其他图表/看板或权限参数应基于目标平台和已有详情制定，不要直接复制未知字段。
+复制 spec 使用 `sourceViewId` 和 `newLabel`；默认生成 private 新视图。默认值与顺序是独立用户偏好，不是 update view 的字段。`reorder-public` 修改对象公共顺序，需要对象视图管理权限。
 
-删除前核对按钮、图表、看板及用户默认视图引用。每个写入计划均需审核后 apply，执行后回读。可用 `cloudcc changes msapi <projectPath> <operationId>` 查询变更，以及 `cloudcc rollback msapi <projectPath> <operationId>` 请求回滚；以服务端实际支持的范围为准。
+## 3. 更新与删除规则
 
-## 6. 文档发现
+- update 是 patch：省略属性表示保留；显式集合表示完整替换。
+- `fields` 在 create 时必填且非空，update 时 `fields: []` 非法。
+- `conditions.items: []` 与 `buttonIds: []` 表示明确清空；服务端先删除旧 owned rows 再重建。
+- charts、kanban 和 dashboard 关系不属于 Contract 2 聚合更新，省略时保留。
+- `0..4` 是虚拟只读 ID；任何语言标签变化都不改变其语义。
+- 删除前必须检查 dashboard、用户默认值和顺序引用。存在默认引用时需显式提供替代默认值；CLI 不会自动确认破坏性引用处理。
+- 写入计划绑定 revision/fingerprint；审核计划后显式 apply，并用 `detail-v2` 回读。
+- MSAPI 的用户顺序要求 `apiSvc` 已解析虚拟 ID `3`、`4` 的动态出现状态；状态不可达时失败关闭，避免完整替换顺序时误删动态项。
+
+## 4. Lightning UIAPI
+
+UIAPI 的 `get/detail/create/update/delete/copy/set-default/get-order/reorder/list-public-order/reorder-public view` 均调用项目配置的 `apiSvc`。这些接口由 api-service 转发 main-api；不要把 `setupSvc` 的旧 `/api/view/**` 子集作为完整列表视图合同。
+
+当前 main-api 的 `saveView` 在 `customButtons` 为空时不会清理旧按钮，因此 UIAPI 对 update 的 `buttonIds: []` 明确失败关闭；MSAPI 直连事务支持清空。UIAPI 创建/更新/复制必须详情回读，删除/default/order 必须对应列表或偏好回读，缺少保存 ID 或语义不一致均返回 `view_remote_result_unknown`。
+
+## 5. 变更审计
 
 ```bash
-cloudcc doc list
+cloudcc changes msapi <projectPath> <operationId>
+cloudcc rollback msapi <projectPath> <operationId>
 cloudcc doc view introduction
 cloudcc doc object-views devguide
 ```

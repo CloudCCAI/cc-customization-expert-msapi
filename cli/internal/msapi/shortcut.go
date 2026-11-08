@@ -220,6 +220,12 @@ var lowCodeShortcutActions = map[string]bool{
 	"updateRule":                         true,
 	"delete-rule":                        true,
 	"deleteRule":                         true,
+	"list-v2":                            true,
+	"detail-v2":                          true,
+	"copy":                               true,
+	"set-default":                        true,
+	"reorder":                            true,
+	"reorder-public":                     true,
 }
 
 // IsLowCodeShortcut returns true for legacy low-code metadata CLI shortcuts that
@@ -227,7 +233,7 @@ var lowCodeShortcutActions = map[string]bool{
 func IsLowCodeShortcut(action string, resource string) bool {
 	domain, ok := lowCodeShortcutDomains[strings.TrimSpace(resource)]
 	if strings.TrimSpace(action) == "capabilities" {
-		return ok && (domain == "profiles" || domain == "search-layouts" || domain == "roles" || domain == "public-groups" || domain == "mobile-settings" || domain == "queues" || domain == "email-templates" || domain == "dupe-catchers" || isWorkflowActionDomain(domain))
+		return ok && (domain == "profiles" || domain == "search-layouts" || domain == "roles" || domain == "public-groups" || domain == "mobile-settings" || domain == "queues" || domain == "email-templates" || domain == "dupe-catchers" || domain == "object-views" || isWorkflowActionDomain(domain))
 	}
 	if !lowCodeShortcutActions[strings.TrimSpace(action)] {
 		return false
@@ -348,8 +354,14 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 		}
 		return Handle("plan", "msapi", []string{projectPath, domain, string(body), operation}, stdout, cwd)
 	}
-	if resource == "view" && isShortcutRead(action) {
+	if resource == "view" && (isShortcutRead(action) || strings.TrimSpace(action) == "capabilities" ||
+		strings.TrimSpace(action) == "candidates" || strings.TrimSpace(action) == "list-v2" ||
+		strings.TrimSpace(action) == "detail-v2") {
 		return handleObjectViewReadShortcut(action, projectPath, rest, stdout, cwd)
+	}
+	if resource == "view" && (strings.TrimSpace(action) == "set-default" || strings.TrimSpace(action) == "reorder" ||
+		strings.TrimSpace(action) == "reorder-public") {
+		return handleObjectViewPreferenceShortcut(action, projectPath, rest, stdout, cwd)
 	}
 	if isFiscalYearShortcutResource(resource) && isShortcutRead(action) {
 		return handleFiscalYearReadShortcut(action, projectPath, rest, stdout, cwd)
@@ -385,6 +397,9 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 	spec, operation, err := shortcutPlanSpec(action, resource, rest)
 	if err != nil {
 		return err
+	}
+	if resource == "view" && strings.TrimSpace(action) == "copy" {
+		spec["viewContractVersion"] = 2
 	}
 	body, err := json.Marshal(spec)
 	if err != nil {
@@ -816,6 +831,40 @@ func handleObjectViewReadShortcut(action string, projectPath string, args []stri
 	if err != nil {
 		return err
 	}
+	if action == "capabilities" {
+		if len(args) > 1 {
+			return fmt.Errorf("cloudcc capabilities view <projectPath> [object]")
+		}
+		path := "/metadata/v1/object-views/capabilities"
+		if len(args) == 1 && strings.TrimSpace(args[0]) != "" {
+			path += "?object=" + url.QueryEscape(strings.TrimSpace(args[0]))
+		}
+		return c.getJSON(stdout, path)
+	}
+	if action == "candidates" {
+		if len(args) != 2 {
+			return fmt.Errorf("cloudcc candidates view <projectPath> <object> <section>")
+		}
+		return c.writeJSON(stdout, http.MethodPost, "/metadata/v1/object-views:candidates", map[string]any{
+			"viewContractVersion": 2, "object": strings.TrimSpace(args[0]), "section": strings.TrimSpace(args[1]),
+		})
+	}
+	if action == "list-v2" {
+		if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
+			return fmt.Errorf("cloudcc list-v2 view <projectPath> <object>")
+		}
+		return c.writeJSON(stdout, http.MethodPost, "/metadata/v1/object-views:list", map[string]any{
+			"viewContractVersion": 2, "object": strings.TrimSpace(args[0]),
+		})
+	}
+	if action == "detail-v2" {
+		if len(args) != 2 || strings.TrimSpace(args[0]) == "" || strings.TrimSpace(args[1]) == "" {
+			return fmt.Errorf("cloudcc detail-v2 view <projectPath> <view-id> <object>")
+		}
+		return c.writeJSON(stdout, http.MethodPost, "/metadata/v1/object-views:detail-v2", map[string]any{
+			"viewContractVersion": 2, "id": strings.TrimSpace(args[0]), "object": strings.TrimSpace(args[1]),
+		})
+	}
 	if action == "detail" || action == "editInfo" {
 		if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
 			return fmt.Errorf("cloudcc %s view <projectPath> <view-id>", action)
@@ -837,6 +886,30 @@ func handleObjectViewReadShortcut(action string, projectPath string, args []stri
 		}
 	}
 	return c.writeJSON(stdout, http.MethodPost, "/metadata/v1/object-views:query", body)
+}
+
+func handleObjectViewPreferenceShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
+	if len(args) != 2 || strings.TrimSpace(args[0]) == "" || strings.TrimSpace(args[1]) == "" {
+		return fmt.Errorf("cloudcc %s view <projectPath> <object> <view-id-or-semicolon-view-ids>", action)
+	}
+	spec := map[string]any{"viewContractVersion": 2, "objectId": strings.TrimSpace(args[0])}
+	if action == "set-default" {
+		spec["viewId"] = strings.TrimSpace(args[1])
+	} else {
+		parts := strings.Split(strings.TrimSpace(args[1]), ";")
+		ids := make([]string, 0, len(parts))
+		for _, part := range parts {
+			if id := strings.TrimSpace(part); id != "" {
+				ids = append(ids, id)
+			}
+		}
+		spec["viewIds"] = ids
+	}
+	body, err := json.Marshal(spec)
+	if err != nil {
+		return err
+	}
+	return Handle("plan", "msapi", []string{projectPath, "object-views", string(body), action}, stdout, cwd)
 }
 
 func handleDashboardReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
@@ -3984,6 +4057,9 @@ func shortcutOperation(action string, resource string) string {
 	}
 	if resource == "view" && (strings.TrimSpace(action) == "update" || strings.TrimSpace(action) == "editSave" || strings.TrimSpace(action) == "modify") {
 		return "update"
+	}
+	if resource == "view" && strings.TrimSpace(action) == "copy" {
+		return "copy"
 	}
 	if isApiRegistrarShortcutResource(resource) &&
 		(strings.TrimSpace(action) == "update" || strings.TrimSpace(action) == "modify" || strings.TrimSpace(action) == "save") {

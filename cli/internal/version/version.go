@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.3.6"
+const Version = "2.3.7"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,6 +48,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- Object-view Contract 2 includes authoritative latest-record state, exact platform visibility/permission semantics, revision guards and semantic write readback. Requires MetadataService 1.2.7.")
 		fmt.Fprintln(stderr, "- dupeCatcher Contract 2 adds canonical aggregate readback, object/rule-field/condition-field candidates, explicit owned-rule lifecycle, parent and field eligibility validation, Lightning provider routing, and horizontal fail-closed behavior. Requires MetadataService 1.2.6.")
 		fmt.Fprintln(stderr, "- Existing local L/Q field option lifecycle self-audit now enforces unique client keys, explicit no-default confirmation, strict dependency policies, correct record-type counts, locale-consistent detail labels, and verified rollback. detail fields forwards the project language. Requires MetadataService 1.2.5.")
 		fmt.Fprintln(stderr, "- Queue relational persistence self-audit adds supported-object removal owner guards, apply-time natural-key rechecks, complete generated-view child orphan readback, and accurate tenant-relational capabilities. Existing commands and arguments remain compatible. Requires MetadataService 1.2.3.")
