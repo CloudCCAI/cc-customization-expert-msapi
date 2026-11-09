@@ -842,12 +842,22 @@ func handleObjectViewReadShortcut(action string, projectPath string, args []stri
 		return c.getJSON(stdout, path)
 	}
 	if action == "candidates" {
-		if len(args) != 2 {
-			return fmt.Errorf("cloudcc candidates view <projectPath> <object> <section>")
+		if len(args) < 2 || len(args) > 3 {
+			return fmt.Errorf("cloudcc candidates view <projectPath> <object> <section> [fieldId-for-conditionOperators]")
 		}
-		return c.writeJSON(stdout, http.MethodPost, "/metadata/v1/object-views:candidates", map[string]any{
+		section := strings.TrimSpace(args[1])
+		body := map[string]any{
 			"viewContractVersion": 2, "object": strings.TrimSpace(args[0]), "section": strings.TrimSpace(args[1]),
-		})
+		}
+		if section == "conditionOperators" {
+			if len(args) != 3 || strings.TrimSpace(args[2]) == "" {
+				return fmt.Errorf("cloudcc candidates view <projectPath> <object> conditionOperators <fieldId>")
+			}
+			body["fieldId"] = strings.TrimSpace(args[2])
+		} else if len(args) != 2 {
+			return fmt.Errorf("fieldId is only valid for the conditionOperators candidate section")
+		}
+		return c.writeJSON(stdout, http.MethodPost, "/metadata/v1/object-views:candidates", body)
 	}
 	if action == "list-v2" {
 		if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
