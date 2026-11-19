@@ -1,5 +1,7 @@
 # CloudCC 按钮与链接操作指南
 
+适用版本：技能/CLI `2.3.9+`，MetadataService `1.2.13+`。
+
 ---
 
 ## 1. 入口与列表页
@@ -89,6 +91,7 @@ cloudcc get button <projectPath> <prefix>
 
 | 字段 | 必填 | 说明 |
 |------|------|------|
+| `id` / `buttonId` | 否 | 自定义按钮物理 ID。省略时 MetadataService 按平台规则生成；显式提供时两种别名必须相同，且必须符合 `adc` + 4 位年份 + 8 位大写十六进制 + 5 位字母数字（共 20 位）。已有 ID 不会被 create 隐式更新。 |
 | `objId` / `objectId` | 是 | 所属对象 ID。批量创建也可以在顶层统一写 `objectId`。 |
 | `label` | 是 | 按钮显示名称。 |
 | `name` | 建议 | 按钮 API 名称。省略时系统会按按钮 ID 生成默认 API 名称。 |
@@ -113,6 +116,13 @@ cloudcc get button <projectPath> <prefix>
 | `URL` | `url` | 普通 URL 跳转按钮 | `EVENT=URL`，`URL=<url>`，`FUNCTION_CODE=<url>` |
 
 > `URL` 按钮优先使用 `url`。为兼容已有 JSON，也可只传 `functionCode`；计划会把它视为 URL 地址。两者都传且不一致时，计划会失败，避免入库后回显和运行行为不一致。
+
+ID 创建规则：
+
+- 未提供 `id` / `buttonId` 时，计划生成与 setup-service 一致的 `adc` 20 位 ID，并在 plan target、步骤和批量结果中返回。
+- 提供 ID 时必须匹配 `^adc[0-9]{4}[0-9A-F]{8}[0-9A-Za-z]{5}$`；例如 `adc2026D1B2C3D4aB9xQ`。
+- `id` 与 `buttonId` 同时存在时必须完全相同。下划线业务名、前后空格、`columns.ID` 和已经占用的 ID 都会在计划阶段失败。
+- 上述格式只适用于新建自定义按钮；平台既有标准按钮可能使用语义 ID，应通过标准按钮配置/更新能力处理。
 
 `lightning-script` 按钮示例：
 
@@ -177,7 +187,7 @@ cloudcc get button <projectPath> <prefix>
   "onExisting": "createOnly",
   "buttons": [
     {
-      "id": "btn_contract_submit",
+      "id": "adc2026D1B2C3D4aB9xQ",
       "label": "提交合同",
       "name": "submit_contract",
       "category": "CustomButton",
@@ -187,7 +197,6 @@ cloudcc get button <projectPath> <prefix>
       "functionCode": "alert('submit');"
     },
     {
-      "id": "btn_contract_open_help",
       "label": "查看指引",
       "name": "open_contract_help",
       "category": "CustomButton",
@@ -209,7 +218,7 @@ cloudcc operation msapi <projectPath> <applyId>
 cloudcc get button <projectPath> <prefix>
 ```
 
-`button` / `buttons` 都可作为 `plan msapi` 的 domain 参数。批量计划会逐项检查同批重复、目标对象已有同 ID / API 名 / 名称 / 标签按钮、以及数组项是否声明了其它对象。批量创建只处理自定义按钮；`category` 为 `StandardButton` 的项会标记为 `FAILED_PRECHECK`，标准按钮请使用对应的更新或配置能力。批量项里的 `event` 和字段入库规则与单个按钮完全一致。
+`button` / `buttons` 都可作为 `plan msapi` 的 domain 参数。批量计划会逐项生成或校验平台 ID，并检查同批重复、目标对象已有同 ID / API 名 / 名称 / 标签按钮、以及数组项是否声明了其它对象。`batchItemResults[].buttonId` 返回每一项最终解析后的 ID。非法 ID 项标记为 `FAILED_PRECHECK`，不会阻止其它合法项生成步骤。批量创建只处理自定义按钮；`category` 为 `StandardButton` 的项会标记为 `FAILED_PRECHECK`，标准按钮请使用对应的更新或配置能力。批量项里的 `event` 和字段入库规则与单个按钮完全一致。
 
 `onExisting` 支持：
 
@@ -219,6 +228,17 @@ cloudcc get button <projectPath> <prefix>
 | `skipExisting` | 目标已存在时跳过该项，plan metadata 记录为 `SKIPPED`。 |
 
 调用方应读取 plan metadata 中的 `batchItemResults`、`batchExecutableCount`、`batchPrecheckFailedCount`。`batchItemResults[].status` 可能是 `PLANNED`、`SKIPPED` 或 `FAILED_PRECHECK`；预检失败项不会生成 SQL 步骤。如果整批都没有可执行项，`apply` 会失败，避免提交空计划。
+
+ID 相关错误：
+
+| 错误码 | 含义 |
+|--------|------|
+| `button_id_invalid` | ID 不符合 `adc` 20 位平台格式，或包含空白。 |
+| `button_id_conflict` | `id` 与 `buttonId` 同时提供但不一致。 |
+| `button_id_source_invalid` | 通过 `columns.ID` 等原始列通道提交主键。 |
+| `button_id_already_exists` | 单个 create 的目标 ID 已存在；不会转成 update。 |
+| `button_id_validation_failed` | 无法读取目标按钮表完成占用校验；计划失败关闭。 |
+| `batch_button_target_exists` | 批量 `createOnly` 项的 ID、API 名、名称或标签已存在。 |
 
 ---
 

@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.3.8"
+const Version = "2.3.9"
 const CompatVersion = "2.5.3"
 
 func Current() string {
