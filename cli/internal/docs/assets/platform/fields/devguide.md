@@ -93,9 +93,9 @@ cloudcc detail fields . ffe2026079FD547mcK20
 
 ### 2.1 字段 ID 和选项 ID 规则
 
-- 创建字段时通常不要传 `id`。字段物理 ID 由 MetadataService 按平台兼容格式生成。显式自定义字段 ID 必须匹配 `^ffe[A-Za-z0-9]{17}$`：以 `ffe` 开头、总长 20 位、只能包含 ASCII 字母和数字，不能带下划线。
+- 创建字段时可以省略 `id`，由 MetadataService 按平台兼容格式生成；也可以显式传入。显式自定义字段 ID 必须匹配 `^ffe[A-Za-z0-9]{17}$`：以 `ffe` 开头、总长 20 位、只能包含 ASCII 字母和数字，不能带下划线，并通过占用校验。
 - `apiName` 是调用方需要设计和传入的业务稳定标识；`id` 是平台物理元数据 ID。不要把 `apiName`、`f_ci_` + `apiName`、对象前缀、年份、随机串或示例值拼成字段 `id`。
-- 只有更新、删除、精确迁移回放，或引用已经存在字段时，才使用字段 `id`；该值必须来自 `cloudcc get fields`、MetadataService scan/readback、创建回执或平台详情页回读。
+- 更新、删除或引用已经存在字段时，字段 `id` 必须来自 `cloudcc get fields`、MetadataService scan/readback、创建回执或平台详情页回读；创建时显式指定的 ID 也必须遵守上述格式与占用校验。
 - 本地选项列表 `options[]` 中也不要自造 `id` 或 `code`。普通创建只传 `value`、排序、默认值、本地化等业务字段；MetadataService 会生成或复用 `tp_sys_code` 行 ID。
 - 对同一字段，本地选项的自然键是 `(codetype=字段ID, codevalue=选项值, LANG, RENDER)`。重复提交相同值、语言和 render 不会靠新 ID 变成合法新选项；目标库若已经存在多条相同自然键，需要先治理重复数据再重新 plan。
 
@@ -129,9 +129,11 @@ cloudcc apply msapi <projectPath> <planId>
 
 - `dataFieldRef`（如 `str_field1`、`date_field1`）是对象内唯一的物理存储槽位，不是可随意复用的业务标识。
 - MetadataService 创建或 upsert 字段时会查询 `tp_sys_schemetable`，保留已有字段自己的映射，并按字段类型选择首个可用空槽；例如已占用 `str_field1`、`str_field3` 时，新文本类字段使用 `str_field2`。
-- 普通字段计划应省略 `dataFieldRef`，由服务端分配。只有迁移或精确回放等确有需要的场景才显式提供，并且必须保证同一对象内唯一。
+- 创建/添加字段时禁止传 `dataFieldRef`，包括 `obj`、`columns` 中的大小写或下划线别名；物理槽位只能由服务端按字段类型分配。文本区 `X` 必须进入 `longtext_field*` 槽位族，普通文本 `S` 才进入 `str_field*`。
 - plan 阶段会拒绝现有映射冲突和同一计划内的重复槽位；apply 阶段会在事务内重新锁定并检查，防止陈旧或并发计划覆盖其他字段。
 - 收到 `field_slot_conflict` 时，重新执行目标环境 scan 并生成新 plan；不要修改数据库或绕过 MetadataService 守卫。
+
+创建输入的所有权边界还包括：所有字段类型都禁止 `schemefieldName`、`fieldState/state`、`iscustom/custom`、原始 `name`、`expression`、`expressionType`、`executeExpression/compiledExpression`；累计汇总 `C` 还禁止 `hasFilter`、`aggCondition`、`aggConditiondis`、`summaryfieldtype`、`decimalPlaces`、`displayThousands`。这些限制覆盖顶层、`obj` 和 `columns`，并忽略大小写与下划线差异。调用方应改传公式文本/结果类型、汇总方法/对象/字段、过滤开关和 `conditionVals` 等语义输入，由 MetadataService 查询目标元数据并生成持久化值。违规错误码为 `field_create_server_owned_value`。
 
 ### 2.3 MetadataService 完整字段元数据
 
@@ -173,9 +175,9 @@ cloudcc apply msapi <projectPath> <planId>
 | `remark` / `description` | 否 | 字段业务说明；未传时保持空值。 |
 | `helps` / `helpText` | 否 | 字段帮助说明。 |
 | `length` / `schemefieldLength` | 否 | 长度或整数位数，含义随字段类型变化。 |
-| `decimalPlaces` | 否 | 小数位数；`P`、`c`、`N`、`LT` 受 `length + decimalPlaces <= 18` 约束。 |
+| `decimalPlaces` | 否 | 普通 `P`、`c`、`N`、`LT` 字段的小数位数，受 `length + decimalPlaces <= 18` 约束；累计汇总 `C` 创建时由服务端推导，禁止传入。 |
 | `defaultValue` | 否 | 默认值；图片/文件字段中也用于上传数量。 |
-| `dataFieldRef` | 通常不要传 | 物理存储槽位。普通创建由 MetadataService 分配；只有迁移或精确回放时才显式传。 |
+| `dataFieldRef` | 创建禁止 | 后端物理存储槽位。create/add 只能由 MetadataService 按类型和现状生成。 |
 | `options` / `ptext` | 选项字段需要 | 本地选项值。`options[]` 是推荐结构；`ptext` 是兼容换行字符串；普通创建不要在选项中自造 `id` / `code`。 |
 | `globalSelectId` / `useGlobalSelect` | 全局选项字段需要 | 目标环境真实回读的全局选项列表 ID。 |
 | `lookupObjectId` / `lookupObj` | 关系字段需要 | 被关联对象的真实 `tp_sys_object.ID`，不是对象 API 名或显示名称。 |
@@ -226,11 +228,11 @@ cloudcc operation msapi <projectPath> <applyId>
 - `updateExisting`：已存在字段转为 `field.update`，不存在字段继续创建；适合补标签、权限、选项、布局等元数据。
 - `upsertByApiName`：按 `objectId + apiName` 解析，存在则更新，不存在则创建；`upsert` 操作默认使用该策略。
 
-批量添加不是简单把多个命令拼在一起。plan 阶段会先解析所有字段目标，检查同一对象内重复 API 名、重复显式字段 ID、重复显式 `dataFieldRef`，并查询目标环境已有字段。可在执行前判断的问题会按字段写入 `batchItemResults`：`PLANNED` 表示已生成步骤，`SKIPPED` 表示被策略跳过，`FAILED_PRECHECK` 表示该字段没有生成 SQL 步骤且会带 `error` / `message`。同时读取 `batchExecutableCount` 和 `batchPrecheckFailedCount` 可以判断本次批量还有多少字段会进入 apply。如果整批字段都只剩 `FAILED_PRECHECK`，`apply` 会直接把 operation 标记为 `FAILED`。
+批量添加不是简单把多个命令拼在一起。plan 阶段会先解析所有字段目标，检查同一对象内重复 API 名和重复显式字段 ID，并查询目标环境已有字段。任一创建项包含 `dataFieldRef` 或其他后端自有字段时，整批请求直接返回 `field_create_server_owned_value`，不会生成部分计划。其余可逐项判断的问题会写入 `batchItemResults`：`PLANNED` 表示已生成步骤，`SKIPPED` 表示被策略跳过，`FAILED_PRECHECK` 表示该字段没有生成 SQL 步骤且会带 `error` / `message`。
 
 apply 阶段会优先批量执行字段主表行，再按既有顺序执行语言、选项、权限、布局、筛选和相关列表等展开步骤。字段主表写入仍使用批处理和事务保护；如果执行期 SQL、并发槽位校验或运行时副作用失败，operation 可能整体 `FAILED`。逐项结果只用于执行前预检，不表示执行期会把同一个事务拆成逐字段提交。
 
-物理槽位仍然由服务端按对象维度统一分配：同一个 `fields[]` 中多个文本字段会依次占用 `str_field1`、`str_field2` 等首个可用槽位；已有字段的槽位会先被保留，不会被新字段抢占；预检失败的字段不计入可执行字段数量，也不会占用同对象字段数量上限。除迁移回放外不要手写 `dataFieldRef`；如果必须手写，必须保证同一对象内不重复，否则该字段会在 plan 阶段成为 `FAILED_PRECHECK`，或在并发 apply 校验中触发 `field_slot_conflict`。
+物理槽位由服务端按对象和字段类型统一分配：同一个 `fields[]` 中多个普通文本字段依次占用 `str_field1`、`str_field2`，文本区字段独立占用 `longtext_field1`、`longtext_field2`；已有字段槽位会先被保留。任何创建项都不能手写 `dataFieldRef`。`field_slot_conflict` 只用于服务端分配后的陈旧或并发 apply 冲突，应重新 scan/plan。
 
 如果一个批量 spec 中的字段分属不同对象，可以在每个字段上覆盖 `objectId`；未覆盖时继承根级 `objectId`。查找字段、主详字段、自动编号、公式、累计汇总、地址和地理定位等高级字段仍使用下文相同字段定义，批量只是提交载体，不会降低单字段校验要求。
 

@@ -126,9 +126,11 @@ cloudcc doc platform/fields devguide
 当前 `cloudcc-cli` 的 `fields`
 模块通过 MetadataService spec 覆盖平台开放字段编码，用于自动化创建和管理字段。旧版位置参数快捷命令仍可用于部分基础字段，但不作为完整字段能力的说明来源。
 
-字段元数据中的 `dataFieldRef` 不是业务 API 名，而是当前对象底层数据表中的物理存储槽位（例如 `str_field1`）。同一对象内，一个非 `none` 的物理槽位只能属于一个字段。通过 MetadataService 创建字段时，服务会读取 `tp_sys_schemetable` 的现有映射，并按字段类型分配首个可用空槽；调用方通常不应自行复制或硬编码该值。
+字段元数据中的 `dataFieldRef` 不是业务 API 名，而是当前对象底层数据表中的物理存储槽位（例如 `str_field1`）。同一对象内，一个非 `none` 的物理槽位只能属于一个字段。通过 MetadataService 创建字段时，服务会读取 `tp_sys_schemetable` 的现有映射，并按字段类型分配首个可用空槽；创建调用方不得传入该值。文本区 `X` 使用 `longtext_field*`，普通文本 `S` 使用 `str_field*`，不能用客户端值覆盖类型选择。
 
-字段 `id` 也不是业务 API 名。创建字段时通常省略 `id`，由 MetadataService 生成平台兼容的字段 ID；显式自定义字段 ID 必须以 `ffe` 开头、总长 20 位、只含 ASCII 字母数字且不能带下划线。不要把 `apiName`、`f_ci_` + `apiName`、对象前缀、年份或样例值拼成字段 ID。只有更新、删除、迁移回放或引用已有字段时才使用字段 ID，并且必须来自查询、scan、创建回执或平台详情回读。历史非法 ID 使用 `cloudcc audit fields` 检查，并用 `cloudcc repair fields` 生成受保护的修复计划，禁止直接修改租户表。
+字段 `id` 也不是业务 API 名。创建字段时可以省略 `id`，由 MetadataService 生成平台兼容的字段 ID；也可以显式提供，但必须以 `ffe` 开头、总长 20 位、只含 ASCII 字母数字且不能带下划线，并通过占用校验。不要把 `apiName`、`f_ci_` + `apiName`、对象前缀、年份或样例值拼成字段 ID。更新、删除或引用已有字段时，ID 必须来自查询、scan、创建回执或平台详情回读。历史非法 ID 使用 `cloudcc audit fields` 检查，并用 `cloudcc repair fields` 生成受保护的修复计划，禁止直接修改租户表。
+
+创建/添加字段还会拒绝其他后端自有值，包括 `schemefieldName`、`fieldState/state`、`iscustom/custom`、原始 `name`、`expression`、`expressionType`、`executeExpression/compiledExpression`；累计汇总字段 `C` 还拒绝 `hasFilter`、`aggCondition`、`aggConditiondis`、`summaryfieldtype`、`decimalPlaces`、`displayThousands`。这些字段即使藏在 `obj` 或 `columns` 中、改用大小写或下划线别名，也会返回 `field_create_server_owned_value`。应提交 `apiName`、`label`、`type`、`length`、`formulaText/formulaType`、`childtype`、`aggregateField`、`isAggFilter`、`conditionVals` 等前端语义输入。
 
 本地选项列表同样不要自造 `tp_sys_code` 的 `id` / `code`。普通创建只传选项 `value` 等业务字段；同一字段下相同 `value`、语言和 render 代表同一个选项自然键，目标库已有重复自然键时需要先治理数据再重新生成计划。
 

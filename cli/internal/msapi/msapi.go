@@ -72,6 +72,9 @@ func Handle(action string, resource string, args []string, stdout io.Writer, cwd
 		if err != nil {
 			return err
 		}
+		if err := validateFieldCreatePlan(body); err != nil {
+			return err
+		}
 		if err := validateFormulaFieldPlan(body); err != nil {
 			return err
 		}
@@ -236,6 +239,129 @@ func Handle(action string, resource string, args []string, stdout io.Writer, cwd
 var supportedFormulaResultTypes = map[string]bool{
 	"S": true, "c": true, "D": true, "F": true,
 	"N": true, "P": true, "U": true, "L": true,
+}
+
+var fieldCreateServerOwnedKeys = map[string]string{
+	"datafieldref":       "dataFieldRef",
+	"schemefieldname":    "schemefieldName",
+	"fieldstate":         "fieldState",
+	"state":              "fieldState",
+	"iscustom":           "iscustom",
+	"custom":             "iscustom",
+	"name":               "name",
+	"expression":         "expression",
+	"expressiontype":     "expressionType",
+	"executeexpression":  "executeExpression",
+	"compiledexpression": "executeExpression",
+}
+
+var fieldCreateServerOwnedSummaryKeys = map[string]string{
+	"hasfilter":        "hasFilter",
+	"aggcondition":     "aggCondition",
+	"aggconditiondis":  "aggConditiondis",
+	"summaryfieldtype": "summaryfieldtype",
+	"decimalplaces":    "decimalPlaces",
+	"displaythousands": "displayThousands",
+}
+
+func validateFieldCreatePlan(body map[string]any) error {
+	operation := strings.ToLower(strings.TrimSpace(stringValue(body["operation"])))
+	if operation != "create" && operation != "add" {
+		return nil
+	}
+	domain := normalizeDomain(stringValue(body["domain"]))
+	if domain != "fields" && domain != "objects" {
+		return nil
+	}
+	spec, _ := body["spec"].(map[string]any)
+	if spec == nil {
+		return nil
+	}
+	fields := []map[string]any{}
+	if rawFields, ok := spec["fields"].([]any); ok {
+		for _, raw := range rawFields {
+			if field, ok := raw.(map[string]any); ok {
+				fields = append(fields, field)
+			}
+		}
+	}
+	if domain == "fields" && len(fields) == 0 {
+		fields = append(fields, spec)
+	}
+	for index, field := range fields {
+		fieldType := fieldCreateType(field)
+		if err := rejectFieldCreateServerOwnedObject(field, fieldType, fmt.Sprintf("field[%d]", index)); err != nil {
+			return err
+		}
+		for key, value := range field {
+			if normalizeFieldCreateKey(key) == "obj" {
+				if setupObject, ok := value.(map[string]any); ok {
+					if err := rejectFieldCreateServerOwnedObject(setupObject, fieldType,
+						fmt.Sprintf("field[%d].%s", index, key)); err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func rejectFieldCreateServerOwnedObject(input map[string]any, fieldType string, path string) error {
+	for key, value := range input {
+		if normalizeFieldCreateKey(key) == "columns" {
+			if columns, ok := value.(map[string]any); ok {
+				for columnKey := range columns {
+					if err := rejectFieldCreateServerOwnedKey(columnKey, fieldType, path+"."+key+"."+columnKey); err != nil {
+						return err
+					}
+				}
+			}
+			continue
+		}
+		if err := rejectFieldCreateServerOwnedKey(key, fieldType, path+"."+key); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func rejectFieldCreateServerOwnedKey(key string, fieldType string, path string) error {
+	normalized := normalizeFieldCreateKey(key)
+	canonical := fieldCreateServerOwnedKeys[normalized]
+	if canonical == "" && fieldType == "C" {
+		canonical = fieldCreateServerOwnedSummaryKeys[normalized]
+	}
+	if canonical == "" {
+		return nil
+	}
+	return fmt.Errorf("field_create_server_owned_value: %s supplies server-owned value %s; provide semantic field settings and let MetadataService derive it", path, canonical)
+}
+
+func fieldCreateType(field map[string]any) string {
+	for key, value := range field {
+		switch normalizeFieldCreateKey(key) {
+		case "type", "fieldtype", "schemefieldtype", "fdtype", "datatype":
+			if fieldType := strings.TrimSpace(stringValue(value)); fieldType != "" {
+				return fieldType
+			}
+		}
+	}
+	for key, value := range field {
+		if normalizeFieldCreateKey(key) != "columns" {
+			continue
+		}
+		if columns, ok := value.(map[string]any); ok {
+			if fieldType := fieldCreateType(columns); fieldType != "" {
+				return fieldType
+			}
+		}
+	}
+	return "S"
+}
+
+func normalizeFieldCreateKey(key string) string {
+	return strings.ToLower(strings.ReplaceAll(key, "_", ""))
 }
 
 func validateFormulaFieldPlan(body map[string]any) error {

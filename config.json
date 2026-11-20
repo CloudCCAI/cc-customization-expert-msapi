@@ -1,6 +1,6 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.3.10-msapi",
+  "version": "2.3.11-msapi",
   "releaseDate": "2026-11-20",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
@@ -100,6 +100,26 @@
     "sourceOfTruth": "cc-customization-expert-go/config.json",
     "policy": "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
     "minimumByCapability": [
+      {
+        "capability": "msapi.fields.createServerOwnedValues",
+        "label": "Server-owned physical and derived field-create values",
+        "introducedInSkillVersion": "2.3.11-msapi",
+        "minimumMetadataServiceVersion": "1.2.15",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.2.15",
+        "domains": [
+          "fields",
+          "objects"
+        ],
+        "operations": [
+          "create",
+          "add",
+          "batch-create",
+          "plan",
+          "validate",
+          "normalize"
+        ],
+        "reason": "Requires raw-request ownership validation, server-only physical slot selection, explicit-ID compatibility and rollup condition derivation."
+      },
       {
         "capability": "msapi.dashboardFolders.lifecycle",
         "label": "First-class dashboard-folder lifecycle",
