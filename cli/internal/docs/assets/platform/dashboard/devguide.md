@@ -8,6 +8,16 @@ cloudcc getList dashboard <projectPath> '{"folderId":"folder-id","lightning":tru
 cloudcc detail dashboard <projectPath> <dashboardId>
 cloudcc runtime dashboard <projectPath> '{"userId":"005...","roleId":"...","profileId":"...","folderId":"..."}'
 
+cloudcc capabilities dashboardFolder <projectPath>
+cloudcc get dashboardFolder <projectPath> [@filter.json]
+cloudcc detail dashboardFolder <projectPath> <folderId>
+cloudcc candidates dashboardFolder <projectPath> <dashboards|share-principals> [@filter.json]
+cloudcc create dashboardFolder <projectPath> @folder.json
+cloudcc update dashboardFolder <projectPath> <folderId> @folder-patch.json
+cloudcc delete dashboardFolder <projectPath> <folderId>
+cloudcc pin dashboardFolder <projectPath> <folderId>
+cloudcc unpin dashboardFolder <projectPath> <folderId>
+
 cloudcc create dashboard <projectPath> @dashboard.json
 cloudcc update dashboard <projectPath> <dashboardId> @dashboard-root.json
 cloudcc save dashboard <projectPath> <dashboardId> @dashboard-root.json
@@ -21,6 +31,30 @@ cloudcc doc dashboard devguide
 
 查询命令直接调用 MetadataService 只读接口。创建、更新和替换由 MetadataService 原生写入关系库；删除生成
 平台委托计划。复核 plan 后必须显式执行 `apply msapi` 才会产生变更。
+
+`dashboardFolder` 在 MSAPI 中使用 MetadataService `1.2.14+` 的关系库原子事务。CLI 在 update/delete 前自动读取
+当前 revision，但仍应在 plan 中复核。Lightning UIAPI 直接调用 api-service 的标准文件夹路由，不具备 MSAPI
+ledger/回滚保证。
+
+### 1.1 文件夹 JSON
+
+```json
+{
+  "name": "销售管理",
+  "visibility": "selected",
+  "shares": [
+    {"type": "role", "id": "00E...", "access": "write"},
+    {"type": "user", "id": "005...", "access": "read"}
+  ],
+  "dashboardIds": ["dsh..."]
+}
+```
+
+`visibility` 为 `all|private|selected`；`defaultAccess` 仅用于 all/private；share 类型为 `role`、`RoleAndSub`、
+`user`、`group`、`partneruser`、`partnerrole`，权限为 `read|write`。`dashboardIds` 省略表示保留，`[]`
+表示清空，非空数组表示完整替换。普通更新只能选当前文件夹成员与公共未归档仪表板，不能从其他自定义文件夹隐式抢占。
+
+`balightningdashboard` 是受保护的公共未归档文件夹，不能更新、删除或置顶；删除自定义文件夹前必须先显式清空成员。
 
 ## 2. `update` 与 `replace` 的区别
 

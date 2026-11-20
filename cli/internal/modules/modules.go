@@ -116,6 +116,18 @@ var genericEndpoints = map[string]map[string]endpoint{
 		"save":    {"api", "/api/dashboard/updateDashboard"},
 		"delete":  {"api", "/api/dashboard/deleteDashboard"},
 	},
+	"dashboardFolder": {
+		"get":        {"api", "/api/dashboard/getDashboardFolderList"},
+		"getList":    {"api", "/api/dashboard/getDashboardFolderList"},
+		"detail":     {"api", "/api/dashboard/getDashboardFolder"},
+		"candidates": {"api", "/api/dashboard/getDashboardFolder"},
+		"create":     {"api", "/api/dashboard/saveDashboardFolder"},
+		"update":     {"api", "/api/dashboard/saveDashboardFolder"},
+		"save":       {"api", "/api/dashboard/saveDashboardFolder"},
+		"delete":     {"api", "/api/dashboard/deleteDashboardFolder"},
+		"pin":        {"api", "/api/dashboard/topFolder"},
+		"unpin":      {"api", "/api/dashboard/topFolder"},
+	},
 	"fields": {
 		"detail": {"setup", "/api/fieldSetup/detailField"},
 		"create": {"setup", "/api/fieldSetup/save"},
@@ -401,6 +413,9 @@ func Handle(action string, resource string, args []string, stdout io.Writer, std
 	if resource == "queues" {
 		resource = "queue"
 	}
+	if resource == "dashboard-folder" || resource == "dashboardfolder" {
+		resource = "dashboardFolder"
+	}
 	switch resource {
 	case "highcode":
 		if action == "format" {
@@ -486,6 +501,8 @@ func Handle(action string, resource string, args []string, stdout io.Writer, std
 		return handleEmailTemplate(action, resource, args, stdout, cwd)
 	case "view":
 		return handleView(action, args, stdout, cwd)
+	case "dashboardFolder":
+		return handleDashboardFolder(action, args, stdout, cwd)
 	case "jsp", "site", "skill":
 		return fmt.Errorf("%s %s is deferred to P4 or a later task in the Go rewrite", action, resource)
 	}
@@ -510,6 +527,253 @@ func Handle(action string, resource string, args []string, stdout io.Writer, std
 		}
 	}
 	return fmt.Errorf("unsupported command: cloudcc %s %s", action, resource)
+}
+
+func handleDashboardFolder(action string, args []string, stdout io.Writer, cwd string) error {
+	ep, ok := genericEndpoints["dashboardFolder"][action]
+	if !ok {
+		return fmt.Errorf("unsupported dashboardFolder action: %s", action)
+	}
+	projectPath := firstArg(args, cwd)
+	body := map[string]any{}
+	switch action {
+	case "get", "getList":
+		if len(args) > 2 {
+			return fmt.Errorf("cloudcc get dashboardFolder <projectPath> [@filter.json]")
+		}
+		if len(args) == 2 && strings.TrimSpace(args[1]) != "" {
+			parsed, err := jsonx.ParseEncodedObject(args[1], "cloudcc get dashboardFolder")
+			if err != nil {
+				body["keyword"] = strings.TrimSpace(args[1])
+			} else {
+				body = parsed
+			}
+		}
+	case "detail":
+		if len(args) != 2 || strings.TrimSpace(args[1]) == "" {
+			return fmt.Errorf("cloudcc detail dashboardFolder <projectPath> <folderId>")
+		}
+		body["id"] = strings.TrimSpace(args[1])
+	case "candidates":
+		if len(args) < 2 || len(args) > 3 {
+			return fmt.Errorf("cloudcc candidates dashboardFolder <projectPath> <folderId> [@filter.json]")
+		}
+		body["id"] = strings.TrimSpace(args[1])
+		if len(args) == 3 {
+			parsed, err := jsonx.ParseEncodedObject(args[2], "cloudcc candidates dashboardFolder")
+			if err != nil {
+				return err
+			}
+			for k, v := range parsed {
+				body[k] = v
+			}
+		}
+	case "create":
+		if len(args) != 2 {
+			return fmt.Errorf("cloudcc create dashboardFolder <projectPath> <@spec.json>")
+		}
+		parsed, err := jsonx.ParseEncodedObject(args[1], "cloudcc create dashboardFolder")
+		if err != nil {
+			return err
+		}
+		body, err = normalizeDashboardFolderUIAPI(parsed)
+		if err != nil {
+			return err
+		}
+	case "update", "save":
+		if len(args) != 3 || strings.TrimSpace(args[1]) == "" {
+			return fmt.Errorf("cloudcc update dashboardFolder <projectPath> <folderId> <@patch.json>")
+		}
+		parsed, err := jsonx.ParseEncodedObject(args[2], "cloudcc update dashboardFolder")
+		if err != nil {
+			return err
+		}
+		parsed["id"] = strings.TrimSpace(args[1])
+		body, err = normalizeDashboardFolderUIAPI(parsed)
+		if err != nil {
+			return err
+		}
+	case "delete":
+		if len(args) != 2 || strings.TrimSpace(args[1]) == "" {
+			return fmt.Errorf("cloudcc delete dashboardFolder <projectPath> <folderId>")
+		}
+		body["id"] = strings.TrimSpace(args[1])
+	case "pin", "unpin":
+		if len(args) != 2 || strings.TrimSpace(args[1]) == "" {
+			return fmt.Errorf("cloudcc %s dashboardFolder <projectPath> <folderId>", action)
+		}
+		body["folderId"] = strings.TrimSpace(args[1])
+		body["isTop"] = fmt.Sprint(action == "pin")
+	}
+	cfg, err := config.Load(projectPath)
+	if err != nil {
+		return err
+	}
+	if action == "update" || action == "save" {
+		var before map[string]any
+		if err := postClassResponse(projectPath, cfg, "api", "/api/dashboard/getDashboardFolder",
+			map[string]any{"id": body["id"]}, &before); err != nil {
+			return fmt.Errorf("dashboard_folder_update_read_before_write_failed: %w", err)
+		}
+		if err := mergeDashboardFolderUpdateBody(body, before); err != nil {
+			return err
+		}
+	}
+	return postClass(stdout, projectPath, cfg, ep.base, ep.path, body)
+}
+
+func normalizeDashboardFolderUIAPI(input map[string]any) (map[string]any, error) {
+	out := map[string]any{}
+	for key, value := range input {
+		out[key] = value
+	}
+	out["folderType"] = "lightningdashboard"
+	if visibility := strings.TrimSpace(fmt.Sprint(input["visibility"])); visibility != "" && visibility != "<nil>" {
+		value, ok := map[string]string{"all": "0", "private": "1", "selected": "2"}[strings.ToLower(visibility)]
+		if !ok {
+			return nil, fmt.Errorf("dashboard_folder_visibility_invalid: visibility must be all, private or selected")
+		}
+		out["viewType"] = value
+	}
+	if access := strings.TrimSpace(fmt.Sprint(input["defaultAccess"])); access != "" && access != "<nil>" {
+		value, ok := map[string]string{"read": "0", "write": "1"}[strings.ToLower(access)]
+		if !ok {
+			return nil, fmt.Errorf("dashboard_folder_default_access_invalid: defaultAccess must be read or write")
+		}
+		out["purview"] = value
+	}
+	if rawShares, exists := input["shares"]; exists {
+		shares, ok := rawShares.([]any)
+		if !ok {
+			return nil, fmt.Errorf("dashboard_folder_shares_invalid: shares must be an array")
+		}
+		tokens := make([]string, 0, len(shares))
+		seen := map[string]bool{}
+		for _, value := range shares {
+			share, ok := value.(map[string]any)
+			if !ok {
+				return nil, fmt.Errorf("dashboard_folder_share_invalid: each share must be an object")
+			}
+			typeName := strings.TrimSpace(fmt.Sprint(share["type"]))
+			id := strings.TrimSpace(fmt.Sprint(share["id"]))
+			access := strings.ToLower(strings.TrimSpace(fmt.Sprint(share["access"])))
+			canonicalTypes := map[string]string{"role": "role", "roleandsub": "RoleAndSub", "user": "user", "group": "group", "partneruser": "partneruser", "partnerrole": "partnerrole"}
+			physicalType, validType := canonicalTypes[strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(typeName, "_", ""), "-", ""))]
+			if !validType || id == "" || (access != "read" && access != "write") {
+				return nil, fmt.Errorf("dashboard_folder_share_invalid: each share requires a supported type, id and access=read|write")
+			}
+			key := strings.ToLower(physicalType + "\x00" + id)
+			if seen[key] {
+				return nil, fmt.Errorf("dashboard_folder_share_duplicate: %s-%s", physicalType, id)
+			}
+			seen[key] = true
+			suffix := "0"
+			if access == "write" {
+				suffix = "1"
+			}
+			tokens = append(tokens, physicalType+"-"+id+"-"+suffix)
+		}
+		out["folderUser"] = strings.Join(tokens, ",")
+	}
+	if rawIDs, exists := input["dashboardIds"]; exists {
+		ids, ok := rawIDs.([]any)
+		if !ok {
+			return nil, fmt.Errorf("dashboard_folder_dashboard_ids_invalid: dashboardIds must be an array")
+		}
+		values := make([]string, 0, len(ids))
+		seen := map[string]bool{}
+		for _, id := range ids {
+			value := strings.TrimSpace(fmt.Sprint(id))
+			if value == "" || value == "<nil>" {
+				return nil, fmt.Errorf("dashboard_folder_dashboard_ids_invalid: dashboardIds must not contain empty ids")
+			}
+			if seen[strings.ToLower(value)] {
+				return nil, fmt.Errorf("dashboard_folder_dashboard_duplicate: %s", value)
+			}
+			seen[strings.ToLower(value)] = true
+			values = append(values, value)
+		}
+		out["selectedDashboardIds"] = strings.Join(values, ",")
+	}
+	delete(out, "visibility")
+	delete(out, "defaultAccess")
+	delete(out, "shares")
+	delete(out, "dashboardIds")
+	delete(out, "expectedRevision")
+	return out, nil
+}
+
+func mergeDashboardFolderUpdateBody(body map[string]any, response map[string]any) error {
+	data, ok := response["data"].(map[string]any)
+	if !ok {
+		return fmt.Errorf("dashboard_folder_update_read_before_write_failed: detail response has no data")
+	}
+	folder, ok := data["folder"].(map[string]any)
+	if !ok {
+		return fmt.Errorf("dashboard_folder_update_read_before_write_failed: detail response has no folder")
+	}
+	fill := func(key string, source any) {
+		if _, exists := body[key]; !exists {
+			body[key] = source
+		}
+	}
+	fill("name", folder["name"])
+	fill("viewType", folder["viewType"])
+	fill("purview", folder["purview"])
+	if _, exists := body["folderUser"]; !exists {
+		body["folderUser"] = dashboardFolderSelectedShares(data)
+	}
+	if _, exists := body["selectedDashboardIds"]; !exists {
+		body["selectedDashboardIds"] = dashboardFolderSelectedIDs(data["selectDashboardList"])
+	}
+	if strings.TrimSpace(fmt.Sprint(body["name"])) == "" || strings.TrimSpace(fmt.Sprint(body["viewType"])) == "" {
+		return fmt.Errorf("dashboard_folder_update_read_before_write_failed: detail response omitted name or viewType")
+	}
+	return nil
+}
+
+func dashboardFolderSelectedShares(data map[string]any) string {
+	sections := []struct{ key, prefix string }{
+		{"selectRoleList", "role"}, {"selectRoleAndSubList", "RoleAndSub"},
+		{"selectUserList", "user"}, {"selectGroupList", "group"},
+		{"selectPartnerUserList", "partneruser"}, {"selectPartnerRoleList", "partnerrole"},
+	}
+	tokens := []string{}
+	for _, section := range sections {
+		values, _ := data[section.key].([]any)
+		for _, value := range values {
+			item, ok := value.(map[string]any)
+			if !ok {
+				continue
+			}
+			id := strings.TrimSpace(fmt.Sprint(item["id"]))
+			if id == "" || id == "<nil>" {
+				continue
+			}
+			for _, prefix := range []string{"role", "RoleAndSub", "user", "group", "partneruser", "partnerrole"} {
+				id = strings.TrimPrefix(id, prefix+"-")
+			}
+			access := "0"
+			if strings.TrimSpace(fmt.Sprint(item["purview"])) == "1" {
+				access = "1"
+			}
+			tokens = append(tokens, section.prefix+"-"+id+"-"+access)
+		}
+	}
+	return strings.Join(tokens, ",")
+}
+
+func dashboardFolderSelectedIDs(raw any) string {
+	values, _ := raw.([]any)
+	ids := make([]string, 0, len(values))
+	for _, value := range values {
+		if item, ok := value.(map[string]any); ok {
+			if id := strings.TrimSpace(fmt.Sprint(item["id"])); id != "" && id != "<nil>" {
+				ids = append(ids, id)
+			}
+		}
+	}
+	return strings.Join(ids, ",")
 }
 
 func handleView(action string, args []string, stdout io.Writer, cwd string) error {

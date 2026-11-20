@@ -1,7 +1,7 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.3.9-msapi",
-  "releaseDate": "2026-11-19",
+  "version": "2.3.10-msapi",
+  "releaseDate": "2026-11-20",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
   "platformSupport": {
@@ -100,6 +100,29 @@
     "sourceOfTruth": "cc-customization-expert-go/config.json",
     "policy": "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
     "minimumByCapability": [
+      {
+        "capability": "msapi.dashboardFolders.lifecycle",
+        "label": "First-class dashboard-folder lifecycle",
+        "introducedInSkillVersion": "2.3.10-msapi",
+        "minimumMetadataServiceVersion": "1.2.14",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.2.14",
+        "domains": [
+          "dashboards"
+        ],
+        "operations": [
+          "query",
+          "detail",
+          "candidates",
+          "folder-create",
+          "folder-update",
+          "folder-delete",
+          "folder-pin",
+          "folder-unpin",
+          "readback",
+          "rollback"
+        ],
+        "reason": "Requires current-principal folder visibility, strict share tokens, revision and membership-origin guards, transactional replacement, empty-delete protection and user-scoped pins."
+      },
       {
         "capability": "msapi.buttons.platformCreateId",
         "label": "Platform-compatible custom-button create IDs",
@@ -3208,12 +3231,14 @@
       },
       {
         "name": "dashboards",
-        "label": "Dashboards",
+        "label": "Dashboards and dashboard folders",
         "kind": "resource",
         "parent": "metadata",
         "category": "metadata",
         "aliases": [
-          "dashboard"
+          "dashboard",
+          "dashboardFolder",
+          "dashboard-folder"
         ],
         "availability": {
           "msapi": "enabled",
@@ -3229,7 +3254,7 @@
           },
           {
             "provider": "uiapi",
-            "backend": "setup-svc",
+            "backend": "api-service",
             "transport": "uiapi",
             "availability": "provider-adapter"
           }
@@ -3237,15 +3262,21 @@
         "actions": [
           "get",
           "detail",
+          "candidates",
+          "capabilities",
           "create",
           "update",
           "replace",
           "delete",
+          "pin",
+          "unpin",
           "runtime"
         ],
         "commands": [
           "cloudcc get dashboard <projectPath> [filter]",
           "cloudcc create dashboard <projectPath> <spec>",
+          "cloudcc get dashboardFolder <projectPath> [@filter.json]",
+          "cloudcc create dashboardFolder <projectPath> <@spec.json>",
           "cloudcc runtime dashboard <projectPath> [options]"
         ],
         "documentation": {

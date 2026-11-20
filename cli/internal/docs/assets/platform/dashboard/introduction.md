@@ -10,3 +10,7 @@ The aggregate contains:
 - optional `tp_sys_dashboard_condition` filters for each component.
 
 Recent dashboards are user runtime state. MetadataService does not create `tp_sys_recent_items` merely to make a newly created dashboard appear in a recent list.
+
+Dashboard folders are also a first-class `dashboardFolder` resource. Their definition, complete dashboard membership,
+sharing policy and current-user pin preference form one managed aggregate; existing folders must be changed through this
+resource rather than through the dashboard create convenience object.

@@ -39,6 +39,9 @@ var lowCodeShortcutDomains = map[string]string{
 	"mobile-settings":        "mobile-settings",
 	"dupeCatcher":            "dupe-catchers",
 	"dashboard":              "dashboards",
+	"dashboardFolder":        "dashboards",
+	"dashboard-folder":       "dashboards",
+	"dashboardfolder":        "dashboards",
 	"fields":                 "fields",
 	"field":                  "fields",
 	"fieldId":                "fields",
@@ -226,6 +229,8 @@ var lowCodeShortcutActions = map[string]bool{
 	"set-default":                        true,
 	"reorder":                            true,
 	"reorder-public":                     true,
+	"pin":                                true,
+	"unpin":                              true,
 }
 
 // IsLowCodeShortcut returns true for legacy low-code metadata CLI shortcuts that
@@ -233,7 +238,7 @@ var lowCodeShortcutActions = map[string]bool{
 func IsLowCodeShortcut(action string, resource string) bool {
 	domain, ok := lowCodeShortcutDomains[strings.TrimSpace(resource)]
 	if strings.TrimSpace(action) == "capabilities" {
-		return ok && (domain == "profiles" || domain == "search-layouts" || domain == "roles" || domain == "public-groups" || domain == "mobile-settings" || domain == "queues" || domain == "email-templates" || domain == "dupe-catchers" || domain == "object-views" || isWorkflowActionDomain(domain))
+		return ok && (domain == "profiles" || domain == "search-layouts" || domain == "roles" || domain == "public-groups" || domain == "mobile-settings" || domain == "queues" || domain == "email-templates" || domain == "dupe-catchers" || domain == "object-views" || resource == "dashboardFolder" || resource == "dashboard-folder" || resource == "dashboardfolder" || isWorkflowActionDomain(domain))
 	}
 	if !lowCodeShortcutActions[strings.TrimSpace(action)] {
 		return false
@@ -384,6 +389,9 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 	}
 	if resource == "reportFolder" {
 		return handleReportFolderShortcut(action, projectPath, rest, stdout, cwd)
+	}
+	if resource == "dashboardFolder" || resource == "dashboard-folder" || resource == "dashboardfolder" {
+		return handleDashboardFolderShortcut(action, projectPath, rest, stdout, cwd)
 	}
 	if resource == "dashboard" {
 		if isShortcutRead(action) {
@@ -2117,6 +2125,139 @@ func handleReportFolderShortcut(action string, projectPath string, args []string
 	default:
 		return fmt.Errorf("unsupported reportFolder shortcut action: %s", action)
 	}
+}
+
+func handleDashboardFolderShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
+	action = strings.TrimSpace(action)
+	c, _, err := newClient([]string{projectPath}, cwd)
+	if err != nil {
+		return err
+	}
+	if action == "create" || action == "add" || action == "update" || action == "save" || action == "modify" ||
+		action == "editSave" || action == "delete" || action == "remove" || action == "pin" || action == "unpin" {
+		if err := requireDashboardFolderCapability(c, "folder-"+map[string]string{
+			"create": "create", "add": "create", "update": "update", "save": "update", "modify": "update",
+			"editSave": "update", "delete": "delete", "remove": "delete", "pin": "pin", "unpin": "unpin",
+		}[action]); err != nil {
+			return err
+		}
+	}
+	switch action {
+	case "capabilities":
+		if len(args) != 0 {
+			return fmt.Errorf("cloudcc capabilities dashboardFolder <projectPath>")
+		}
+		return c.getJSON(stdout, "/metadata/v1/dashboard-folders/capabilities")
+	case "get", "getList":
+		body := map[string]any{}
+		if len(args) > 1 {
+			return fmt.Errorf("cloudcc get dashboardFolder <projectPath> [@filter.json]")
+		}
+		if len(args) == 1 && strings.TrimSpace(args[0]) != "" {
+			if looksLikeJSONArg(args[0]) {
+				body, err = parseObject(args[0], "cloudcc get dashboardFolder")
+			} else {
+				body["keyword"] = strings.TrimSpace(args[0])
+			}
+			if err != nil {
+				return err
+			}
+		}
+		return c.writeJSON(stdout, http.MethodPost, "/metadata/v1/dashboard-folders:query", body)
+	case "detail", "editInfo":
+		if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
+			return fmt.Errorf("cloudcc detail dashboardFolder <projectPath> <folderId>")
+		}
+		return c.writeJSON(stdout, http.MethodPost, "/metadata/v1/dashboard-folders:detail", map[string]any{"id": strings.TrimSpace(args[0])})
+	case "candidates":
+		if len(args) < 1 || len(args) > 2 {
+			return fmt.Errorf("cloudcc candidates dashboardFolder <projectPath> <dashboards|share-principals> [@filter.json]")
+		}
+		body := map[string]any{"section": strings.TrimSpace(args[0])}
+		if len(args) == 2 {
+			extra, parseErr := parseObject(args[1], "cloudcc candidates dashboardFolder")
+			if parseErr != nil {
+				return parseErr
+			}
+			for k, v := range extra {
+				body[k] = v
+			}
+		}
+		return c.writeJSON(stdout, http.MethodPost, "/metadata/v1/dashboard-folders:candidates", body)
+	case "create", "add":
+		if len(args) != 1 || !looksLikeJSONArg(args[0]) {
+			return fmt.Errorf("cloudcc create dashboardFolder <projectPath> <@spec.json>")
+		}
+		body, parseErr := parseObject(args[0], "cloudcc create dashboardFolder")
+		if parseErr != nil {
+			return parseErr
+		}
+		return planShortcut(stdout, cwd, projectPath, "dashboards", body, "folder-create")
+	case "update", "save", "modify", "editSave":
+		if len(args) != 2 || strings.TrimSpace(args[0]) == "" || !looksLikeJSONArg(args[1]) {
+			return fmt.Errorf("cloudcc update dashboardFolder <projectPath> <folderId> <@patch.json>")
+		}
+		id := strings.TrimSpace(args[0])
+		body, parseErr := parseObject(args[1], "cloudcc update dashboardFolder")
+		if parseErr != nil {
+			return parseErr
+		}
+		body["id"] = id
+		if _, ok := body["expectedRevision"]; !ok {
+			revision, fetchErr := dashboardFolderRevision(c, id)
+			if fetchErr != nil {
+				return fetchErr
+			}
+			body["expectedRevision"] = revision
+		}
+		return planShortcut(stdout, cwd, projectPath, "dashboards", body, "folder-update")
+	case "delete", "remove":
+		if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
+			return fmt.Errorf("cloudcc delete dashboardFolder <projectPath> <folderId>")
+		}
+		id := strings.TrimSpace(args[0])
+		revision, fetchErr := dashboardFolderRevision(c, id)
+		if fetchErr != nil {
+			return fetchErr
+		}
+		return planShortcut(stdout, cwd, projectPath, "dashboards", map[string]any{"id": id, "expectedRevision": revision}, "folder-delete")
+	case "pin", "unpin":
+		if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
+			return fmt.Errorf("cloudcc %s dashboardFolder <projectPath> <folderId>", action)
+		}
+		return planShortcut(stdout, cwd, projectPath, "dashboards", map[string]any{"id": strings.TrimSpace(args[0])}, "folder-"+action)
+	default:
+		return fmt.Errorf("unsupported dashboardFolder shortcut action: %s", action)
+	}
+}
+
+func requireDashboardFolderCapability(c *client, operation string) error {
+	capabilities, err := c.requestJSONMap(http.MethodGet, "/metadata/v1/dashboard-folders/capabilities", nil)
+	if err != nil {
+		return fmt.Errorf("dashboardFolder requires MetadataService 1.2.14 or newer: %w", err)
+	}
+	values, ok := capabilities["operations"].([]any)
+	if !ok {
+		return fmt.Errorf("dashboardFolder requires MetadataService 1.2.14 or newer: capabilities omitted operations")
+	}
+	for _, value := range values {
+		if strings.EqualFold(strings.TrimSpace(fmt.Sprint(value)), operation) {
+			return nil
+		}
+	}
+	return fmt.Errorf("dashboardFolder operation %s is unavailable; requires MetadataService 1.2.14 or newer", operation)
+}
+
+func dashboardFolderRevision(c *client, id string) (string, error) {
+	response, err := c.requestJSONMap(http.MethodPost, "/metadata/v1/dashboard-folders:detail", map[string]any{"id": id})
+	if err != nil {
+		return "", err
+	}
+	revision := strings.TrimSpace(fmt.Sprint(response["revision"]))
+	if revision == "" || revision == "<nil>" {
+		return "", fmt.Errorf("dashboard folder detail omitted revision")
+	}
+	return revision, nil
 }
 
 // NormalizeReportShortcut converts the stable report and report-folder CLI
