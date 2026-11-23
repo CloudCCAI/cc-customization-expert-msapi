@@ -44,7 +44,8 @@ cloudcc detail queue <projectPath> <queueId|apiName>
 }
 ```
 
-ID、关系行 ID、审计字段、`marketseaid` 和生成视图字段由平台管理，不能作为写入字段提交。
+关系行 ID、审计字段、`marketseaid` 和生成视图字段由平台管理，不能作为写入字段提交。仅 MSAPI create
+允许通过 `queueId` 可选提交根队列 ID。
 
 ## 4. 候选发现
 
@@ -64,6 +65,7 @@ cloudcc candidates queue . members roleAndSubordinates [keyword]
 
 ```json
 {
+  "queueId": "que-migrated-service",
   "apiName": "ServiceCaseQueue",
   "label": "服务请求队列",
   "email": "service@example.invalid",
@@ -83,8 +85,10 @@ cloudcc apply msapi . <planId>
 ```
 
 规则：`apiName` 匹配 `^[A-Za-z][A-Za-z0-9_]{0,39}$`；label 非空；email 为空或合法；
-`sendEmailToMembers` 必须是 JSON boolean；对象、成员各至少一个；重复自然键被拒绝；调用方不能指定 ID。
-MetadataService 在计划中预留平台格式的稳定 queue ID，使写后回读和删除补偿能精确定位同一聚合。
+`sendEmailToMembers` 必须是 JSON boolean；对象、成员各至少一个；重复自然键被拒绝。`queueId` 可省略；
+仅 MSAPI create 接受调用方已有的根 ID，显式值必须是无首尾空白的非空字符串且不超过 20 位，plan 和
+apply 都检查整个 `tp_sys_queue` 根表占用，包括普通队列列表会过滤的特殊队列。省略时 MetadataService
+生成平台 20 位 queue ID。成员、对象关系、生成视图和视图字段 ID 始终由服务端生成。
 
 ## 6. 更新基础属性
 

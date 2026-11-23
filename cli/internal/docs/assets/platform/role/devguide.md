@@ -30,6 +30,7 @@ cloudcc candidates role . assignmentFallback role-sales-manager
 
 ```json
 {
+  "roleId": "role-east-manager",
   "name": "华东销售经理",
   "parent": {"selector": "全国销售总监"}
 }
@@ -42,6 +43,9 @@ cloudcc detail role . 华东销售经理
 ```
 
 MetadataService 读取父角色完整祖先链，生成 self row、全部 ancestor rows、正确 gap/level 和两条配套角色组。
+`roleId` 可省略；仅 MSAPI create 接受调用方已有的根 ID。显式值必须是无首尾空白的非空字符串且不超过
+20 位，plan 和 apply 都会检查逻辑 `ROLEID` 是否已占用。省略时生成平台 20 位 ID。closure row 和两条
+配套角色组 ID 始终由服务端生成，不能提交。`roleId` 不能与 `sourceSystem + externalKey` 同时使用。
 角色名称允许重复；后续写入应保存返回的目标 ID，只有唯一名称才能作为 selector。已有角色体系中完全
 省略父角色返回 `role_parent_required`，父角色不存在返回 `role_not_found`。父链必须包含从 self 到根角色
 的连续 closure；缺行、重复 ancestor、非法 gap 或 level
@@ -50,7 +54,8 @@ MetadataService 读取父角色完整祖先链，生成 self row、全部 ancest
 创建计划会绑定父角色完整祖先链。plan 后父链发生变化时 apply 返回 `role_hierarchy_changed`，应重新读取
 父角色并生成新计划，不能应用旧 closure。
 
-禁止提交：`rowId`、`parentClosure`、`ancestors`、`closureRows`、`gap`、`currentLevel`、`columns`。
+禁止提交：`id`、`roleid`、`rowId`、`parentClosure`、`ancestors`、`closureRows`、`gap`、`currentLevel`、
+`columns`。根 ID 只能使用大小写准确的 `roleId`。
 
 ### 3.1 显式创建根角色
 

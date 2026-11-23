@@ -47,7 +47,8 @@ cloudcc candidates publicGroup . publicGroup 华东销售组 运营
 
 `selector` 可以是相应对象的 ID 或唯一完整名称。禁止提交 `type`（小组数据类型）、`source`、
 `selecteditems`、`selectedItems`、`memberRowId`、`createById`、`createDate`、`lastModifyById`、
-`lastModifyDate`，也不能在创建时指定小组 ID。这些字段由服务端管理。
+`lastModifyDate`。成员关系行 ID 始终由服务端管理；MSAPI create 仅允许通过规范字段 `id` 可选提交根小组
+ID，不接受 `groupId/publicGroupId` 别名。
 
 ## 4. 创建
 
@@ -55,6 +56,7 @@ cloudcc candidates publicGroup . publicGroup 华东销售组 运营
 
 ```json
 {
+  "id": "afc-migrated-sales",
   "name": "华东销售支持组",
   "useHierarchies": false,
   "members": [
@@ -70,7 +72,9 @@ cloudcc apply msapi . <planId>
 cloudcc detail publicGroup . 华东销售支持组
 ```
 
-MetadataService 生成 `afc` 小组 ID、`afd` 成员行 ID、固定 `type=3` 和审计字段。名称必须非空且唯一；
+`id` 可省略；仅 MSAPI create 接受调用方已有的根 ID。显式值必须是无首尾空白的非空字符串且不超过
+20 位，plan 和 apply 都会检查整个 `tp_sys_group` 根表占用，包括非公用小组类型。省略时 MetadataService
+生成 `afc` 小组 ID。`afd` 成员行 ID、固定 `type=3` 和审计字段始终由服务端管理。名称必须非空且唯一；
 成员 selector 必须唯一命中现有对象。重复成员会按 `type + targetId` 去重。
 
 ## 5. 修改属性

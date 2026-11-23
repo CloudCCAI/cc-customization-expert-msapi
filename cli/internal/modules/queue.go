@@ -135,6 +135,11 @@ func queueWriteBody(action string, args []string) (map[string]any, error) {
 }
 
 func queueCanonicalSave(source map[string]any, option string, id string) (map[string]any, error) {
+	if option == "add" {
+		if _, supplied := source["queueId"]; supplied {
+			return nil, fmt.Errorf("queue_explicit_id_requires_msapi: create queueId is supported only by the MSAPI provider")
+		}
+	}
 	result := map[string]any{"option": option}
 	if id != "" {
 		result["id"] = id

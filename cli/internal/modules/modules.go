@@ -1512,6 +1512,11 @@ func publicGroupUIAPIRequestBody(action string, args []string) (map[string]any, 
 
 func normalizePublicGroupUIAPISaveBody(action string, body map[string]any) (map[string]any, error) {
 	result := copyStringAnyMap(body)
+	if action == "create" {
+		if _, supplied := result["id"]; supplied {
+			return nil, fmt.Errorf("public_group_explicit_id_requires_msapi: create id is supported only by the MSAPI provider")
+		}
+	}
 	if selector := publicGroupText(result["selector"]); selector != "" {
 		if _, exists := result["id"]; !exists {
 			result["id"] = selector
@@ -2670,6 +2675,11 @@ func callGenericWithPrinter(ep endpoint, action string, resource string, args []
 			}
 		} else {
 			body = parsed
+		}
+	}
+	if action == "create" && resource == "role" {
+		if _, supplied := body["roleId"]; supplied {
+			return fmt.Errorf("role_explicit_id_requires_msapi: create roleId is supported only by the MSAPI provider")
 		}
 	}
 	cfg, err := config.Load(projectPath)
