@@ -5,11 +5,15 @@
 | Domain unavailable / requires MSAPI | 当前为 UIAPI，或 Universal 选择了 UIAPI | 运行 `cloudcc doctor provider <projectPath>`，改用 MSAPI 或配置兼容的 MetadataService |
 | 功能端点不存在或被关闭 | MetadataService 版本过低，或未启用索引能力 | 删除要求版本不低于 `1.1.93`，并设置 `MDS_BUSINESS_DATA_INDEX_ENABLED=true` |
 | `data_index_invalid_request` | 字段为空、超过四个、重复或输入不符合逻辑 API 约束 | 只传一至四个不同字段 API 名 |
-| `data_index_field_not_supported` | 字段是 LOB、长文本、公式、复合存储或没有单一物理列 | 调整索引字段，不能通过物理列名绕过 |
+| `data_index_field_unsupported` | 字段是非 MySQL LOB、公式、复合存储或没有单一物理列 | 调整索引字段，不能通过物理列名绕过 |
+| `data_index_prefix_length_required` | MySQL 物理列是 `TEXT`，但没有提供字符前缀长度 | 使用 `--prefix-length <field>=<正整数>` 重新 plan |
+| `data_index_prefix_length_not_allowed` | 普通非 TEXT 字段携带了前缀长度 | 删除该字段的 `--prefix-length` 配置 |
+| `data_index_prefix_length_database_unsupported` | 在 Oracle、Kingbase、H2 等非 MySQL 数据库请求前缀索引 | 使用该数据库支持的普通字段类型；当前不模拟 MySQL 前缀语法 |
+| `data_index_prefix_field_not_requested` | 前缀映射引用了未出现在 `--fields` 中的字段 | 只为本次有序字段列表中的逻辑字段指定前缀 |
 | `data_index_limit_exceeded` | 达到平台或数据库索引数量上限 | 执行 `cloudcc analyze dataIndex <projectPath> <object>` 并审阅冗余建议 |
 | `CAUTION_LARGE_TABLE` | 删除计划检测到表数据量超过谨慎阈值 | 查看 `tableRowCountExact`；为 false 时按“至少该数量”理解，并在批准前评估查询、写入与维护窗口影响 |
 | `data_index_delete_row_count_changed` | 计划后、批准前数据量跨过谨慎阈值 | 重新执行 `plan-delete`，审阅大表警告后再批准 |
-| `data_index_key_too_long` | 字段组合超过索引键字节限制 | 减少或调整字段；当前不支持字符串前缀索引 |
+| `data_index_key_too_long` | 字段组合超过索引键字节限制 | 减少字段或缩短 MySQL TEXT 的显式前缀后重新 plan |
 | `data_index_name_conflict` | 同名索引已有不同字段定义 | 省略 `--name` 让系统生成，或更换名称 |
 | `data_index_redundant` | 已有长索引覆盖请求的最左前缀 | 使用 `get` 查看现有索引，不要重复创建 |
 | `data_index_permission_denied` | 数据库账户缺少 DDL 权限 | 由管理员补充最小权限后重试 |

@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.3.12"
+const Version = "2.3.13"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,6 +48,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- MySQL TEXT prefix indexes are now supported by dataIndex with explicit --prefix-length field=characters values, physical-column and 3072-byte key-width validation, durable prefix identity, SUB_PART readback, and prefix-aware redundancy analysis. Other databases and non-TEXT columns fail closed. Requires MetadataService 1.2.18.")
 		fmt.Fprintln(stderr, "- dupeCatcher conditions now have a setup-aligned typed field/operator/value contract, canonical conditions.logic/items and conditionVals compatibility, validated writes, friendly readback, normalized Lightning candidates, and complete user documentation. Requires MetadataService 1.2.8.")
 		fmt.Fprintln(stderr, "- Object-view Contract 2 includes authoritative latest-record state, exact platform visibility/permission semantics, revision guards and semantic write readback. Requires MetadataService 1.2.7.")
 		fmt.Fprintln(stderr, "- dupeCatcher Contract 2 adds canonical aggregate readback, object/rule-field/condition-field candidates, explicit owned-rule lifecycle, parent and field eligibility validation, Lightning provider routing, and horizontal fail-closed behavior. Requires MetadataService 1.2.6.")
@@ -422,11 +423,11 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "MSAPI data-extension commands:")
 	fmt.Fprintln(stdout, "  cloudcc doc dataIndex [introduction|devguide|optimization|database-limits|troubleshooting]")
 	fmt.Fprintln(stdout, "  cloudcc get dataIndex [projectPath] <object>")
-	fmt.Fprintln(stdout, "  cloudcc plan dataIndex [projectPath] <object> --fields <field1,field2> [--name <name>]")
+	fmt.Fprintln(stdout, "  cloudcc plan dataIndex [projectPath] <object> --fields <field1,field2> [--prefix-length <field=characters>] [--name <name>]")
 	fmt.Fprintln(stdout, "  cloudcc audit fields <projectPath> [object-id-apiName-or-prefix] [fieldId]")
 	fmt.Fprintln(stdout, "  cloudcc candidates fields <projectPath> <object> [relationship-path] [--current-field-id <id>] [--include-unsupported]")
 	fmt.Fprintln(stdout, "  cloudcc repair fields <projectPath> <oldFieldId> [newFieldId|auto] [objectId] [expectedApiName]")
-	fmt.Fprintln(stdout, "  cloudcc create dataIndex [projectPath] <object> --fields <field1,field2> [--name <name>] --confirm [--wait] [--poll-interval-ms <n>]")
+	fmt.Fprintln(stdout, "  cloudcc create dataIndex [projectPath] <object> --fields <field1,field2> [--prefix-length <field=characters>] [--name <name>] --confirm [--wait] [--poll-interval-ms <n>]")
 	fmt.Fprintln(stdout, "  cloudcc analyze dataIndex [projectPath] <object>")
 	fmt.Fprintln(stdout, "  cloudcc optimization-plan dataIndex [projectPath] <planId>")
 	fmt.Fprintln(stdout, "  cloudcc plan-delete dataIndex [projectPath] <object> --indexes <indexRef,...> --reason <text> [--ticket <id>]")

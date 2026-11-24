@@ -609,7 +609,7 @@ type dataIndexCLICommand struct {
 }
 
 func dataIndexCommand(action string, resource string, args []string) (*dataIndexCLICommand, error) {
-	usage := "cloudcc " + action + " " + resource + " <object> --fields <field1,field2> [--name <name>]"
+	usage := "cloudcc " + action + " " + resource + " <object> --fields <field1,field2> [--name <name>] [--prefix-length <field>=<characters>[,...]]"
 	if action == "create" {
 		usage += " --confirm [--wait] [--poll-interval-ms <n>]"
 	}
@@ -617,6 +617,7 @@ func dataIndexCommand(action string, resource string, args []string) (*dataIndex
 		return nil, fmt.Errorf("%s", usage)
 	}
 	fields := []string{}
+	prefixLengths := map[string]int{}
 	name := ""
 	confirmed := false
 	wait := false
@@ -639,6 +640,29 @@ func dataIndexCommand(action string, resource string, args []string) (*dataIndex
 				return nil, fmt.Errorf("%s: --name requires an index name", usage)
 			}
 			name = strings.TrimSpace(args[i])
+		case "--prefix-length":
+			i++
+			if i >= len(args) || strings.TrimSpace(args[i]) == "" {
+				return nil, fmt.Errorf("%s: --prefix-length requires field=positive-integer entries", usage)
+			}
+			for _, raw := range strings.Split(args[i], ",") {
+				parts := strings.SplitN(strings.TrimSpace(raw), "=", 2)
+				if len(parts) != 2 || strings.TrimSpace(parts[0]) == "" {
+					return nil, fmt.Errorf("%s: --prefix-length requires field=positive-integer entries", usage)
+				}
+				field := strings.TrimSpace(parts[0])
+				value, err := strconv.Atoi(strings.TrimSpace(parts[1]))
+				if err != nil || value <= 0 {
+					return nil, fmt.Errorf("%s: --prefix-length requires field=positive-integer entries", usage)
+				}
+				key := strings.ToLower(strings.ReplaceAll(field, "_", ""))
+				for existing := range prefixLengths {
+					if strings.ToLower(strings.ReplaceAll(existing, "_", "")) == key {
+						return nil, fmt.Errorf("%s: duplicate prefix-length field %s", usage, field)
+					}
+				}
+				prefixLengths[field] = value
+			}
 		case "--confirm":
 			confirmed = true
 		case "--wait":
@@ -669,6 +693,9 @@ func dataIndexCommand(action string, resource string, args []string) (*dataIndex
 	body := map[string]any{"fields": fields, "unique": false}
 	if name != "" {
 		body["name"] = name
+	}
+	if len(prefixLengths) > 0 {
+		body["prefixLengths"] = prefixLengths
 	}
 	return &dataIndexCLICommand{object: strings.TrimSpace(args[0]), body: body, wait: wait, pollInterval: pollInterval}, nil
 }

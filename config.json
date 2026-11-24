@@ -1,7 +1,7 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.3.12-msapi",
-  "releaseDate": "2026-11-23",
+  "version": "2.3.13-msapi",
+  "releaseDate": "2026-11-24",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
   "platformSupport": {
@@ -100,6 +100,25 @@
     "sourceOfTruth": "cc-customization-expert-go/config.json",
     "policy": "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
     "minimumByCapability": [
+      {
+        "capability": "msapi.businessData.mysqlTextPrefixIndex",
+        "label": "MySQL TEXT prefix index lifecycle",
+        "introducedInSkillVersion": "2.3.13-msapi",
+        "minimumMetadataServiceVersion": "1.2.18",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.2.18",
+        "domains": [
+          "data-index"
+        ],
+        "operations": [
+          "list",
+          "plan",
+          "create",
+          "analyze",
+          "optimization-plan",
+          "status"
+        ],
+        "reason": "Requires explicit per-field prefix lengths, physical MySQL TEXT preflight, 3072-byte key-width guards, prefix-aware DDL, durable jobs and managed definitions, SUB_PART readback, and prefix-aware redundancy analysis."
+      },
       {
         "capability": "msapi.securityDomains.explicitCreateIds",
         "label": "Explicit root create IDs for roles, public groups, and queues",

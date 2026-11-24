@@ -29,8 +29,8 @@ cloudcc domain dataIndex
 | 目的 | 命令 | 是否修改数据库 |
 |---|---|---|
 | 查看对象全部索引 | `cloudcc get dataIndex [projectPath] <object>` | 否 |
-| 预检创建方案 | `cloudcc plan dataIndex [projectPath] <object> --fields <f1,f2> [--name <name>]` | 否 |
-| 创建索引 | `cloudcc create dataIndex [projectPath] <object> --fields <f1,f2> [--name <name>] --confirm [--wait] [--poll-interval-ms <n>]` | 是 |
+| 预检创建方案 | `cloudcc plan dataIndex [projectPath] <object> --fields <f1,f2> [--name <name>] [--prefix-length <field>=<n>[,...]]` | 否 |
+| 创建索引 | `cloudcc create dataIndex [projectPath] <object> --fields <f1,f2> [--name <name>] [--prefix-length <field>=<n>[,...]] --confirm [--wait] [--poll-interval-ms <n>]` | 是 |
 | 分析可优化项 | `cloudcc analyze dataIndex [projectPath] <object>` | 否 |
 | 读取优化方案 | `cloudcc optimization-plan dataIndex [projectPath] <planId>` | 否 |
 | 生成删除计划 | `cloudcc plan-delete dataIndex [projectPath] <object> --indexes <indexRef,...> --reason <text> [--ticket <id>]` | 否 |
@@ -43,6 +43,7 @@ cloudcc domain dataIndex
 
 - `--fields`：按索引顺序传入一至四个字段 API 名，使用英文逗号分隔。
 - `--name`：可选逻辑索引名；省略时由服务端生成符合目标数据库长度限制的名称。
+- `--prefix-length`：仅用于 MySQL `TEXT` 物理列，按逻辑字段 API 名显式指定字符前缀长度；多个字段使用英文逗号分隔。
 - `--confirm`：仅用于创建索引；删除不接受一步 `--confirm`。
 - `--wait`：持续轮询到 `SUCCEEDED` 或 `FAILED`；省略时立即返回 `jobId`。
 - `--poll-interval-ms`：配合 `--wait` 设置正整数轮询间隔，默认 1000 毫秒。
@@ -80,12 +81,28 @@ cloudcc get dataIndex <projectPath> Account
 
 完全相同的有序字段索引已经存在时，创建按幂等成功处理，结果通常为 `ALREADY_EXISTS`。
 
+MySQL `TEXT` 字段必须显式指定前缀长度。例如：
+
+```bash
+cloudcc plan dataIndex <projectPath> Account \
+  --fields jtbm,csaleordercbjic \
+  --prefix-length jtbm=191,csaleordercbjic=191
+
+cloudcc create dataIndex <projectPath> Account \
+  --fields jtbm,csaleordercbjic \
+  --prefix-length jtbm=191,csaleordercbjic=191 --confirm --wait
+```
+
+前缀长度不会自动猜测。`plan` 会读取真实物理列类型，在发起异步任务前检查字段归属、数据库类型、列长度和
+估算键宽。计划与列表返回的 `prefixLengths` 与 `fields` / `columns` 顺序对齐；`null` 表示完整列索引。
+
 ## 4. 创建规则
 
 - 复合索引遵循最左前缀原则；常用等值过滤字段通常放在前面，再考虑范围和排序字段。
 - 字段顺序有意义：`ownerId,createdDate` 与 `createdDate,ownerId` 不是同一索引。
-- 不支持唯一、表达式、函数、部分、位图、包含列和字符串前缀长度索引。
-- LOB、长文本、公式、地址等复合存储类型或没有单一物理列的字段不能创建索引。
+- 不支持唯一、表达式、函数、部分、位图和包含列索引。
+- MySQL `TEXT` 单物理列支持显式字符前缀索引；其他数据库的 LOB/长文本、公式、地址等复合存储类型或没有单一物理列的字段不能创建索引。
+- 前缀索引适用于等值和 `LIKE 'abc%'` 等前导匹配，不适用于 `LIKE '%abc%'` 包含检索，也不提供完整值唯一性。
 - 名称只能使用数据库安全标识符；若不确定，应省略 `--name`。
 - 创建前会检查名称冲突、字段合法性、重复/覆盖关系、当前数量、平台上限和数据库硬限制。
 - 默认平台上限为每表 32 个，可由 `MDS_BUSINESS_DATA_INDEX_MAX_PER_TABLE` 调整；实际有效上限取平台与数据库限制中的较小值。
