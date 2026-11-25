@@ -1682,11 +1682,29 @@ func handlePublicGroupReadShortcut(action string, projectPath string, args []str
 		return c.getJSON(stdout, "/metadata/v1/public-groups/capabilities")
 	}
 	if action == "candidates" {
+		includeInactive := len(args) > 0 && args[len(args)-1] == "--include-inactive"
+		if includeInactive {
+			args = args[:len(args)-1]
+		}
 		if len(args) == 0 || len(args) > 3 || strings.TrimSpace(args[0]) == "" {
-			return fmt.Errorf("cloudcc candidates publicGroup <projectPath> <user|role|roleAndSubordinates|publicGroup> [group-selector] [filter]")
+			return fmt.Errorf("cloudcc candidates publicGroup <projectPath> <user|role|roleAndSubordinates|publicGroup> [group-selector] [filter] [--include-inactive]")
 		}
 		values := url.Values{}
 		values.Set("memberType", strings.TrimSpace(args[0]))
+		if includeInactive {
+			if !strings.EqualFold(values.Get("memberType"), "user") {
+				return fmt.Errorf("--include-inactive requires memberType=user")
+			}
+			capabilities, err := c.requestJSONMap(http.MethodGet, "/metadata/v1/public-groups/capabilities", nil)
+			if err != nil {
+				return err
+			}
+			options, _ := capabilities["candidateOptions"].(map[string]any)
+			if options["includeInactive"] != true {
+				return fmt.Errorf("public_group_provider_capability_unsupported: MetadataService does not advertise includeInactive")
+			}
+			values.Set("includeInactive", "true")
+		}
 		if len(args) >= 2 && strings.TrimSpace(args[1]) != "" {
 			values.Set("selector", strings.TrimSpace(args[1]))
 		}

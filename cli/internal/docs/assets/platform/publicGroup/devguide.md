@@ -18,6 +18,7 @@ cloudcc get publicGroup . 销售
 cloudcc detail publicGroup . afc-sales
 cloudcc detail publicGroup . 华东销售组
 cloudcc candidates publicGroup . user "" 张三
+cloudcc candidates publicGroup . user "" 张三 --include-inactive
 cloudcc candidates publicGroup . role "" 销售
 cloudcc candidates publicGroup . roleAndSubordinates "" 销售
 cloudcc candidates publicGroup . publicGroup 华东销售组 运营
@@ -32,7 +33,7 @@ cloudcc candidates publicGroup . publicGroup 华东销售组 运营
 
 ## 3. 统一成员结构
 
-所有写入使用 `members` 数组：
+创建时可选填 `members` 数组，分配成员时必须显式提供：
 
 ```json
 {
@@ -75,7 +76,11 @@ cloudcc detail publicGroup . 华东销售支持组
 `id` 可省略；仅 MSAPI create 接受调用方已有的根 ID。显式值必须是无首尾空白的非空字符串且不超过
 20 位，plan 和 apply 都会检查整个 `tp_sys_group` 根表占用，包括非公用小组类型。省略时 MetadataService
 生成 `afc` 小组 ID。`afd` 成员行 ID、固定 `type=3` 和审计字段始终由服务端管理。名称必须非空且唯一；
-成员 selector 必须唯一命中现有对象。重复成员会按 `type + targetId` 去重。
+成员 selector 必须唯一命中现有对象。重复的 `type + targetId` 会被拒绝。
+
+MSAPI 1.2.23 起，创建时省略 `members` 或传 `[]` 均可创建空组。候选默认仅列启用用户，
+加 `--include-inactive` 可查询禁用用户。禁用用户只能通过精确 ID 添加、保留或移除。
+候选和详情显示 `active`。计划会提示已禁用成员重新启用后可能获得该小组授予的访问权限。
 
 ## 5. 修改属性
 
@@ -121,9 +126,13 @@ MSAPI 的 add/remove/replace 都先读取当前集合并只生成必要差异。
 间接回路都会返回 `public_group_cycle`。plan 后目标成员或任何嵌套边变化，apply 返回
 `public_group_state_changed` 或 `public_group_graph_changed`，应重新读取并生成计划。
 
+MSAPI 1.2.23 起，可移除最后一个成员，也可用 `{"mode":"replace","members":[]}` 显式清空。
+已空时再次清空返回 `public_group_no_changes`。缺少 `members` 或传入非数组会拒绝。
+
 Lightning UIAPI 只有完整保存语义，因此 CLI 仅接受 `mode=replace`；add/remove 会在发请求前拒绝，避免把
 局部列表误当成全量列表。需要增量差异时将项目 `executionMode` 设为 `msapi` 或 `auto` 且配置可用的
 MetadataService。Horizontal UIAPI 当前无已维护公用小组合同，始终失败关闭。
+空组和禁用成员管理需要 MSAPI。Lightning UIAPI 会在保存前检查用户是否仍在平台候选范围内。
 
 ## 7. 删除保护
 

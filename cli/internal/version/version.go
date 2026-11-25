@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.3.16"
+const Version = "2.3.17"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -530,7 +530,7 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc get publicGroup <projectPath> [filter]")
 	fmt.Fprintln(stdout, "  cloudcc detail publicGroup <projectPath> <id-or-unique-name>")
 	fmt.Fprintln(stdout, "  cloudcc capabilities publicGroup <projectPath>")
-	fmt.Fprintln(stdout, "  cloudcc candidates publicGroup <projectPath> <user|role|roleAndSubordinates|publicGroup> [group-selector] [filter]")
+	fmt.Fprintln(stdout, "  cloudcc candidates publicGroup <projectPath> <user|role|roleAndSubordinates|publicGroup> [group-selector] [filter] [--include-inactive]")
 	fmt.Fprintln(stdout, "  cloudcc create publicGroup <projectPath> <@spec.json>  # MSAPI: plan only")
 	fmt.Fprintln(stdout, "  cloudcc update publicGroup <projectPath> <selector> <@patch.json>  # MSAPI: plan only")
 	fmt.Fprintln(stdout, "  cloudcc assign publicGroup <projectPath> <selector> <@assignment.json>  # MSAPI: plan only")

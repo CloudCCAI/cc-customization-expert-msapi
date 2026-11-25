@@ -1433,6 +1433,9 @@ func handlePublicGroup(action string, args []string, stdout io.Writer, cwd strin
 	if action != "create" && action != "update" && action != "save" && action != "assign" {
 		return postClass(stdout, projectPath, cfg, ep.base, ep.path, body)
 	}
+	if err := validatePublicGroupUIAPIUsers(projectPath, cfg, body); err != nil {
+		return err
+	}
 	var writeResponse map[string]any
 	if err := postClassResponse(projectPath, cfg, ep.base, ep.path, body, &writeResponse); err != nil {
 		return err
@@ -1451,6 +1454,42 @@ func handlePublicGroup(action string, args []string, stdout io.Writer, cwd strin
 		return err
 	}
 	return printJSON(stdout, map[string]any{"write": writeResponse, "readback": readback})
+}
+
+func validatePublicGroupUIAPIUsers(projectPath string, cfg config.Config, body map[string]any) error {
+	var users []string
+	for _, item := range strings.Split(publicGroupText(body["selecteditems"]), ",") {
+		kind, id, _ := strings.Cut(item, ":")
+		if kind == "User" {
+			users = append(users, id)
+		}
+	}
+	if len(users) == 0 {
+		return nil
+	}
+	// Query without a group ID so selected users are included in UserList.
+	var response map[string]any
+	if err := postClassResponse(projectPath, cfg, "setup", "/api/publicGroup/getPermissionDataJson",
+		map[string]any{}, &response); err != nil {
+		return err
+	}
+	data, _ := response["data"].(map[string]any)
+	if nested, ok := data["data"].(map[string]any); ok {
+		data = nested
+	}
+	candidates, _ := data["UserList"].([]any)
+	eligible := make(map[string]bool, len(candidates))
+	for _, candidate := range candidates {
+		if user, ok := candidate.(map[string]any); ok {
+			eligible[publicGroupText(user["id"])] = true
+		}
+	}
+	for _, id := range users {
+		if id == "" || !eligible[id] {
+			return fmt.Errorf("public_group_provider_capability_unsupported: user %q is not an eligible Lightning candidate; use MSAPI for disabled users", id)
+		}
+	}
+	return nil
 }
 
 func publicGroupResponseID(response map[string]any) string {
@@ -1473,6 +1512,9 @@ func publicGroupResponseID(response map[string]any) string {
 }
 
 func publicGroupUIAPIRequestBody(action string, args []string) (map[string]any, error) {
+	if action == "candidates" && len(args) > 0 && args[len(args)-1] == "--include-inactive" {
+		return nil, fmt.Errorf("public_group_provider_capability_unsupported: disabled user candidates require MSAPI")
+	}
 	if len(args) == 0 || strings.TrimSpace(args[0]) == "" {
 		switch action {
 		case "get", "getList", "candidates", "newInfo", "popup":
@@ -1534,13 +1576,19 @@ func normalizePublicGroupUIAPISaveBody(action string, body map[string]any) (map[
 	}
 	members, exists := result["members"]
 	if !exists {
+		if (action == "create" || action == "assign") && publicGroupText(result["selecteditems"]) == "" {
+			return nil, fmt.Errorf("public_group_provider_capability_unsupported: empty public group membership requires MSAPI")
+		}
 		return result, nil
 	}
 	items, ok := members.([]any)
 	if !ok {
 		return nil, fmt.Errorf("publicGroup members must be an array")
 	}
-	selected := make([]map[string]any, 0, len(items))
+	if len(items) == 0 {
+		return nil, fmt.Errorf("public_group_provider_capability_unsupported: empty public group membership requires MSAPI")
+	}
+	selected := make([]string, 0, len(items))
 	for index, raw := range items {
 		member, ok := raw.(map[string]any)
 		if !ok {
@@ -1557,18 +1605,16 @@ func normalizePublicGroupUIAPISaveBody(action string, body map[string]any) (map[
 		if err != nil {
 			return nil, fmt.Errorf("publicGroup members[%d]: %w", index, err)
 		}
-		item := map[string]any{"id": selector, "type": storageType}
-		if name := publicGroupText(member["name"]); name != "" {
-			item["name"] = name
+		if storageType == "User" && member["active"] == false {
+			return nil, fmt.Errorf("public_group_provider_capability_unsupported: disabled user membership requires MSAPI")
 		}
-		selected = append(selected, item)
-	}
-	encoded, err := json.Marshal(selected)
-	if err != nil {
-		return nil, err
+		if strings.ContainsAny(selector, ",:") {
+			return nil, fmt.Errorf("publicGroup members[%d] requires a platform ID without commas or colons", index)
+		}
+		selected = append(selected, storageType+":"+selector)
 	}
 	delete(result, "members")
-	result["selecteditems"] = string(encoded)
+	result["selecteditems"] = strings.Join(selected, ",")
 	return result, nil
 }
 
