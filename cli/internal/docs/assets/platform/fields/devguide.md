@@ -91,6 +91,38 @@ cloudcc detail fields . ffe2026079FD547mcK20
 - plan/apply 检查 `optionRevision`；计划生成后选项发生变化时 apply 失败，必须重新读取和计划。
 - apply 后必须再次回读，确认目标值、顺序、默认值、已有值和自然键均正确。
 
+### 业务机会阶段
+
+MetadataService 1.2.21+ 提供独立的特殊选项入口。先按项目语言回读阶段、候选预测类别和 revision。
+
+```bash
+cloudcc detail fields . ffe201100003943eFUc8 --special-options
+cloudcc plan msapi . fields @stage-options.json patch-special-options
+```
+
+```json
+{
+  "fieldId": "ffe201100003943eFUc8",
+  "objectId": "opportunity",
+  "expectedOptionRevision": "<special options readback revision>",
+  "actions": [
+    {
+      "op": "update",
+      "optionId": "<stage option ID>",
+      "attributes": {"probability": "0", "forecastType": "<candidate value>"}
+    }
+  ],
+  "defaultOption": {"optionId": "<stage option ID>"}
+}
+```
+
+- `add` 要求 `value` 与完整 `attributes`，可选 `label` 和 `clientKey`。
+  `status` 取 `untreated`、`won` 或 `lost`。可能性按标准字段约束填写，预测类别使用回读的 `value`。
+- `update` 使用已有活动阶段的 `optionId`，可传 `label` 或待改属性。
+  `order` 如提供，须列出所有活动阶段且每个仅一次。排序和默认值可引用本计划新增项的 `clientKey`。
+- 删除、停用、改存储值及清空默认值都不在此入口开放。记录类型分配由现有记录类型接口显式维护。
+- 复核 plan 后执行 `cloudcc apply msapi . <planId>`。漂移时重新读取并生成计划，执行后用同一特殊入口回读。
+
 ### 2.1 字段 ID 和选项 ID 规则
 
 - 创建字段时可以省略 `id`，由 MetadataService 按平台兼容格式生成；也可以显式传入。显式自定义字段 ID 必须匹配 `^ffe[A-Za-z0-9]{17}$`：以 `ffe` 开头、总长 20 位、只能包含 ASCII 字母和数字，不能带下划线，并通过占用校验。

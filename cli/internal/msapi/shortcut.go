@@ -1172,6 +1172,17 @@ func handleObjectReadShortcut(action string, projectPath string, args []string, 
 }
 
 func handleFieldsReadShortcut(action string, projectPath string, args []string, stdout io.Writer, cwd string) error {
+	if action == "detail" && len(args) == 2 && args[1] == "--special-options" && strings.TrimSpace(args[0]) != "" {
+		c, _, err := newClient([]string{projectPath}, cwd)
+		if err != nil {
+			return err
+		}
+		if err := c.requireSpecialFieldOptions("special-option-detail"); err != nil {
+			return err
+		}
+		values := url.Values{"language": []string{c.language}}
+		return c.getJSON(stdout, "/metadata/v1/fields/"+url.PathEscape(strings.TrimSpace(args[0]))+"/special-options?"+values.Encode())
+	}
 	if len(args) != 1 || strings.TrimSpace(args[0]) == "" {
 		return fmt.Errorf("cloudcc %s fields <projectPath> <%s>", action, map[bool]string{
 			true: "fieldId", false: "object-id-apiName-or-prefix",

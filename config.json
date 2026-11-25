@@ -1,6 +1,6 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.3.15-msapi",
+  "version": "2.3.16-msapi",
   "releaseDate": "2026-11-25",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
@@ -289,6 +289,21 @@
           "rollback"
         ],
         "reason": "Requires canonical filter/condition/rule readback, typed condition operators and value kinds, validated setup-envelope replacement, explicit owned rule plans, and provider-safe routing."
+      },
+      {
+        "capability": "msapi.fields.specialOptions",
+        "label": "Opportunity Stage special options",
+        "introducedInSkillVersion": "2.3.16-msapi",
+        "minimumMetadataServiceVersion": "1.2.21",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.2.21",
+        "domains": [
+          "fields"
+        ],
+        "operations": [
+          "special-option-detail",
+          "patch-special-options"
+        ],
+        "reason": "Requires a stage-specific option revision, forecast candidates, and transactional readback."
       },
       {
         "capability": "msapi.fields.optionLifecycle",
@@ -1903,6 +1918,7 @@
           "create",
           "update",
           "patch-options",
+          "patch-special-options",
           "delete",
           "audit",
           "repair"
@@ -1911,6 +1927,8 @@
           "cloudcc get fields <projectPath> <object>",
           "cloudcc detail fields <projectPath> <fieldId>",
           "cloudcc plan msapi <projectPath> fields @field-options.json patch-options",
+          "cloudcc detail fields <projectPath> <fieldId> --special-options",
+          "cloudcc plan msapi <projectPath> fields @stage-options.json patch-special-options",
           "cloudcc candidates fields <projectPath> <object> [relationship-path] [--current-field-id <id>] [--include-unsupported]",
           "cloudcc create fields <projectPath> <spec>",
           "cloudcc audit fields <projectPath> [options]",

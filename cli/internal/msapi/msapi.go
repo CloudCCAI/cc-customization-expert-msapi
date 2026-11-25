@@ -78,6 +78,13 @@ func Handle(action string, resource string, args []string, stdout io.Writer, cwd
 		if err := validateFormulaFieldPlan(body); err != nil {
 			return err
 		}
+		if normalizeDomain(stringValue(body["domain"])) == "fields" &&
+			(strings.EqualFold(stringValue(body["operation"]), "patch-special-options") ||
+				strings.EqualFold(stringValue(body["mode"]), "patch-special-options")) {
+			if err := c.requireSpecialFieldOptions("patch-special-options"); err != nil {
+				return err
+			}
+		}
 		if expressionsyntax.RequiresPlanBody(body) {
 			c.expressionSyntax, err = c.resolveExpressionSyntax()
 			if err != nil {
@@ -2420,6 +2427,20 @@ func parseObject(value string, label string) (map[string]any, error) {
 
 func (c *client) getJSON(stdout io.Writer, path string) error {
 	return c.writeJSON(stdout, http.MethodGet, path, nil)
+}
+
+func (c *client) requireSpecialFieldOptions(operation string) error {
+	capabilities, err := c.requestJSONMap(http.MethodGet, "/metadata/v1/capabilities", nil)
+	if err != nil {
+		return err
+	}
+	domains, _ := capabilities["domainOperations"].(map[string]any)
+	for _, item := range shortcutArray(domains["fields"]) {
+		if stringValue(item) == operation {
+			return nil
+		}
+	}
+	return fmt.Errorf("MetadataService does not advertise fields %s. Special field options require MetadataService 1.2.21+", operation)
 }
 
 func (c *client) writeJSON(stdout io.Writer, method string, path string, body any) error {
