@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.3.13"
+const Version = "2.3.14"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,6 +48,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- MSAPI object-view Contract 2 create accepts optional ownerId with MetadataService 1.2.19+. Updates preserve the owner. Run cloudcc doc view devguide.")
 		fmt.Fprintln(stderr, "- MySQL TEXT prefix indexes are now supported by dataIndex with explicit --prefix-length field=characters values, physical-column and 3072-byte key-width validation, durable prefix identity, SUB_PART readback, and prefix-aware redundancy analysis. Other databases and non-TEXT columns fail closed. Requires MetadataService 1.2.18.")
 		fmt.Fprintln(stderr, "- dupeCatcher conditions now have a setup-aligned typed field/operator/value contract, canonical conditions.logic/items and conditionVals compatibility, validated writes, friendly readback, normalized Lightning candidates, and complete user documentation. Requires MetadataService 1.2.8.")
 		fmt.Fprintln(stderr, "- Object-view Contract 2 includes authoritative latest-record state, exact platform visibility/permission semantics, revision guards and semantic write readback. Requires MetadataService 1.2.7.")

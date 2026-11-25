@@ -28,6 +28,7 @@ cloudcc candidates view <projectPath> <object> buttons
 | `objectId` | 创建必填 | 目标对象 ID。 |
 | `id` | 可选，自动生成 | 1–80 位字母、数字、`_`、`-`；不能为虚拟 ID `0..4`。 |
 | `label` | 创建必填 | 非空显示名称。 |
+| `ownerId` | 创建可选，默认执行者 | 仅 MSAPI，要求 MetadataService `1.2.19+`。值为当前租户已启用的用户 ID，指定他人需要视图管理权限。 |
 | `apiName` | 可选，自动生成 | 字母开头，仅字母、数字、`_`，对象内不区分大小写唯一。 |
 | `filterScope` | 默认 `{"type":"all"}` | `all`、`mine` 或带 `queueId` 的 `queue`。 |
 | `visibility` | 默认 `{"type":"private"}` | `private`、`allUsers` 或带 typed IDs 的 `members`。 |
@@ -53,6 +54,8 @@ cloudcc plan msapi <projectPath> object-views @view.json create
 cloudcc apply msapi <projectPath> <planId>
 cloudcc detail-v2 view <projectPath> <savedViewId> <object>
 ```
+
+指定所有人时，先确认目标 MetadataService 至少为 `1.2.19`，并在 apply 前核对计划中 `tp_sys_view` 根行的 `ownerid`。创建人由系统记录为执行者。更新不可提交 `ownerId`。私有视图按指定所有人计算可见性，可通过操作流水核对创建结果。
 
 ## 3. 候选合同
 
