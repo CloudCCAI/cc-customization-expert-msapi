@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"cloudcc-customization-expert-go/internal/docs"
+	"cloudcc-customization-expert-go/internal/domaincatalog"
 	"cloudcc-customization-expert-go/internal/expressionsyntax"
 	"cloudcc-customization-expert-go/internal/governance"
 	"cloudcc-customization-expert-go/internal/horizontalui"
@@ -117,6 +118,23 @@ func handleLowCodeShortcut(action string, resource string, args []string, stdout
 		return err
 	}
 	fmt.Fprintf(stderr, "cloudcc low-code provider: %s (%s; safety=%s)\n", selection.SelectedMode, selection.Reason, selection.SafetyLevel)
+	if entry, ok := domaincatalog.FindResource(resource); ok && entry.Name == "compact-layouts" {
+		supported := false
+		for _, route := range entry.Routes {
+			if route.Provider != selection.SelectedMode ||
+				(route.Platform != "" && route.Platform != selection.PlatformMode) ||
+				route.Availability == "unavailable" {
+				continue
+			}
+			for _, allowed := range route.Actions {
+				supported = supported || allowed == action
+			}
+		}
+		if !supported {
+			return fmt.Errorf("compactLayout %s is unavailable with %s %s; run cloudcc domain compactLayout",
+				action, selection.PlatformMode, selection.SelectedMode)
+		}
+	}
 	if selection.SelectedMode == provider.ModeMSAPI {
 		return msapi.HandleLowCodeShortcut(action, resource, args, stdout, cwd)
 	}

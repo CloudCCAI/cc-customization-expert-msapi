@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.3.14"
+const Version = "2.3.15"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,6 +48,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- Compact layouts use the first-class compactLayout Domain. MSAPI requires MetadataService 1.2.20+. Run cloudcc doc compactLayout devguide.")
 		fmt.Fprintln(stderr, "- MSAPI object-view Contract 2 create accepts optional ownerId with MetadataService 1.2.19+. Updates preserve the owner. Run cloudcc doc view devguide.")
 		fmt.Fprintln(stderr, "- MySQL TEXT prefix indexes are now supported by dataIndex with explicit --prefix-length field=characters values, physical-column and 3072-byte key-width validation, durable prefix identity, SUB_PART readback, and prefix-aware redundancy analysis. Other databases and non-TEXT columns fail closed. Requires MetadataService 1.2.18.")
 		fmt.Fprintln(stderr, "- dupeCatcher conditions now have a setup-aligned typed field/operator/value contract, canonical conditions.logic/items and conditionVals compatibility, validated writes, friendly readback, normalized Lightning candidates, and complete user documentation. Requires MetadataService 1.2.8.")
@@ -545,6 +546,12 @@ func Help(stdout io.Writer, stderr io.Writer) int {
 	fmt.Fprintln(stdout, "  cloudcc delete-rule dupeCatcher <projectPath> <filterId> <ruleId>  # MSAPI: plan only")
 	fmt.Fprintln(stdout, "  cloudcc doc dupeCatcher devguide  # complete user guide")
 	fmt.Fprintln(stdout, "  cloudcc get searchLayout <projectPath> <object>")
+	fmt.Fprintln(stdout, "  cloudcc <get|capabilities|assignments> compactLayout <projectPath> <object>")
+	fmt.Fprintln(stdout, "  cloudcc detail compactLayout <projectPath> <object> <layout>")
+	fmt.Fprintln(stdout, "  cloudcc candidates compactLayout <projectPath> <object> <fields|recordTypes|layouts>")
+	fmt.Fprintln(stdout, "  cloudcc impact compactLayout <projectPath> <object> <layout> delete")
+	fmt.Fprintln(stdout, "  cloudcc <create|update|assign|delete> compactLayout <projectPath> <specJson|@file>")
+	fmt.Fprintln(stdout, "  cloudcc doc compactLayout devguide")
 	fmt.Fprintln(stdout, "  cloudcc capabilities searchLayout <projectPath> <object>")
 	fmt.Fprintln(stdout, "  cloudcc candidates searchLayout <projectPath> <object> <section>")
 	fmt.Fprintln(stdout, "  cloudcc update searchLayout <projectPath> <encodedSpecJson|@file>  # MSAPI: plan only")

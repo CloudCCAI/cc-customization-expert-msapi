@@ -1,6 +1,6 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.3.14-msapi",
+  "version": "2.3.15-msapi",
   "releaseDate": "2026-11-25",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
@@ -100,6 +100,27 @@
     "sourceOfTruth": "cc-customization-expert-go/config.json",
     "policy": "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
     "minimumByCapability": [
+      {
+        "capability": "msapi.compactLayout.lifecycle",
+        "label": "Compact layout lifecycle",
+        "introducedInSkillVersion": "2.3.15-msapi",
+        "minimumMetadataServiceVersion": "1.2.20",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.2.20",
+        "domains": [
+          "compact-layouts"
+        ],
+        "operations": [
+          "get",
+          "detail",
+          "candidates",
+          "assignments",
+          "create",
+          "update",
+          "assign",
+          "delete"
+        ],
+        "reason": "Requires the native compact-layout aggregate and object-scoped capability endpoints."
+      },
       {
         "capability": "msapi.objectViews.createOwner",
         "label": "Create-only object-view owner",
@@ -1398,6 +1419,7 @@
           "field-dependencies",
           "lookup-filters",
           "search-layouts",
+          "compact-layouts",
           "field-tracking",
           "ccchat",
           "mobile-settings",
@@ -1702,6 +1724,101 @@
       }
     ],
     "resources": [
+      {
+        "name": "compact-layouts",
+        "label": "Compact layouts",
+        "kind": "resource",
+        "parent": "metadata",
+        "category": "metadata",
+        "aliases": [
+          "compactLayout",
+          "compact-layout"
+        ],
+        "availability": {
+          "msapi": "enabled",
+          "uiapi": "provider-adapter",
+          "universal": "provider-selected"
+        },
+        "minimumBackendVersion": "1.2.20",
+        "routes": [
+          {
+            "provider": "msapi",
+            "backend": "metadata-service",
+            "transport": "msapi",
+            "availability": "enabled",
+            "actions": [
+              "get",
+              "detail",
+              "capabilities",
+              "candidates",
+              "assignments",
+              "create",
+              "update",
+              "assign",
+              "impact",
+              "delete",
+              "plan",
+              "apply",
+              "changes",
+              "rollback-plan",
+              "rollback"
+            ]
+          },
+          {
+            "provider": "uiapi",
+            "platform": "lightning",
+            "backend": "setup-svc",
+            "transport": "uiapi",
+            "availability": "provider-adapter",
+            "actions": [
+              "get",
+              "detail",
+              "capabilities",
+              "candidates",
+              "assignments",
+              "create",
+              "update",
+              "assign"
+            ]
+          },
+          {
+            "provider": "uiapi",
+            "platform": "horizontal",
+            "backend": "main-app",
+            "transport": "uiapi",
+            "availability": "unavailable"
+          }
+        ],
+        "actions": [
+          "get",
+          "detail",
+          "capabilities",
+          "candidates",
+          "assignments",
+          "create",
+          "update",
+          "assign",
+          "impact",
+          "delete",
+          "plan",
+          "apply",
+          "changes",
+          "rollback-plan",
+          "rollback"
+        ],
+        "commands": [
+          "cloudcc <get|capabilities|assignments> compactLayout <projectPath> <object>",
+          "cloudcc detail compactLayout <projectPath> <object> <layout>",
+          "cloudcc candidates compactLayout <projectPath> <object> <fields|recordTypes|layouts>",
+          "cloudcc impact compactLayout <projectPath> <object> <layout> delete",
+          "cloudcc <create|update|assign|delete> compactLayout <projectPath> <specJson|@file>"
+        ],
+        "documentation": {
+          "introduction": "cloudcc doc platform/compactLayout introduction",
+          "devguide": "cloudcc doc platform/compactLayout devguide"
+        },
+        "packageAvailability": "enabled"
+      },
       {
         "name": "objects",
         "label": "Objects",

@@ -94,6 +94,9 @@ var lowCodeShortcutDomains = map[string]string{
 	"public_group":           "public-groups",
 	"publicgroup":            "public-groups",
 	"queue":                  "queues",
+	"compactLayout":          "compact-layouts",
+	"compact-layout":         "compact-layouts",
+	"compact-layouts":        "compact-layouts",
 	"emailTemplate":          "email-templates",
 	"emailTemplateFolder":    "email-templates",
 	"recordType":             "record-types",
@@ -237,6 +240,9 @@ var lowCodeShortcutActions = map[string]bool{
 // must no longer fall through to setup-svc backed modules.
 func IsLowCodeShortcut(action string, resource string) bool {
 	domain, ok := lowCodeShortcutDomains[strings.TrimSpace(resource)]
+	if domain == "compact-layouts" {
+		return true
+	}
 	if strings.TrimSpace(action) == "capabilities" {
 		return ok && (domain == "profiles" || domain == "search-layouts" || domain == "roles" || domain == "public-groups" || domain == "mobile-settings" || domain == "queues" || domain == "email-templates" || domain == "dupe-catchers" || domain == "object-views" || resource == "dashboardFolder" || resource == "dashboard-folder" || resource == "dashboardfolder" || isWorkflowActionDomain(domain))
 	}
@@ -255,6 +261,9 @@ func HandleLowCodeShortcut(action string, resource string, args []string, stdout
 		return fmt.Errorf("unsupported low-code metadata shortcut resource: %s", resource)
 	}
 	projectPath, rest := shortcutProjectPath(args, cwd)
+	if domain == "compact-layouts" {
+		return handleCompactLayoutShortcut(action, projectPath, rest, stdout, cwd)
+	}
 	if domain == "ccchat" {
 		return handleCcchatShortcut(action, resource, projectPath, rest, stdout, cwd)
 	}

@@ -47,6 +47,13 @@ func (c *Client) PostClass(url string, data any, accessToken string, response an
 	return c.postJSON(url, data, map[string]string{"accessToken": accessToken}, response, false)
 }
 
+// PostClassOnce submits a write without following redirects that could replay it.
+func (c *Client) PostClassOnce(url string, data any, accessToken string, response any) error {
+	client := *c.http
+	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	return (&Client{http: &client}).PostClass(url, data, accessToken, response)
+}
+
 func (c *Client) PostRaw(url string, data any, headers map[string]string, response any) error {
 	return c.postJSON(url, data, headers, response, false)
 }

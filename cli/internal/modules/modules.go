@@ -426,6 +426,8 @@ func Handle(action string, resource string, args []string, stdout io.Writer, std
 		return handleConfig(action, args, stdout, cwd)
 	case "object":
 		return handleObject(action, args, stdout, stderr, cwd)
+	case "compactLayout", "compact-layout", "compact-layouts":
+		return handleCompactLayout(action, args, stdout, cwd)
 	case "brief":
 		return handleBrief(action, args, stdout, cwd)
 	case "fields":

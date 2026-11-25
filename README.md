@@ -1,4 +1,6 @@
-# cc-customization-expert-msapi v2.3.14-msapi
+# cc-customization-expert-msapi v2.3.15-msapi
+
+关键信息布局使用独立的 `compactLayout` Domain。运行 `cloudcc doc compactLayout devguide` 查看命令、分配约束和 provider 差异。
 
 角色、公用小组和队列的 MSAPI create 可选提交各自文档声明的不超过 20 位根 ID；内部关系 ID 仍由服务端生成。角色完整生命周期、父角色候选、子树移动和用户分配见 `cloudcc doc role devguide`；不要手工提交角色闭包、gap 或 level。
 

@@ -1,14 +1,16 @@
 ---
 name: cc-customization-expert-msapi
-version: 2.3.14-msapi
+version: 2.3.15-msapi
 description: "CloudCC CRM/PaaS 实施与开发的 Go 离线技能。Strict MetadataService package: low-code operations require MetadataService."
 ---
 
-# CloudCC CRM 实施专家技能 MSAPI v2.3.14-msapi
+# CloudCC CRM 实施专家技能 MSAPI v2.3.15-msapi
 
-当前技能版本：`2.3.14-msapi`。分发名：`cc-customization-expert-msapi`。
+当前技能版本：`2.3.15-msapi`。分发名：`cc-customization-expert-msapi`。
 
 ## Provider 规则
+
+- 关键信息布局使用一级 `compactLayout` Domain。写入前先查对象能力、当前布局和候选，再阅读 `cloudcc doc compactLayout devguide`。显式分配清除与安全删除要求 MetadataService 1.2.20+。Lightning UIAPI 仅验证 setup 分配投影。
 
 - 公用小组必须使用一级 `publicGroup` Domain。成员只使用 `user`、`role`、`roleAndSubordinates`、`publicGroup` 四类。MSAPI create 可选提交不超过 20 位的根 `id`，内部行 ID 仍由服务端生成；MSAPI 支持 add/remove/replace、循环与漂移保护、删除引用保护，Lightning UIAPI 仅安全适配完整 replace，horizontal UIAPI 失败关闭。完整流程见 `cloudcc doc publicGroup devguide`。
 - 角色必须使用一级 `role` Domain。写入前先读取 capabilities、候选和当前详情；MSAPI create 可选提交不超过 20 位的根 `roleId`，且不能与外部身份同传；移动使用独立 move，用户分配使用 add/remove/replace。不得提交 closure、gap、level、closure 行 ID、角色组 ID、审计字段或原始列。完整流程见 `cloudcc doc role devguide`。
