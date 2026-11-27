@@ -83,6 +83,11 @@ cloudcc detail workflow ./project <workflowId>
 
 创建时省略 `id`，MetadataService 会分配 `acd` ID；省略 `apiName` 时会生成稳定格式的 API 名。建议生产配置显式提供可读 API 名。
 
+创建后的规则默认停用。`tp_sys_workflow.ISACTIVE` 是平台 `BIT(1)` 列，库内只有 `0` 和 `1` 两种取值，
+不要按字符串 `true`/`false` 理解或构造 SQL。`workflow.json` 可显式提交 `isactive`（布尔、`0`/`1` 或
+`"true"`/`"false"`），MetadataService 归一后写入 `0`/`1`；省略时写 `0`。显式提交启用值会带一条计划警告，
+因为 setup-web 创建的规则一律为停用状态，启用应走 `enable` 的完整校验并在 apply 前复核计划。
+
 ## 3. 规则字段与条件
 
 | 字段 | 说明 |
@@ -98,6 +103,7 @@ cloudcc detail workflow ./project <workflowId>
 | `functionCode` / `formula` | 公式条件文本 |
 | `condition.items` / `conditions` | 条件行 |
 | `condition.filter` / `bool_filter` | 条件逻辑，如 `1 AND (2 OR 3)` |
+| `isactive` | 规则状态；写入 `BIT(1)` 列，编码 `0` 停用 / `1` 启用，省略为 `0`；更新不改状态 |
 
 工作流更新采用条件集合三态语义：完全省略条件相关字段时保留现有条件；显式提交空 `conditions` / `condition.items` 时清空条件行；提交非空集合时先删除旧条件再插入完整新集合。切换公式/条件模式时应显式提交 `condtionOption` 及对应 `functionCode` 或条件集合。名称、说明等普通 patch 不会再隐式清空条件或把公式模式改回 `R`。
 
@@ -305,6 +311,10 @@ cloudcc disable workflow ./project acd-account-status
 
 启用前 MetadataService 校验三类已知动作仍存在、动作目标对象与工作流一致，并拒绝周期字段更新。apply 还要求工作流更新恰好影响一行，避免对不存在规则静默成功。
 
+启用和停用直接写 `tp_sys_workflow.ISACTIVE` 的 `1`/`0`。该列是平台 `BIT(1)`，不是存放 `true`/`false`
+文本的字符串列；直接改库或写 SQL 时必须用 `1`/`0`。普通 `update` 不提交状态字段，因此改名称、说明、条件或
+公式都不会改变启用状态，需要改状态时始终使用 `enable`/`disable`。
+
 ## 11. 删除规则
 
 ```bash
@@ -326,7 +336,7 @@ cloudcc apply msapi ./project <planId>
 | `workflow_existing_action_scope_unsupported` | 时间/周期作用域绑定已有动作 |
 | `workflow_recurring_field_update_unsupported` | 周期作用域使用字段更新 |
 | `workflow_action_target_mismatch` | 动作和规则目标对象不同 |
-| `workflow_spec_invalid` | scope、触发器字段或值不合法 |
+| `workflow_spec_invalid` | scope、触发器字段、值不合法，或 `isactive` 不是可识别的布尔值（目标列为 `BIT(1)`，只接受 `0`/`1`） |
 
 ## 13. 上线检查清单
 

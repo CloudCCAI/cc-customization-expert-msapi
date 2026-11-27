@@ -1,6 +1,6 @@
 {
   "packageName": "cc-customization-expert-msapi",
-  "version": "2.3.18-msapi",
+  "version": "2.3.19-msapi",
   "releaseDate": "2026-11-27",
   "compatCloudccCliVersion": "2.5.3",
   "runtime": "go",
@@ -100,6 +100,23 @@
     "sourceOfTruth": "cc-customization-expert-go/config.json",
     "policy": "When an MSAPI skill capability requires a minimum MetadataService server version, record the capability dependency here and keep generated skill package config.json in sync.",
     "minimumByCapability": [
+      {
+        "capability": "msapi.workflows.bitActiveFlag",
+        "label": "Workflow rule state in the platform BIT(1) column",
+        "introducedInSkillVersion": "2.3.19-msapi",
+        "minimumMetadataServiceVersion": "1.2.26",
+        "metadataServiceReleaseTag": "cc-metadata-service-v1.2.26",
+        "domains": [
+          "workflows"
+        ],
+        "operations": [
+          "create",
+          "update",
+          "activate",
+          "deactivate"
+        ],
+        "reason": "tp_sys_workflow.ISACTIVE is BIT(1); older MetadataService versions write boolean text such as 'false' and fail with Data too long for column 'ISACTIVE'. 1.2.26 writes 0/1, defaults create to 0, and leaves the state untouched on update."
+      },
       {
         "capability": "msapi.workflows.timeTriggerRuleDate",
         "label": "Rule-trigger-date base for workflow time triggers",

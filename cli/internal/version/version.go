@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.3.18"
+const Version = "2.3.19"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,6 +48,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- Workflow rule state now persists in the platform BIT(1) column as 0/1 instead of boolean text. Create defaults to 0, enable writes 1, disable writes 0, and a plain update never changes the state. Explicit isactive accepts boolean or 0/1 and is normalized. Requires MetadataService 1.2.26. Run cloudcc doc workflow devguide.")
 		fmt.Fprintln(stderr, "- Workflow time triggers accept the reserved value triggerTime (rule trigger date) for field, alongside real date and date-time fields. The reserved value is written verbatim and is no longer resolved as a physical field. Requires MetadataService 1.2.24. Run cloudcc doc workflow devguide.")
 		fmt.Fprintln(stderr, "- Compact layouts use the first-class compactLayout Domain. MSAPI requires MetadataService 1.2.20+. Run cloudcc doc compactLayout devguide.")
 		fmt.Fprintln(stderr, "- MSAPI object-view Contract 2 create accepts optional ownerId with MetadataService 1.2.19+. Updates preserve the owner. Run cloudcc doc view devguide.")
