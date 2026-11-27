@@ -220,10 +220,16 @@ cloudcc apply msapi ./project <planId>
 }
 ```
 
-- `field` 必须是工作流目标对象上的日期或日期时间字段，API 名会归一为真实字段 ID；
+- `field` 为工作流目标对象上的日期或日期时间字段，API 名会归一为真实字段 ID；也可传保留值 `triggerTime`（规则触发日期），该值是平台注入的系统项，不做字段解析、原样落库；
 - `operator` 为 `+` 或 `-`；
 - `amount` 为大于等于 0 的整数；
 - `unit` 为 `day` 或 `hour`。
+
+以规则触发日期为基准（提前 60 天）：
+
+```json
+{"id":"acd-contract-expiry","field":"triggerTime","operator":"-","amount":60,"unit":"day"}
+```
 
 ```bash
 cloudcc createTimeTrigger workflow ./project @time-trigger.json

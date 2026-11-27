@@ -9,7 +9,7 @@ import (
 	"cloudcc-customization-expert-go/internal/edition"
 )
 
-const Version = "2.3.17"
+const Version = "2.3.18"
 const CompatVersion = "2.5.3"
 
 func Current() string {
@@ -48,6 +48,7 @@ func Handle(action string, args []string, stdout io.Writer, stderr io.Writer) er
 		}
 		return domaincatalog.WriteDetailWithFormat(stdout, args[0], format)
 	case "changelog":
+		fmt.Fprintln(stderr, "- Workflow time triggers accept the reserved value triggerTime (rule trigger date) for field, alongside real date and date-time fields. The reserved value is written verbatim and is no longer resolved as a physical field. Requires MetadataService 1.2.24. Run cloudcc doc workflow devguide.")
 		fmt.Fprintln(stderr, "- Compact layouts use the first-class compactLayout Domain. MSAPI requires MetadataService 1.2.20+. Run cloudcc doc compactLayout devguide.")
 		fmt.Fprintln(stderr, "- MSAPI object-view Contract 2 create accepts optional ownerId with MetadataService 1.2.19+. Updates preserve the owner. Run cloudcc doc view devguide.")
 		fmt.Fprintln(stderr, "- MySQL TEXT prefix indexes are now supported by dataIndex with explicit --prefix-length field=characters values, physical-column and 3072-byte key-width validation, durable prefix identity, SUB_PART readback, and prefix-aware redundancy analysis. Other databases and non-TEXT columns fail closed. Requires MetadataService 1.2.18.")

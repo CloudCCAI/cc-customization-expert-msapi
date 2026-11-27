@@ -1,4 +1,4 @@
-# cc-customization-expert-msapi v2.3.17-msapi
+# cc-customization-expert-msapi v2.3.18-msapi
 
 关键信息布局使用独立的 `compactLayout` Domain。运行 `cloudcc doc compactLayout devguide` 查看命令、分配约束和 provider 差异。
 
